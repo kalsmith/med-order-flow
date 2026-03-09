@@ -66,7 +66,7 @@ class DoctorController extends Controller
             $doctor->specialties()->attach($request->specialties);
 
             DB::commit();
-            return redirect()->route('doctors.index')->with('status', 'Doctor registrado exitosamente.');
+            return redirect()->route('admin.doctors.index')->with('status', 'Doctor registrado exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -111,7 +111,7 @@ class DoctorController extends Controller
             $doctor->specialties()->sync($request->specialties);
 
             DB::commit();
-            return redirect()->route('doctors.index')->with('status', 'Doctor actualizado.');
+            return redirect()->route('admin.doctors.index')->with('status', 'Doctor actualizado.');
 
         } catch (\Exception $e) {
             DB::rollBack();

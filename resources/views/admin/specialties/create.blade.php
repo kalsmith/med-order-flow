@@ -10,7 +10,7 @@
                 <h6 class="m-0 font-weight-bold text-primary">Información de la Especialidad</h6>
             </div>
             <div class="card-body">
-                <form action="{{ route('specialties.store') }}" method="POST">
+                <form action="{{ route('admin.specialties.store') }}" method="POST">
                     @csrf
 
                     <div class="mb-3">
@@ -56,7 +56,7 @@
                     <hr>
 
                     <div class="d-flex justify-content-between">
-                        <a href="{{ route('specialties.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('admin.specialties.index') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Volver
                         </a>
                         <button type="submit" class="btn btn-primary">

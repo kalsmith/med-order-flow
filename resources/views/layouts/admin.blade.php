@@ -37,14 +37,15 @@
             letter-spacing: -0.5px;
         }
 
-        /* Sidebar */
+        /* Sidebar - Estilos mantenidos y mejorados */
         .sidebar {
             position: fixed; top: 0; bottom: 0; left: 0; z-index: 100;
             width: 260px; background: var(--sidebar-bg);
             transition: all 0.3s;
         }
         .sidebar-sticky {
-            position: relative; height: 100vh; padding-top: 20px;
+            position: relative; height: calc(100vh - 60px);
+            top: 60px; padding-top: 20px;
             overflow-x: hidden; overflow-y: auto;
         }
 
@@ -103,13 +104,16 @@
         <div class="navbar-nav w-100 d-flex flex-row justify-content-end px-4">
             <div class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle fw-semibold text-dark" href="#" data-bs-toggle="dropdown">
-                    {{ Auth::user()->name }}
+                    <i class="bi bi-person-circle me-1"></i> {{ Auth::user()->name }}
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                    <li class="px-3 py-2 small text-muted border-bottom">
+                        Rol: {{ Auth::user()->getRoleNames()->first() ?? 'Sin Rol' }}
+                    </li>
                     <li>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="dropdown-item text-danger">
+                            <button type="submit" class="dropdown-item text-danger py-2">
                                 <i class="bi bi-box-arrow-right me-2"></i> Salir
                             </button>
                         </form>
@@ -121,49 +125,9 @@
 
     <div class="container-fluid">
         <div class="row">
-            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-                <div class="sidebar-sticky">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-                                <i class="bi bi-grid-1x2-fill"></i> Dashboard
-                            </a>
-                        </li>
 
-                        {{-- Solo visible para Admin y Director Técnico --}}
-                        @role('admin|director_tecnico')
-                        <h6 class="sidebar-heading">Gestión Médica</h6>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('specialties.*') ? 'active' : '' }}" href="{{ route('specialties.index') }}">
-                                <i class="bi bi-clipboard2-pulse-fill"></i> Especialidades
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('doctors.*') ? 'active' : '' }}" href="{{ route('doctors.index') }}">
-                                <i class="bi bi-person-badge-fill"></i> Doctores
-                            </a>
-                        </li>
-                        @endrole
-
-                        <h6 class="sidebar-heading">Operaciones</h6>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->is('admin/orders*') ? 'active' : '' }}" href="#">
-                                <i class="bi bi-file-earmark-text-fill"></i> Órdenes
-                            </a>
-                        </li>
-
-                        {{-- Solo visible para Contable y Admin --}}
-                        @role('contable|admin')
-                        <h6 class="sidebar-heading">Finanzas</h6>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->is('admin/accounting*') ? 'active' : '' }}" href="#">
-                                <i class="bi bi-wallet2"></i> Contabilidad
-                            </a>
-                        </li>
-                        @endrole
-                    </ul>
-                </div>
-            </nav>
+            {{-- LLAMADA AL PARTIAL --}}
+            @include('admin.partials._sidebar')
 
             <main class="col-md-9 ms-sm-auto col-lg-10 p-0">
                 <div class="content-header d-flex justify-content-between align-items-center">
@@ -172,9 +136,9 @@
                 </div>
 
                 <div class="px-4 pb-5">
-                    @if (session('status'))
+                    @if (session('success'))
                         <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show" role="alert">
-                            <i class="bi bi-check-circle-fill me-2"></i> {{ session('status') }}
+                            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif

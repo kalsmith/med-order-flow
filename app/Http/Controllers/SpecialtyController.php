@@ -32,7 +32,7 @@ class SpecialtyController extends Controller
             'description' => $request->description
         ]);
 
-        return redirect()->route('specialties.index')->with('status', 'Especialidad creada con éxito.');
+        return redirect()->route('admin.specialties.index')->with('status', 'Especialidad creada con éxito.');
     }
 
     public function edit(Specialty $specialty)
@@ -49,11 +49,11 @@ class SpecialtyController extends Controller
 
         $specialty->update([
             'name' => $request->name,
-            'slug' => \Illuminate\Support\Str::slug($request->name),
+            'slug' =>  Str::slug($request->name),
             'description' => $request->description
         ]);
 
-        return redirect()->route('specialties.index')->with('status', 'Especialidad actualizada correctamente.');
+        return redirect()->route('admin.specialties.index')->with('status', 'Especialidad actualizada correctamente.');
     }
 
 

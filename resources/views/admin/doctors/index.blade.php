@@ -3,8 +3,8 @@
 @section('header', 'Cuerpo Médico')
 
 @section('header-actions')
-    <a href="{{ route('doctors.create') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-person-plus-fill me-2"></i>Nuevo Doctor
+<a href="{{ route('admin.doctors.create') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill me-2"></i>Nuevo Doctor
     </a>
 @endsection
 
@@ -17,6 +17,7 @@
                     <th>Doctor</th>
                     <th>RUT / SIS</th>
                     <th>Especialidades</th>
+                    <th>Firma</th>
                     <th>Estado</th>
                     <th class="text-end">Acciones</th>
                 </tr>
@@ -26,7 +27,7 @@
                 <tr>
                     <td>
                         <div class="d-flex align-items-center">
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: bold;">
                                 {{ substr($doctor->user->name, 0, 1) }}
                             </div>
                             <div>
@@ -36,25 +37,42 @@
                         </div>
                     </td>
                     <td>
-                        <div>{{ $doctor->rut }}</div>
+                        <div class="fw-medium">{{ $doctor->rut }}</div>
                         <div class="badge bg-light text-dark border">{{ $doctor->rnpi_number ?? 'Sin RNPI' }}</div>
                     </td>
                     <td>
-                        @foreach($doctor->specialties as $esp)
-                            <span class="badge bg-info-subtle text-info border border-info-subtle">{{ $esp->name }}</span>
-                        @endforeach
+                        <div class="d-flex flex-wrap gap-1">
+                            @forelse($doctor->specialties as $esp)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle">{{ $esp->name }}</span>
+                            @empty
+                                <span class="text-muted small">Sin especialidad</span>
+                            @endforelse
+                        </div>
+                    </td>
+                    <td>
+                        @if($doctor->signature_path)
+                            <span class="text-success" title="Firma cargada">
+                                <i class="bi bi-patch-check-fill"></i>
+                            </span>
+                        @else
+                            <span class="text-warning" title="Firma pendiente">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </span>
+                        @endif
                     </td>
                     <td>
                         @if($doctor->is_active)
-                            <span class="badge bg-success-subtle text-success">Activo</span>
+                            <span class="badge rounded-pill bg-success-subtle text-success">Activo</span>
                         @else
-                            <span class="badge bg-danger-subtle text-danger">Inactivo</span>
+                            <span class="badge rounded-pill bg-danger-subtle text-danger">Inactivo</span>
                         @endif
                     </td>
                     <td class="text-end">
-                        <a href="{{ route('doctors.edit', $doctor) }}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil"></i>
-                        </a>
+                        <div class="btn-group">
+                            <a href="{{ route('admin.doctors.edit', $doctor) }}" class="btn btn-sm btn-outline-primary" title="Editar perfil">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 @endforeach

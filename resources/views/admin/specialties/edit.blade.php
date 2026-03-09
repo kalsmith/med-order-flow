@@ -7,7 +7,7 @@
     <div class="col-md-8">
         <div class="card shadow">
             <div class="card-body">
-                <form action="{{ route('specialties.update', $specialty) }}" method="POST">
+                <form action="{{ route('admin.specialties.update', $specialty) }}" method="POST">
                     @csrf
                     @method('PUT')
 
@@ -34,7 +34,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <a href="{{ route('specialties.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        <a href="{{ route('admin.specialties.index') }}" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-success">
                             <i class="bi bi-check-circle"></i> Guardar Cambios
                         </button>

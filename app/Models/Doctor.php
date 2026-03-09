@@ -51,10 +51,10 @@ class Doctor extends Model
     /**
      * Un Doctor emite muchas órdenes médicas.
      */
-    // public function medicalOrders()
-    // {
-    //     return $this->hasMany(MedicalOrder::class);
-    // }
+    public function medicalOrders()
+    {
+        return $this->hasMany(MedicalOrder::class);
+    }
 
     // --- ACCESORS & LOGIC ---
 

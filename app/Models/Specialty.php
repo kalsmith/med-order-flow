@@ -20,9 +20,19 @@ class Specialty extends Model
         });
     }
 
-    // Relación con Exámenes (según tu migración de exam_types)
+    /**
+     * Obtener todos los exámenes de esta especialidad.
+     */
     public function examTypes()
     {
         return $this->hasMany(ExamType::class);
+    }
+
+    /**
+     * Obtener solo los "Packs/Pilas" de esta especialidad.
+     */
+    public function examBundles()
+    {
+        return $this->hasMany(ExamType::class)->has('children');
     }
 }

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="d-flex justify-content-end mb-3">
-    <a href="{{ route('specialties.create') }}" class="btn btn-primary">
+    <a href="{{ route('admin.specialties.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Nueva Especialidad
     </a>
 </div>
@@ -29,7 +29,7 @@
                     <td><code>{{ $specialty->slug }}</code></td>
                     <td>{{ Str::limit($specialty->description, 50) }}</td>
                     <td>
-                        <a href="{{ route('specialties.edit', $specialty) }}" class="btn btn-sm btn-outline-info">
+                        <a href="{{ route('admin.specialties.edit', $specialty) }}" class="btn btn-sm btn-outline-info">
                             <i class="bi bi-pencil"></i> Editar
                         </a>
                     </td>
