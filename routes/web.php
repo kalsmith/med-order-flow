@@ -38,7 +38,7 @@ Route::get('/', function () {
 */
 // Esta línea es el "puente": si el middleware 'auth' rebota a alguien, lo manda a Google.
 // No interfiere con tu login interno si el staff entra directo a su ruta de admin.
-Route::get('/login', [GoogleController::class, 'redirectToGoogle'])->name('login');
+//Route::get('/login', [GoogleController::class, 'redirectToGoogle'])->name('login');
 
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);

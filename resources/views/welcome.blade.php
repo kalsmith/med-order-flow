@@ -151,7 +151,7 @@
                                     <div class="small fw-semibold opacity-75">Desde</div>
                                     <div class="price-tag">$9.990</div>
                                 </div>
-                                <button class="btn btn-select w-100 shadow-sm" onclick="window.location.href='{{ route('orders.custom') }}'">
+                                <button class="btn btn-select w-100 shadow-sm" onclick="window.location.href='{{ Auth::check() ? route('orders.custom') : route('auth.google.login') }}'">
                                     Solicitar a Medida <i class="bi bi-pencil-square ms-1"></i>
                                 </button>
                             </div>
