@@ -86,6 +86,7 @@ public function createPayment(MedicalOrder $order)
     /**
      * Procesa el Webhook, cierra la pasarela y genera el movimiento contable
      */
+
     public function handleWebhook(string $token)
     {
         $status = $this->getStatus($token);
@@ -107,21 +108,23 @@ public function createPayment(MedicalOrder $order)
 
                 // 3. Obtener la Orden Médica
                 $order = $gatewayTrx->payable;
+
                 if ($order) {
-                    $order->update(['status' => 'paid']);
+                    // CAMBIO AQUÍ: Llamamos al método inteligente del modelo
+                    // Este método evalúa si es 'standard' para firmar o 'paid' para esperar
+                    $order->finalizePayment();
 
                     // 4. CREAR EL MOVIMIENTO EN TRANSACTION (Contabilidad)
-                    // Aquí es donde vive el dinero real en tu sistema
                     Transaction::create([
-                        'sender_id'    => $gatewayTrx->user_id, // El paciente que pagó
-                        'receiver_id'  => $order->doctor_id ?? null, // Doctor asignado o null
-                        'reference_id' => $order->id, // UUID de la Orden Médica
-                        'reference_code' => $gatewayTrx->buy_order, // Vinculamos con la pasarela
-                        'amount'       => $gatewayTrx->amount,
-                        'platform_fee' => 0, // Ajustar según tu lógica de comisión
-                        'type'         => 'medical_order',
-                        'status'       => 'completed',
-                        'metadata'     => [
+                        'sender_id'      => $gatewayTrx->user_id,
+                        'receiver_id'    => $order->doctor_id ?? null,
+                        'reference_id'   => $order->id,
+                        'reference_code' => $gatewayTrx->buy_order,
+                        'amount'         => $gatewayTrx->amount,
+                        'platform_fee'   => 0,
+                        'type'           => 'medical_order',
+                        'status'         => 'completed',
+                        'metadata'       => [
                             'gateway' => 'flow',
                             'flow_token' => $token,
                             'payment_method' => $status->paymentMethod ?? 'unknown'
@@ -134,6 +137,11 @@ public function createPayment(MedicalOrder $order)
         }
         return false;
     }
+
+
+
+
+
 
     public function getStatus(string $token)
     {
