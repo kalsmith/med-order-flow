@@ -30,13 +30,15 @@ Route::get('/', function () {
     return view('welcome', compact('packs', 'individuales'));
 })->name('home');
 
+
 /*
 |--------------------------------------------------------------------------
 | 2. AUTENTICACIÓN GOOGLE (Socialite)
 |--------------------------------------------------------------------------
 */
-// Esta línea es clave: obliga a que cualquier rebote de "auth" vaya a Google
-//Route::get('/login', [GoogleController::class, 'redirectToGoogle'])->name('login');
+// Esta línea es el "puente": si el middleware 'auth' rebota a alguien, lo manda a Google.
+// No interfiere con tu login interno si el staff entra directo a su ruta de admin.
+Route::get('/login', [GoogleController::class, 'redirectToGoogle'])->name('login');
 
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
@@ -53,33 +55,24 @@ Route::post('/logout', function() {
 | 3. RUTAS PROTEGIDAS (PACIENTES)
 |--------------------------------------------------------------------------
 */
-
-/*
-|--------------------------------------------------------------------------
-| 3. RUTAS PROTEGIDAS (PACIENTES)
-|--------------------------------------------------------------------------
-*/
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified'
 ])->group(function () {
 
-    // Flujo de orden personalizada (Requiere Login, no requiere perfil completo aún)
+    /** * FLUJO PMV: Estas rutas permiten configurar la orden y familiares.
+     * Se sacan de 'check.profile' para evitar el rebote al login si el perfil está incompleto.
+     */
     Route::get('/orden-personalizada', [PublicOrderController::class, 'customOrder'])->name('orders.custom');
     Route::get('/confirmar-orden-especial', [PublicOrderController::class, 'confirmCustomOrder'])->name('orders.custom.confirm');
-
-    /** * RUTA MOVIDA: Confirmación de pedido
-     * La sacamos de check.profile para que el componente Livewire maneje
-     * la selección/creación de perfiles internamente.
-     */
     Route::get('/confirmar-pedido/{exam_type}', [PublicOrderController::class, 'confirmOrder'])->name('orders.confirm');
 
     // Gestión de Perfil
     Route::get('/completar-perfil', [PublicOrderController::class, 'completeProfileForm'])->name('profile.complete');
     Route::post('/completar-perfil', [PublicOrderController::class, 'storeProfile'])->name('profile.store');
 
-    // Rutas que SI requieren que el proceso de datos esté validado para operar
+    // Rutas que SI requieren que el perfil (RUT, etc.) esté validado para finalizar la compra o ver documentos
     Route::middleware(['check.profile'])->group(function () {
 
         Route::post('/enviar-pedido', [PublicOrderController::class, 'store'])->name('orders.store.public');
@@ -95,6 +88,7 @@ Route::middleware([
         Route::post('/mis-ordenes/{order}/retry-payment', [PublicOrderController::class, 'retryPayment'])->name('orders.retryPayment');
     });
 });
+
 
 /*
 |--------------------------------------------------------------------------
