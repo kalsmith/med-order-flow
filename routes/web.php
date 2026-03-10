@@ -130,9 +130,8 @@ Route::prefix('payment/flow')->group(function () {
 
 });
 
-Route::get('/pago-exitoso/{order?}', function ($order = null) {
-    return view('payment_success', ['order' => $order]);
-})->name('payment.success');
+Route::get('/pago-exitoso/{order}', [PublicOrderController::class, 'showSuccess'])
+    ->name('payment.success');
 
 /*
 |--------------------------------------------------------------------------

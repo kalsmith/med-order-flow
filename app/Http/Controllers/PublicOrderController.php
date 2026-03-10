@@ -189,4 +189,22 @@ public function download($orderId)
 }
 
 
+// En PublicOrderController.php
+
+public function showSuccess($orderId)
+{
+    // Usamos el nombre exacto de tu relación: paymentTransaction
+    $order = MedicalOrder::with(['paymentTransaction'])
+                ->findOrFail($orderId);
+
+    // Validamos que el usuario logueado sea el dueño de la orden
+    if ($order->patient_id !== Auth::user()->patient->id) {
+        abort(403, 'No tienes acceso a esta orden.');
+    }
+
+    return view('payment_success', compact('order'));
+}
+
+
+
 }
