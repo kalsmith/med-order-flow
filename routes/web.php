@@ -53,6 +53,12 @@ Route::post('/logout', function() {
 | 3. RUTAS PROTEGIDAS (PACIENTES)
 |--------------------------------------------------------------------------
 */
+
+/*
+|--------------------------------------------------------------------------
+| 3. RUTAS PROTEGIDAS (PACIENTES)
+|--------------------------------------------------------------------------
+*/
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -63,13 +69,19 @@ Route::middleware([
     Route::get('/orden-personalizada', [PublicOrderController::class, 'customOrder'])->name('orders.custom');
     Route::get('/confirmar-orden-especial', [PublicOrderController::class, 'confirmCustomOrder'])->name('orders.custom.confirm');
 
+    /** * RUTA MOVIDA: Confirmación de pedido
+     * La sacamos de check.profile para que el componente Livewire maneje
+     * la selección/creación de perfiles internamente.
+     */
+    Route::get('/confirmar-pedido/{exam_type}', [PublicOrderController::class, 'confirmOrder'])->name('orders.confirm');
+
     // Gestión de Perfil
     Route::get('/completar-perfil', [PublicOrderController::class, 'completeProfileForm'])->name('profile.complete');
     Route::post('/completar-perfil', [PublicOrderController::class, 'storeProfile'])->name('profile.store');
 
-    // Rutas que SI requieren perfil completo (RUT, fecha nacimiento, etc)
+    // Rutas que SI requieren que el proceso de datos esté validado para operar
     Route::middleware(['check.profile'])->group(function () {
-        Route::get('/confirmar-pedido/{exam_type}', [PublicOrderController::class, 'confirmOrder'])->name('orders.confirm');
+
         Route::post('/enviar-pedido', [PublicOrderController::class, 'store'])->name('orders.store.public');
 
         // Checkout de Pago
