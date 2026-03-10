@@ -105,17 +105,18 @@ class PublicOrderController extends Controller
 
         try {
             // 1. Creamos la orden en DB
-            $order = DB::transaction(function () use ($request, $doctor, $exam) {
-                return MedicalOrder::create([
-                    'id'                => (string) Str::uuid(),
-                    'patient_id'        => Auth::user()->patient->id,
-                    'doctor_id'         => $doctor->id,
-                    'exam_type_id'      => $exam->id,
-                    'status'            => 'pending',
-                    'amount'            => $exam->base_price, // Precio desde DB, no desde el Request
-                    'verification_code' => strtoupper(Str::random(8)),
-                ]);
-            });
+                $order = DB::transaction(function () use ($request, $doctor, $exam) {
+                    return MedicalOrder::create([
+                        'id'                => (string) Str::uuid(),
+                        'patient_id'        => Auth::user()->patient->id,
+                        'doctor_id'         => $doctor->id,
+                        'exam_type_id'      => $exam->id,
+                        'status'            => 'pending',
+                        'type'              => 'standard', // <--- AGREGAR ESTO
+                        'amount'            => $exam->base_price,
+                        'verification_code' => strtoupper(Str::random(8)),
+                    ]);
+                });
 
             // 2. Iniciamos el proceso en Flow
             return $this->processFlowPayment($order);

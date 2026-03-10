@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Facades\Log;
 
 class MedicalOrder extends Model
 {
@@ -83,6 +84,31 @@ class MedicalOrder extends Model
     {
         return $this->hasOne(Transaction::class, 'reference_id', 'id');
     }
+
+
+// En app/Models/MedicalOrder.php
+
+public function finalizePayment()
+{
+    // Si la orden es de tipo estándar, la autogestionamos
+    if ($this->type === 'standard') {
+
+        $this->update([
+            'status'    => 'signed',
+            'signed_at' => now(),
+        ]);
+
+        Log::info("Orden {$this->id} auto-firmada exitosamente (flujo standard).");
+
+    } else {
+        // Es una orden de flujo especial (consulta/formulario),
+        // solo marcamos pagado y el médico que atienda la firma después.
+        $this->update(['status' => 'paid']);
+
+        Log::info("Orden {$this->id} pagada, pendiente de revisión médica (flujo especial).");
+    }
+}
+
 
 
 }
