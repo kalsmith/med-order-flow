@@ -172,59 +172,61 @@ public function createPayment(MedicalOrder $order)
 // ... dentro de tu clase FlowService
 protected function requestRefund($order, $gatewayTrx)
 {
-    // URL Hardcodeada para Sandbox
     $url = "https://sandbox.flow.cl/api/refund/create";
-
     Log::info("REEMBOLSO: Iniciando solicitud a Flow (Sandbox) para orden: " . $order->id);
 
-    // 1. Extraer flowTrxId del JSON guardado en la transacción de forma robusta
+    // 1. Extraer el ID de transacción de forma robusta
     $raw = $gatewayTrx->raw_response;
-
-    // Si es un string (JSON), lo decodificamos a array
     if (is_string($raw)) {
         $raw = json_decode($raw, true);
     }
 
-    // Buscamos el ID en el JSON (Flow lo llama flowTrxId en el webhook de confirmación)
-    $flowTrxId = $raw['flowTrxId'] ?? null;
+    /**
+     * IMPORTANTE: Flow devuelve 'flowTrxId' en el webhook de confirmación.
+     * Si no está en el JSON, probamos con 'transaction_id' de la tabla,
+     * o buscamos llaves alternativas que Flow usa en Sandbox.
+     */
+    $flowTrxId = $raw['flowTrxId']
+                 ?? $raw['flowOrder']
+                 ?? $gatewayTrx->transaction_id
+                 ?? null;
 
     if (!$flowTrxId) {
-        Log::error("REEMBOLSO: No se encontró flowTrxId. Contenido raw: " . json_encode($raw));
+        Log::error("REEMBOLSO: No se encontró flowTrxId. Datos disponibles: " . json_encode([
+            'transaction_id_col' => $gatewayTrx->transaction_id,
+            'raw_keys' => array_keys($raw ?? [])
+        ]));
         return false;
     }
 
     // 2. Preparar parámetros
-    // Nota: Usamos el email del paciente desde la relación con el usuario
     $params = [
         'apiKey'               => config('services.flow.api_key'),
         'refundCommerceOrder'  => 'REF-' . $order->id . '-' . time(),
-        'receiverEmail'        => $order->user->email ?? 'cesar.labarca@example.com',
+        'receiverEmail'        => $order->user->email ?? 'cesar.labarca@gmail.com', // Flow exige email real
         'amount'               => (int) $gatewayTrx->amount,
         'urlCallBack'          => route('flow.refund.webhook'),
         'commerceTrxId'        => $gatewayTrx->buy_order,
         'flowTrxId'            => $flowTrxId,
     ];
 
-    // 3. Generar la firma 's'
+    // 3. Firma y Envío (Igual que antes...)
     $params['s'] = $this->generateSignature($params);
 
-    // 4. Ejecutar la petición
     try {
-        $response = \Illuminate\Support\Facades\Http::asForm()->post($url, $params);
+        $response = Http::asForm()->post($url, $params);
 
         if ($response->successful()) {
             $data = $response->json();
-            Log::info("REEMBOLSO: Creado exitosamente en Flow. Token: " . ($data['token'] ?? 'N/A'));
-
-            // Actualizamos el estado de la orden
+            Log::info("REEMBOLSO: Solicitud aceptada por Flow. Token: " . ($data['token'] ?? 'N/A'));
             $order->update(['status' => 'refund_pending']);
             return true;
         } else {
-            Log::error("REEMBOLSO: Error en respuesta de Flow: " . $response->body());
+            Log::error("REEMBOLSO: Flow rechazó la petición: " . $response->body());
             return false;
         }
     } catch (\Exception $e) {
-        Log::error("REEMBOLSO: Excepción al conectar con Flow: " . $e->getMessage());
+        Log::error("REEMBOLSO: Error de conexión: " . $e->getMessage());
         return false;
     }
 }
