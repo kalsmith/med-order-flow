@@ -52,11 +52,26 @@ class CheckoutController extends Controller
         }
     }
 
-    public function flowReturn(Request $request)
-    {
-        Log::info('Usuario retornado de Flow. Token: ' . ($request->token ?? 'Ninguno'));
+public function flowReturn(Request $request)
+{
+    // 1. Obtenemos el token que Flow manda en la URL (GET)
+    $token = $request->query('token');
 
-        return redirect()->route('admin.orders.index')
-            ->with('success', 'Pago recibido correctamente.');
+    if (!$token) {
+        return redirect()->route('home')->with('error', 'Token de pago no encontrado.');
     }
+
+    // 2. Buscamos la orden usando el token.
+    // NOTA: Asegúrate de que tu modelo MedicalOrder tenga una columna 'flow_token'
+    // o que busques a través de tu tabla de GatewayTransaction.
+    $order = MedicalOrder::where('flow_token', $token)->first();
+
+    if (!$order) {
+        // Fallback: si no la encontramos, enviamos al dashboard o home
+        return redirect()->route('home')->with('error', 'Orden no encontrada.');
+    }
+
+    // 3. Ahora sí, redirigimos usando el ID real
+    return redirect()->route('payment.success', ['order' => $order->id]);
+}
 }

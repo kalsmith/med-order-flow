@@ -104,17 +104,16 @@ Route::middleware([
 | 5. PASARELAS DE PAGO (PÚBLICAS - WEBHOOKS)
 |--------------------------------------------------------------------------
 */
-// Estas rutas están fuera de 'auth' y protegidas por la exclusión en bootstrap/app.php
 Route::prefix('payment/flow')->group(function () {
-
-    // URL: /payment/flow/return
-    Route::match(['get', 'post'], '/return', [CheckoutController::class, 'flowReturn'])
-        ->name('flow.return');
-
-    // URL: /payment/flow/confirmation
-    Route::post('/confirmation', [CheckoutController::class, 'handleWebhook'])
-        ->name('flow.webhook');
+    Route::match(['get', 'post'], '/return', [CheckoutController::class, 'flowReturn'])->name('flow.return');
+    Route::post('/confirmation', [CheckoutController::class, 'handleWebhook'])->name('flow.webhook');
 });
+
+// NUEVA RUTA: Intermedia para evitar el loop de login
+Route::get('/pago-exitoso/{order?}', function ($order = null) {
+    // Aquí cargarás tu vista 'payment_success.blade.php'
+    return view('payment_success', ['order' => $order]);
+})->name('payment.success');
 
 /*
 |--------------------------------------------------------------------------
