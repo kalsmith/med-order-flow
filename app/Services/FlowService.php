@@ -203,7 +203,7 @@ protected function requestRefund($order, $gatewayTrx)
     $params = [
         'apiKey'               => config('services.flow.api_key'),
         'refundCommerceOrder'  => 'REF-' . $order->id . '-' . time(),
-        'receiverEmail'        => $order->user->email ?? 'cesar.labarca@gmail.com', // Flow exige email real
+        'receiverEmail'        => $order->patient->user->email ?? auth()->user()->email,
         'amount'               => (int) $gatewayTrx->amount,
         'urlCallBack'          => route('flow.refund.webhook'),
         'commerceTrxId'        => $gatewayTrx->buy_order,
