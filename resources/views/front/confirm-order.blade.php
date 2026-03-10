@@ -16,6 +16,14 @@
         .badge-step { font-size: 0.7rem; letter-spacing: 1px; }
         .btn-checkout { transition: all 0.3s ease; }
         .btn-checkout:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(13, 110, 253, 0.2); }
+
+        /* Nueva alerta de términos */
+        .alert-no-refund {
+            background-color: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-radius: 16px;
+            padding: 15px;
+        }
     </style>
 </head>
 <body>
@@ -71,22 +79,30 @@
                         <span class="fw-bold text-primary fs-5">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
                     </div>
 
+                    {{-- Advertencia de No Reembolso --}}
+                    <div class="alert-no-refund mt-4 d-flex align-items-start">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-3 fs-4"></i>
+                        <div class="small">
+                            <strong class="text-dark d-block mb-1">Aviso de Producto Digital</strong>
+                            Este es un servicio de <strong>emisión inmediata</strong>. Una vez realizado el pago, no se aceptan devoluciones ni reembolsos.
+                        </div>
+                    </div>
+
                     {{-- Formulario de Envío a Flow --}}
                     <form action="{{ route('orders.store.public') }}" method="POST" class="mt-4" id="confirmForm">
                         @csrf
-                        {{-- Datos ocultos para el controlador --}}
                         <input type="hidden" name="exam_type_id" value="{{ $exam->id }}">
                         <input type="hidden" name="amount" value="{{ $exam->base_price }}">
 
                         <div class="form-check mb-4 bg-light p-3 rounded-3 border">
                             <input class="form-check-input ms-0 me-2" type="checkbox" id="terms" required>
-                            <label class="form-check-label small text-muted" for="terms">
-                                Confirmo que los datos son correctos y entiendo que seré redirigido a la pasarela de pago segura de <strong>Flow</strong>.
+                            <label class="form-check-label small text-muted lh-sm" for="terms">
+                                Confirmo que los <strong>datos del paciente son correctos</strong>, he verificado el examen seleccionado y acepto que no habrá reembolsos tras el pago.
                             </label>
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm py-3 fw-bold rounded-4 btn-checkout">
-                            Pagar con Flow <i class="bi bi-credit-card-2-back-fill ms-2"></i>
+                            Confirmar y Pagar <i class="bi bi-credit-card-2-back-fill ms-2"></i>
                         </button>
                     </form>
                 </div>
@@ -104,7 +120,6 @@
 </div>
 
 <script>
-    // Pequeño script para evitar doble clic y mostrar feedback
     document.getElementById('confirmForm').onsubmit = function() {
         const btn = this.querySelector('button[type="submit"]');
         btn.disabled = true;
