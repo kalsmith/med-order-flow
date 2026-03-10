@@ -17,7 +17,7 @@ use App\Http\Controllers\MedicalOrderController;
 use App\Http\Controllers\PublicOrderController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\FlowController; // <--- Importante: Agregado
+use App\Http\Controllers\FlowController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,14 +30,14 @@ Route::get('/', function () {
     return view('welcome', compact('packs', 'individuales'));
 })->name('home');
 
-
-
-
 /*
 |--------------------------------------------------------------------------
 | 2. AUTENTICACIÓN GOOGLE (Socialite)
 |--------------------------------------------------------------------------
 */
+// Esta línea es clave: obliga a que cualquier rebote de "auth" vaya a Google
+Route::get('/login', [GoogleController::class, 'redirectToGoogle'])->name('login');
+
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
@@ -59,14 +59,15 @@ Route::middleware([
     'verified'
 ])->group(function () {
 
-
-    Route::get('/orden-personalizada', [PublicOrderController::class, 'custom'])->name('orders.custom');
-
+    // Flujo de orden personalizada (Requiere Login, no requiere perfil completo aún)
+    Route::get('/orden-personalizada', [PublicOrderController::class, 'customOrder'])->name('orders.custom');
     Route::get('/confirmar-orden-especial', [PublicOrderController::class, 'confirmCustomOrder'])->name('orders.custom.confirm');
 
+    // Gestión de Perfil
     Route::get('/completar-perfil', [PublicOrderController::class, 'completeProfileForm'])->name('profile.complete');
     Route::post('/completar-perfil', [PublicOrderController::class, 'storeProfile'])->name('profile.store');
 
+    // Rutas que SI requieren perfil completo (RUT, fecha nacimiento, etc)
     Route::middleware(['check.profile'])->group(function () {
         Route::get('/confirmar-pedido/{exam_type}', [PublicOrderController::class, 'confirmOrder'])->name('orders.confirm');
         Route::post('/enviar-pedido', [PublicOrderController::class, 'store'])->name('orders.store.public');
@@ -77,15 +78,9 @@ Route::middleware([
 
         Route::get('/mis-ordenes', [PublicOrderController::class, 'index'])->name('patient.orders');
         Route::get('/dashboard', function () { return view('dashboard'); })->name('dashboard.jetstream');
-        Route::get('/orders/download/{order}', [PublicOrderController::class, 'download'])
-            ->name('orders.download')
-            ->middleware('auth');
 
-            // AGREGA ESTA LÍNEA AQUÍ
-    Route::post('/mis-ordenes/{order}/retry-payment', [PublicOrderController::class, 'retryPayment'])
-        ->name('orders.retryPayment');
-
-
+        Route::get('/orders/download/{order}', [PublicOrderController::class, 'download'])->name('orders.download');
+        Route::post('/mis-ordenes/{order}/retry-payment', [PublicOrderController::class, 'retryPayment'])->name('orders.retryPayment');
     });
 });
 
@@ -127,24 +122,15 @@ Route::middleware([
 |--------------------------------------------------------------------------
 */
 Route::prefix('payment/flow')->group(function () {
-    // Retorno del usuario al sitio web
     Route::match(['get', 'post'], '/return', [FlowController::class, 'returnUrl'])->name('flow.return');
-
-    // Webhook de Pago (Notificación de Pago Exitoso)
     Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
-
-    // --- NUEVA RUTA PARA REEMBOLSOS ---
-    // Este es el urlCallBack que le enviamos a Flow en refund/create
     Route::post('/refund-confirmation', [FlowController::class, 'refundConfirmation'])->name('flow.refund.webhook');
-
-    // Rutas de escape
     Route::get('/cancel', [FlowController::class, 'cancel'])->name('flow.cancel');
     Route::get('/fail', [FlowController::class, 'fail'])->name('flow.fail');
 });
 
-// Por esto (con el signo de interrogación):
-Route::get('/pago-exitoso/{order?}', [App\Http\Controllers\PublicOrderController::class, 'showSuccess'])
-    ->name('payment.success');
+// Éxito de pago (Pública con seguridad interna en el controlador)
+Route::get('/pago-exitoso/{order?}', [PublicOrderController::class, 'showSuccess'])->name('payment.success');
 
 /*
 |--------------------------------------------------------------------------
