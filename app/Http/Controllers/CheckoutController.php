@@ -54,24 +54,38 @@ class CheckoutController extends Controller
 
 public function flowReturn(Request $request)
 {
-    // 1. Obtenemos el token que Flow manda en la URL (GET)
-    $token = $request->query('token');
+    // 1. Logs para saber qué rayos está llegando realmente (Debug intenso)
+    Log::info('Entrando en flowReturn', ['query' => $request->query(), 'all' => $request->all()]);
 
+    // 2. Intentamos obtener el token de varias formas (para ser más flexibles)
+    $token = $request->query('token') ?? $request->input('token');
+
+    // SI NO HAY TOKEN: No le demos error al usuario, mejor mandémoslo a mis-ordenes
+    // donde podrá ver si el pago aparece como 'pagado' o 'pendiente'.
     if (!$token) {
-        return redirect()->route('home')->with('error', 'Token de pago no encontrado.');
+        Log::warning('flowReturn sin token recibido.');
+        return redirect()->route('patient.orders')
+            ->with('info', 'Estamos procesando tu pago. Si no ves tu orden, espera unos segundos.');
     }
 
-    // 2. Buscamos la orden usando el token.
-    // NOTA: Asegúrate de que tu modelo MedicalOrder tenga una columna 'flow_token'
-    // o que busques a través de tu tabla de GatewayTransaction.
-    $order = MedicalOrder::where('flow_token', $token)->first();
+    // 3. Buscamos la orden.
+    // IMPORTANTE: Asegúrate de que el modelo MedicalOrder tiene la columna 'flow_token'
+    // o cámbialo por 'GatewayTransaction::where('token', $token)->first()->payable'
+    $order = \App\Models\MedicalOrder::where('flow_token', $token)->first();
 
     if (!$order) {
-        // Fallback: si no la encontramos, enviamos al dashboard o home
-        return redirect()->route('home')->with('error', 'Orden no encontrada.');
+        Log::error("Orden no encontrada para el token: $token");
+        // Si no encontramos la orden, redirigimos a órdenes pero con un aviso
+        return redirect()->route('patient.orders')
+            ->with('error', 'No pudimos encontrar tu orden asociada al pago.');
     }
 
-    // 3. Ahora sí, redirigimos usando el ID real
+    // 4. Si todo está OK, redirección a éxito
+    Log::info("Redirigiendo a éxito para orden ID: {$order->id}");
     return redirect()->route('payment.success', ['order' => $order->id]);
 }
+
+
+
+
 }
