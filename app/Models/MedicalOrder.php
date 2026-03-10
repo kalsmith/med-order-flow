@@ -4,23 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids; // Importante para el UUID
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class MedicalOrder extends Model
 {
     use HasFactory, HasUuids;
 
-    /**
-     * El tipo de ID es UUID (string).
-     */
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
         'patient_id',
-        'doctor_id',
+        'doctor_id', // Será null al inicio
         'exam_type_id',
-        'status'
+        'status',
+        'amount',
+        'verification_code',
+        'pdf_path'
     ];
 
     protected $casts = [
@@ -28,51 +28,61 @@ class MedicalOrder extends Model
         'amount' => 'integer',
     ];
 
+    /**
+     * Boot del modelo
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            // Forzamos que nazca en pending si no se especifica
+            if (!$model->status) {
+                $model->status = 'pending';
+            }
+
+            // Generamos el código para el QR automáticamente
+            if (!$model->verification_code) {
+                $model->verification_code = self::generateUniqueVerificationCode();
+            }
+        });
+    }
+
     // --- RELACIONES ---
 
-    /**
-     * El paciente que recibe la orden.
-     */
     public function patient()
     {
         return $this->belongsTo(Patient::class);
     }
 
-    /**
-     * El doctor que emite la orden.
-     */
     public function doctor()
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(Doctor::class); // Puede ser null
     }
 
-    /**
-     * El tipo de examen solicitado (FK a exam_types).
-     */
     public function examType()
     {
         return $this->belongsTo(ExamType::class);
     }
 
-    // --- SCOPES & LOGIC ---
+    // --- LÓGICA ---
 
-    /**
-     * Scope para filtrar órdenes por estado.
-     */
-    public function scopeByStatus($query, $status)
-    {
-        return $query->where('status', $status);
-    }
-
-    /**
-     * Generar un código de verificación único para la orden (ej: para el QR).
-     */
     public static function generateUniqueVerificationCode()
     {
         do {
-            $code = strtoupper(bin2hex(random_bytes(4))); // Genera algo como 7F3A2B11
+            $code = strtoupper(bin2hex(random_bytes(4)));
         } while (self::where('verification_code', $code)->exists());
 
         return $code;
     }
+
+    /**
+     * Obtener la transacción contable asociada a esta orden
+     */
+    public function paymentTransaction()
+    {
+        return $this->hasOne(Transaction::class, 'reference_id', 'id');
+    }
+
+
 }

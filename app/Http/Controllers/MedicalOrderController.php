@@ -12,23 +12,31 @@ class MedicalOrderController extends Controller
     /**
      * Listado de órdenes: Inteligente según el Rol.
      */
-public function index()
-{
-    $user = Auth::user();
-    $query = MedicalOrder::with(['patient.user', 'doctor.user', 'examType']);
+    public function index()
+    {
+        $user = Auth::user();
+        $query = MedicalOrder::with(['patient.user', 'doctor.user', 'examType']);
 
-    if ($user->hasRole('doctor')) {
-        $query->where('doctor_id', $user->doctor->id);
+        if ($user->hasRole('doctor')) {
+            $doctor = $user->doctor;
+
+            // El doctor ve:
+            // 1. Lo que ya es suyo.
+            // 2. Lo que NO tiene doctor pero es de SU especialidad (para poder tomarlo y firmarlo).
+            $query->where(function($q) use ($doctor) {
+                $q->where('doctor_id', $doctor->id)
+                ->orWhere(function($sq) use ($doctor) {
+                    $sq->whereNull('doctor_id')
+                        ->whereHas('examType', function($eq) use ($doctor) {
+                            $eq->where('specialty_id', $doctor->specialty_id);
+                        });
+                });
+            });
+        }
+
         $orders = $query->latest()->paginate(10);
-
-        // Intentará cargar admin/orders/doctor_index.blade.php
-        // Si no la has creado, usa 'admin.orders.index' por ahora
         return view('admin.orders.index', compact('orders'));
     }
-
-    $orders = $query->latest()->paginate(10);
-    return view('admin.orders.index', compact('orders'));
-}
 
     /**
      * Formulario para que un médico emita una orden manualmente.
@@ -103,13 +111,24 @@ public function index()
      */
     public function processSignature(Request $request, MedicalOrder $order)
     {
-        // Aquí vendrá tu lógica de firma electrónica
+        $doctor = Auth::user()->doctor;
+
+        // Validación de seguridad extra:
+        // Si la orden ya tiene doctor y no es el que intenta firmar, denegar.
+        if ($order->doctor_id && $order->doctor_id !== $doctor->id) {
+            abort(403, 'Esta orden ya fue tomada por otro profesional.');
+        }
+
         $order->update([
+            'doctor_id' => $doctor->id, // Importante: Asignamos el ID al momento de firmar
             'status' => 'signed',
             'signed_at' => now(),
         ]);
 
+        // Aquí es donde dispararías el Job para generar el PDF
+        // GenerateOrderPdf::dispatch($order);
+
         return redirect()->route('admin.doctor.panel')
-                         ->with('success', 'Orden firmada digitalmente con éxito.');
+                        ->with('success', 'Orden firmada digitalmente con éxito.');
     }
 }

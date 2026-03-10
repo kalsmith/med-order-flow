@@ -2,61 +2,163 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Patient;
+use App\Models\ExamType;
 use App\Models\MedicalOrder;
 use App\Models\Doctor;
-use App\Models\Patient;
-use App\Models\User;
+use App\Services\FlowService;
+use App\Helpers\RutHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class PublicOrderController extends Controller
 {
+    protected $flow;
+
+    public function __construct(FlowService $flow)
+    {
+        $this->flow = $flow;
+    }
+
+    /**
+     * Listado de órdenes del paciente
+     */
+    public function index()
+    {
+        $orders = Auth::user()->patient->medicalOrders()->latest()->get();
+        return view('patient.orders.index', compact('orders'));
+    }
+
+    /**
+     * Formulario de Perfil
+     */
+    public function completeProfileForm()
+    {
+        if (Auth::user()->patient) return redirect()->route('home');
+        return view('front.complete-profile');
+    }
+
+    /**
+     * Guardar Perfil y Sincronizar con Usuario
+     */
+    public function storeProfile(Request $request)
+    {
+        $request->validate([
+            'full_name'       => 'required|string|min:8',
+            'rut'             => 'required|string', // Se limpia dentro de la transacción
+            'birth_date'      => 'required|date',
+            'gender_biologic' => 'required|in:M,F',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            $user = Auth::user();
+
+            $user->update(['name' => $request->full_name]);
+
+            Patient::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'full_name'       => $request->full_name,
+                    'rut'             => preg_replace('/[^k0-9]/i', '', $request->rut),
+                    'birth_date'      => $request->birth_date,
+                    'gender_biologic' => $request->gender_biologic,
+                    'prevision'       => 'Particular'
+                ]
+            );
+        });
+
+        if (session()->has('pending_exam_id')) {
+            $examId = session()->pull('pending_exam_id');
+            return redirect()->route('orders.confirm', $examId);
+        }
+
+        return redirect()->route('home')->with('success', 'Perfil completado.');
+    }
+
+    /**
+     * Vista previa antes de pagar (Checkout Step)
+     */
+    public function confirmOrder(ExamType $exam_type)
+    {
+        $patient = Auth::user()->patient;
+        return view('front.confirm-order', ['exam' => $exam_type, 'patient' => $patient]);
+    }
+
+    /**
+     * Generar Orden Final e Iniciar Salto a Pasarela
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'patient_name' => 'required|string|max:255',
-            'patient_rut'  => 'required|string|max:15',
-            'exam_type_id' => 'required|exists:exam_types,id',
+            'exam_type_id' => 'required|exists:exam_types,id'
         ]);
 
-        // 1. Buscamos el médico comodín (Asegúrate de que exista al menos uno activo)
+        $exam = ExamType::findOrFail($request->exam_type_id);
         $doctor = Doctor::where('is_active', true)->first();
 
         if (!$doctor) {
-            return back()->with('error', 'Lo sentimos, no hay médicos disponibles para firmar órdenes en este momento.');
+            return back()->with('error', 'No hay médicos disponibles para la firma en este momento.');
         }
 
-        // 2. Lógica de Paciente "Al Vuelo"
-        $patient = Patient::where('rut', $request->patient_rut)->first();
+        try {
+            // 1. Creamos la orden en DB
+            $order = DB::transaction(function () use ($request, $doctor, $exam) {
+                return MedicalOrder::create([
+                    'id'                => (string) Str::uuid(),
+                    'patient_id'        => Auth::user()->patient->id,
+                    'doctor_id'         => $doctor->id,
+                    'exam_type_id'      => $exam->id,
+                    'status'            => 'pending',
+                    'amount'            => $exam->base_price, // Precio desde DB, no desde el Request
+                    'verification_code' => strtoupper(Str::random(8)),
+                ]);
+            });
 
-        if (!$patient) {
-            // Limpiamos el RUT para el email (evitar caracteres raros)
-            $rutClean = str_replace(['.', '-'], '', $request->patient_rut);
+            // 2. Iniciamos el proceso en Flow
+            return $this->processFlowPayment($order);
 
-            // Creamos el User (Requerido por la FK de tu migración)
-            $user = User::firstOrCreate(
-                ['email' => strtolower($rutClean) . '@placeholder.cl'],
-                [
-                    'name'     => $request->patient_name,
-                    'password' => Hash::make($request->patient_rut), // RUT como clave temporal
-                ]
-            );
+        } catch (\Exception $e) {
+            Log::error("Error creando orden: " . $e->getMessage());
+            return back()->with('error', 'Hubo un error al procesar tu solicitud.');
+        }
+    }
 
-            // Creamos el Paciente vinculado a ese User
-            $patient = Patient::create([
-                'user_id' => $user->id,
-                'rut'     => $request->patient_rut,
-            ]);
+    /**
+     * Método para reintentar el pago de una orden existente
+     * Útil desde la vista /mis-ordenes
+     */
+    public function retryPayment(MedicalOrder $order)
+    {
+        // Seguridad: Solo el dueño puede pagar y solo si está pendiente
+        if ($order->patient_id !== Auth::user()->patient->id || $order->status !== 'pending') {
+            return redirect()->route('patient.orders')->with('error', 'Esta orden no puede ser procesada.');
         }
 
-        // 3. Crear la Orden (Asegúrate de que patient_id esté en el $fillable de MedicalOrder)
-        $order = MedicalOrder::create([
-            'patient_id'   => $patient->id,
-            'doctor_id'    => $doctor->id,
-            'exam_type_id' => $request->exam_type_id,
-            'status'       => 'pending',
-        ]);
+        return $this->processFlowPayment($order);
+    }
 
-        return back()->with('success', '¡Orden solicitada con éxito! N° de registro: ' . $order->id);
+    /**
+     * Lógica compartida para saltar a Flow
+     */
+    private function processFlowPayment(MedicalOrder $order)
+    {
+        $flowResponse = $this->flow->createPayment($order);
+
+        // DEBUG TEMPORAL: Si esto se ejecuta, detendrá la app y mostrará la respuesta de Flow
+        // dd($flowResponse);
+
+        if ($flowResponse && isset($flowResponse->token)) {
+            $url = $flowResponse->url . "?token=" . $flowResponse->token;
+            return redirect()->away($url);
+        }
+
+        // Si entra aquí es porque Flow no devolvió token. Logueamos el error:
+        Log::error("Flow no generó token para la orden: " . $order->id, ['response' => $flowResponse]);
+
+        return redirect()->route('patient.orders')
+            ->with('warning', 'La orden se guardó, pero la pasarela de pago no respondió.');
     }
 }

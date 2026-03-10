@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect'      => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'flow' => [
+    'api_key'     => env('FLOW_API_KEY'),
+    'secret_key'  => env('FLOW_SECRET'),
+    'environment' => env('FLOW_ENVIRONMENT', 'sandbox'),
+    ],
+
+
 ];
