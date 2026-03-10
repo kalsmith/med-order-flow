@@ -36,7 +36,7 @@ Route::get('/', function () {
 |--------------------------------------------------------------------------
 */
 // Esta línea es clave: obliga a que cualquier rebote de "auth" vaya a Google
-Route::get('/login', [GoogleController::class, 'redirectToGoogle'])->name('login');
+//Route::get('/login', [GoogleController::class, 'redirectToGoogle'])->name('login');
 
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
