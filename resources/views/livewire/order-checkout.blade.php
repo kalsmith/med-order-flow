@@ -47,15 +47,15 @@
                 <div class="row g-3">
                     <div class="col-12">
                         <label class="small fw-bold text-muted">Nombre Completo</label>
-                        <input type="text" wire:model="newName" class="form-control form-control-lg border-0 shadow-sm" placeholder="Ej: Juan Pérez" style="border-radius: 12px;">
+                        <input type="text" wire:model="newName" class="form-control form-control-lg border-0 shadow-sm @error('newName') is-invalid @enderror" placeholder="Ej: Juan Pérez" style="border-radius: 12px;">
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">RUT</label>
-                        <input type="text" wire:model="newRut" class="form-control form-control-lg border-0 shadow-sm" placeholder="12.345.678-9" style="border-radius: 12px;">
+                        <input type="text" wire:model="newRut" class="form-control form-control-lg border-0 shadow-sm @error('newRut') is-invalid @enderror" placeholder="12.345.678-k" style="border-radius: 12px;">
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Parentesco</label>
-                        <select wire:model="newRelationship" class="form-select form-select-lg border-0 shadow-sm" style="border-radius: 12px;">
+                        <select wire:model="newRelationship" class="form-select form-select-lg border-0 shadow-sm @error('newRelationship') is-invalid @enderror" style="border-radius: 12px;">
                             <option value="">Seleccionar...</option>
                             <option value="child">Hijo/a</option>
                             <option value="spouse">Pareja / Cónyuge</option>
@@ -65,18 +65,20 @@
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Fecha Nacimiento</label>
-                        <input type="date" wire:model="newBirthDate" class="form-control form-control-lg border-0 shadow-sm" style="border-radius: 12px;">
+                        <input type="date" wire:model="newBirthDate" class="form-control form-control-lg border-0 shadow-sm @error('newBirthDate') is-invalid @enderror" style="border-radius: 12px;">
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Género Biológico</label>
-                        <select wire:model="newGender" class="form-select form-select-lg border-0 shadow-sm" style="border-radius: 12px;">
-                            <option value="masculino">Masculino</option>
-                            <option value="femenino">Femenino</option>
+                        <select wire:model="newGender" class="form-select form-select-lg border-0 shadow-sm @error('newGender') is-invalid @enderror" style="border-radius: 12px;">
+                            <option value="">Seleccionar...</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
                         </select>
                     </div>
                     <div class="col-12 mt-4">
-                        <button wire:click="saveNewPatient" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" style="border-radius: 15px;">
-                            <i class="bi bi-check-lg me-1"></i> Guardar y Seleccionar
+                        <button wire:click="saveNewPatient" wire:loading.attr="disabled" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" style="border-radius: 15px;">
+                            <span wire:loading.remove><i class="bi bi-check-lg me-1"></i> Guardar y Seleccionar</span>
+                            <span wire:loading><span class="spinner-border spinner-border-sm me-2"></span> Guardando...</span>
                         </button>
                     </div>
                 </div>
@@ -144,4 +146,11 @@
                         </label>
                     </div>
 
-                    <button
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm btn-checkout" style="border-radius: 18px; padding: 15px;">
+                        <i class="bi bi-credit-card-2-back me-2"></i> Pagar con Flow
+                    </button>
+                </form>
+             </div>
+        </div>
+    @endif
+</div>

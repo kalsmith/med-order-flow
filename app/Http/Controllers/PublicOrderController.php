@@ -24,7 +24,6 @@ class PublicOrderController extends Controller
 
     /**
      * Muestra el formulario para orden personalizada.
-     * Vinculado a la ruta: orders.custom
      */
     public function customOrder()
     {
@@ -36,7 +35,8 @@ class PublicOrderController extends Controller
      */
     public function index()
     {
-        $patient = Auth::user()->patient;
+        // Actualizado: usamos la relación plural y filtramos por titular
+        $patient = Auth::user()->patients()->where('relationship', 'self')->first();
 
         if (!$patient) {
             return redirect()->route('profile.complete');
@@ -51,14 +51,15 @@ class PublicOrderController extends Controller
      */
     public function completeProfileForm()
     {
-        if (Auth::user()->patient) {
+        // Actualizado: verificamos si ya existe el perfil 'self'
+        if (Auth::user()->patients()->where('relationship', 'self')->exists()) {
             return redirect()->route('home');
         }
         return view('front.complete-profile');
     }
 
     /**
-     * Guarda el perfil y maneja las redirecciones según lo que el usuario quería hacer.
+     * Guarda el perfil y maneja las redirecciones.
      */
     public function storeProfile(Request $request)
     {
@@ -70,21 +71,19 @@ class PublicOrderController extends Controller
             'custom_exam_name'=> 'nullable|string'
         ]);
 
-        // Si el usuario viene desde el formulario de "No encontré mi examen"
         if ($request->filled('custom_exam_name')) {
             session(['pending_custom_exam' => $request->custom_exam_name]);
         }
 
-    DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request) {
             $user = Auth::user();
             $user->update(['name' => $request->full_name]);
 
-            // Limpiamos el RUT (quitamos puntos y guión)
             $rutLimpio = preg_replace('/[^k0-9]/i', '', $request->rut);
 
-            // Usamos la relación plural 'patients' que definimos en el modelo User
+            // Actualizado: updateOrCreate sobre la relación plural
             $user->patients()->updateOrCreate(
-                ['relationship' => 'self'], // Buscamos el perfil del titular
+                ['relationship' => 'self'],
                 [
                     'full_name'       => $request->full_name,
                     'rut'             => $rutLimpio,
@@ -95,7 +94,6 @@ class PublicOrderController extends Controller
             );
         });
 
-        // Redirección inteligente post-perfil
         if (session()->has('pending_custom_exam')) {
             return redirect()->route('orders.custom.confirm');
         }
@@ -113,7 +111,8 @@ class PublicOrderController extends Controller
      */
     public function confirmCustomOrder()
     {
-        $patient = Auth::user()->patient;
+        // Actualizado: obtener paciente titular
+        $patient = Auth::user()->patients()->where('relationship', 'self')->first();
         $description = session('pending_custom_exam');
 
         if (!$description) {
@@ -132,7 +131,8 @@ class PublicOrderController extends Controller
      */
     public function confirmOrder(ExamType $exam_type)
     {
-        $patient = Auth::user()->patient;
+        // Actualizado: obtener paciente titular
+        $patient = Auth::user()->patients()->where('relationship', 'self')->first();
 
         if (!$patient) {
             session(['pending_exam_id' => $exam_type->id]);
@@ -145,11 +145,17 @@ class PublicOrderController extends Controller
     /**
      * Crea la orden en la BD y salta a Flow.
      */
+
+
+    /**
+     * Crea la orden en la BD y salta a Flow.
+     */
     public function store(Request $request)
     {
         $request->validate([
             'exam_type_id'       => 'required_without:custom_description|exists:exam_types,id',
-            'custom_description' => 'required_without:exam_type_id|string'
+            'custom_description' => 'required_without:exam_type_id|string',
+            'patient_id'         => 'nullable|exists:patients,id' // Validamos que el ID exista si viene
         ]);
 
         $doctor = Doctor::where('is_active', true)->first();
@@ -170,9 +176,20 @@ class PublicOrderController extends Controller
                     $type   = 'standard';
                 }
 
+                /**
+                 * LÓGICA DE PACIENTE:
+                 * Si viene un patient_id, verificamos que sea del usuario.
+                 * Si no viene, usamos el perfil 'self' por defecto.
+                 */
+                if ($request->filled('patient_id')) {
+                    $patient = Auth::user()->patients()->findOrFail($request->patient_id);
+                } else {
+                    $patient = Auth::user()->patients()->where('relationship', 'self')->firstOrFail();
+                }
+
                 return MedicalOrder::create([
                     'id'                 => (string) Str::uuid(),
-                    'patient_id'         => Auth::user()->patient->id,
+                    'patient_id'         => $patient->id,
                     'doctor_id'          => $doctor->id,
                     'exam_type_id'       => $examId,
                     'custom_description' => $request->custom_description,
@@ -188,25 +205,26 @@ class PublicOrderController extends Controller
 
         } catch (\Exception $e) {
             Log::error("Error al crear orden: " . $e->getMessage());
-            return back()->with('error', 'No pudimos procesar tu orden. Inténtalo de nuevo.');
+            return back()->with('error', 'No pudimos procesar tu orden: ' . $e->getMessage());
         }
     }
 
+
+
     /**
-     * Reintenta el pago de una orden pendiente desde el panel del paciente.
+     * Reintenta el pago de una orden pendiente.
      */
     public function retryPayment(MedicalOrder $order)
     {
-        if ($order->patient_id !== Auth::user()->patient->id || $order->status !== 'pending') {
+        $patient = Auth::user()->patients()->where('relationship', 'self')->first();
+
+        if (!$patient || $order->patient_id !== $patient->id || $order->status !== 'pending') {
             return redirect()->route('patient.orders')->with('error', 'Esta orden no puede ser procesada.');
         }
 
         return $this->processFlowPayment($order);
     }
 
-    /**
-     * Lógica centralizada para obtener el token de Flow y redirigir.
-     */
     private function processFlowPayment(MedicalOrder $order)
     {
         try {
@@ -227,9 +245,6 @@ class PublicOrderController extends Controller
         }
     }
 
-    /**
-     * Muestra la pantalla de éxito tras el pago.
-     */
     public function showSuccess($orderId = null)
     {
         if (!$orderId) {
@@ -237,17 +252,15 @@ class PublicOrderController extends Controller
         }
 
         $order = MedicalOrder::with(['paymentTransaction'])->find($orderId);
+        $patient = Auth::user()->patients()->where('relationship', 'self')->first();
 
-        if (!$order || $order->patient_id != Auth::user()->patient->id) {
+        if (!$order || !$patient || $order->patient_id != $patient->id) {
             return redirect()->route('patient.orders')->with('error', 'Orden no encontrada o acceso no autorizado.');
         }
 
         return view('payment_success', compact('order'));
     }
 
-    /**
-     * Generación de PDF (Segura).
-     */
     public function download($orderId)
     {
         $order = MedicalOrder::with(['patient.user', 'doctor.user'])->findOrFail($orderId);

@@ -13,22 +13,26 @@ class EnsurePatientProfileIsComplete
     {
         $user = Auth::user();
 
-        // Si está logueado pero no tiene registro en la tabla 'patients'
-        if ($user && !$user->patient) {
+        /**
+         * CAMBIO CLAVE:
+         * Ahora verificamos si existe al menos un paciente asociado
+         * que tenga la relación 'self' (el titular).
+         */
+        $hasProfile = $user && $user->patients()->where('relationship', 'self')->exists();
 
-            /**
-             * CAPTURA DE INTENCIÓN:
-             * Intentamos obtener el ID del examen desde cualquier parámetro de la ruta.
-             * Si tu ruta es /confirmar-pedido/{id}, esto capturará ese valor.
-             */
+        if ($user && !$hasProfile) {
+
+            // Captura de intención para no perder el examen que el usuario quería comprar
             $examId = $request->route('id') ?? $request->route('pack') ?? $request->route('exam_type');
 
             if ($examId) {
-                session(['pending_exam_id' => $examId]);
+                // Si el examId es un objeto de modelo (Route Model Binding), guardamos solo el ID
+                $idToStore = is_object($examId) ? $examId->id : $examId;
+                session(['pending_exam_id' => $idToStore]);
             }
 
-            // Evitamos un bucle infinito: si ya va hacia la ruta de completar perfil, lo dejamos pasar
-            if ($request->routeIs('profile.complete') || $request->routeIs('profile.update')) {
+            // Evitamos bucle infinito
+            if ($request->routeIs('profile.complete') || $request->routeIs('profile.store')) {
                 return $next($request);
             }
 
