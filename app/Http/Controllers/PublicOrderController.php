@@ -206,6 +206,11 @@ public function showSuccess($orderId = null)
         return redirect()->route('patient.orders')->with('error', 'Orden no encontrada.');
     }
 
+    Log::info("DEBUG ACCESS: Intentando acceder a la orden: " . $order->id);
+    Log::info("DEBUG ACCESS: User ID logueado: " . (Auth::check() ? Auth::id() : 'NO LOGUEADO'));
+    Log::info("DEBUG ACCESS: Patient ID del usuario: " . (Auth::check() && Auth::user()->patient ? Auth::user()->patient->id : 'NO TIENE PACIENTE ASOCIADO'));
+    Log::info("DEBUG ACCESS: Patient ID de la orden: " . $order->patient_id);
+
     // Seguridad simple
     if ($order->patient_id !== Auth::user()->patient->id) {
         abort(403);
