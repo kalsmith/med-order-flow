@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class SignatureService
 {
     // Cambia esto a true cuando quieras probar el "Ciclo Fallido"
-    protected $forceFailure = true;
+    protected $forceFailure = false;
 
     public function sign(MedicalOrder $order)
     {

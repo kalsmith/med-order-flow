@@ -10,54 +10,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --primary-color: #0d6efd;
-            --soft-bg: #f8faff;
-        }
+        :root { --primary-color: #0d6efd; --soft-bg: #f8faff; }
+        body { font-family: 'Inter', sans-serif; background-color: #fcfdfe; color: #212529; }
+        .navbar { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .order-card { transition: all 0.3s ease; border: 1px solid #edf2f7; border-radius: 20px; background: #fff; }
+        .order-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); }
+        .status-badge { padding: 6px 14px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #fcfdfe;
-            color: #212529;
-        }
-
-        .navbar {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-
-        .order-card {
-            transition: all 0.3s ease;
-            border: 1px solid #edf2f7;
-            border-radius: 20px;
-            background: #fff;
-        }
-
-        .order-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-        }
-
-        .status-badge {
-            padding: 6px 14px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        /* Estados de la Orden */
+        /* Nuevos Estados y Colores */
         .bg-pending { background-color: #fff7ed; color: #c2410c; } /* Naranja */
         .bg-paid { background-color: #eff6ff; color: #1d4ed8; }    /* Azul */
         .bg-signed { background-color: #f0fdf4; color: #15803d; }  /* Verde */
+        .bg-refund { background-color: #fef2f2; color: #991b1b; }  /* Rojo/Rosa suave */
+        .bg-cancelled { background-color: #f4f4f5; color: #52525b; } /* Gris */
 
-        .btn-action {
-            border-radius: 12px;
-            font-weight: 600;
-            padding: 8px 20px;
-        }
+        .btn-action { border-radius: 12px; font-weight: 600; padding: 8px 20px; }
     </style>
 </head>
 <body>
@@ -103,19 +70,32 @@
                             </div>
 
                             <div class="col-md-3 text-center py-3 py-md-0">
-                                @if($order->status === 'signed')
-                                    <span class="status-badge bg-signed text-success">
-                                        <i class="bi bi-patch-check-fill me-1"></i> Lista para descargar
-                                    </span>
-                                @elseif($order->status === 'paid')
-                                    <span class="status-badge bg-paid text-primary">
-                                        <i class="bi bi-clock-history me-1"></i> En proceso de firma
-                                    </span>
-                                @else
-                                    <span class="status-badge bg-pending text-warning">
-                                        <i class="bi bi-hourglass-split me-1"></i> Requiere Pago
-                                    </span>
-                                @endif
+                                @switch($order->status)
+                                    @case('signed')
+                                        <span class="status-badge bg-signed text-success">
+                                            <i class="bi bi-patch-check-fill me-1"></i> Lista para descargar
+                                        </span>
+                                        @break
+                                    @case('paid')
+                                        <span class="status-badge bg-paid text-primary">
+                                            <i class="bi bi-clock-history me-1"></i> En proceso de firma
+                                        </span>
+                                        @break
+                                    @case('refund_pending')
+                                        <span class="status-badge bg-refund text-danger">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reembolso en curso
+                                        </span>
+                                        @break
+                                    @case('cancelled')
+                                        <span class="status-badge bg-cancelled text-secondary">
+                                            <i class="bi bi-x-circle me-1"></i> Reembolsada / Anulada
+                                        </span>
+                                        @break
+                                    @default
+                                        <span class="status-badge bg-pending text-warning">
+                                            <i class="bi bi-hourglass-split me-1"></i> Requiere Pago
+                                        </span>
+                                @endswitch
                             </div>
 
                             <div class="col-md-4 text-md-end">
@@ -124,12 +104,23 @@
                                         <i class="bi bi-download me-2"></i> Descargar PDF
                                     </a>
                                 @elseif($order->status === 'pending')
-                                    <a href="{{ route('orders.retryPayment', $order->id) }}" class="btn btn-warning btn-action w-100 w-md-auto text-white">
-                                        <i class="bi bi-credit-card me-2"></i> Pagar Ahora
+                                    <form action="{{ route('orders.retryPayment', $order->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-warning btn-action w-100 w-md-auto text-white">
+                                            <i class="bi bi-credit-card me-2"></i> Pagar Ahora
+                                        </button>
+                                    </form>
+                                @elseif($order->status === 'refund_pending')
+                                    <button class="btn btn-outline-danger btn-action w-100 w-md-auto" disabled>
+                                        <i class="bi bi-info-circle me-1"></i> Error Técnico
+                                    </button>
+                                @elseif($order->status === 'cancelled')
+                                    <a href="{{ route('home') }}" class="btn btn-light btn-action w-100 w-md-auto">
+                                        Solicitar Nueva
                                     </a>
                                 @else
                                     <button class="btn btn-light btn-action w-100 w-md-auto text-muted" disabled>
-                                        <i class="bi bi-clock me-2"></i> Esperando al médico
+                                        <i class="bi bi-clock me-2"></i> Procesando...
                                     </button>
                                 @endif
                             </div>
@@ -137,17 +128,7 @@
                     </div>
                 </div>
                 @empty
-                <div class="text-center py-5">
-                    <div class="mb-4">
-                        <i class="bi bi-clipboard-x text-muted" style="font-size: 5rem;"></i>
-                    </div>
-                    <h3>Aún no tienes órdenes</h3>
-                    <p class="text-muted mb-4">Selecciona un examen en el inicio para generar tu primera orden médica.</p>
-                    <a href="{{ route('home') }}" class="btn btn-primary px-5 py-3 rounded-4 fw-bold shadow">
-                        Ir a Ver Exámenes
-                    </a>
-                </div>
-                @endforelse
+                    @endforelse
 
             </div>
         </div>
