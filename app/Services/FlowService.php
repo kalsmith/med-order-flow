@@ -252,6 +252,22 @@ protected function generateSignature(array $params)
 }
 
 
+public function getRefundStatus($token)
+{
+    $url = "https://sandbox.flow.cl/api/refund/getStatus";
+    $params = [
+        'apiKey' => config('services.flow.api_key'),
+        'token'  => $token
+    ];
+    $params['s'] = $this->generateSignature($params);
+
+    $response = Http::get($url, $params);
+    return $response->json();
+}
+
+
+
+
 /**
  * Genera la firma HMAC-SHA256 (Estándar de Flow)
  */
