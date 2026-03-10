@@ -73,6 +73,11 @@ Route::middleware([
             ->name('orders.download')
             ->middleware('auth');
 
+            // AGREGA ESTA LÍNEA AQUÍ
+    Route::post('/mis-ordenes/{order}/retry-payment', [PublicOrderController::class, 'retryPayment'])
+        ->name('orders.retryPayment');
+
+
     });
 });
 
@@ -118,6 +123,11 @@ Route::prefix('payment/flow')->group(function () {
     Route::match(['get', 'post'], '/return', [FlowController::class, 'returnUrl'])->name('flow.return');
     // Webhook que llama Flow al servidor
     Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
+
+    // --- ESTAS SON LAS QUE TE FALTAN Y CAUSAN LOS MAILS DE FLOW ---
+    Route::get('/cancel', [FlowController::class, 'cancel'])->name('flow.cancel');
+    Route::get('/fail', [FlowController::class, 'fail'])->name('flow.fail');
+
 });
 
 Route::get('/pago-exitoso/{order?}', function ($order = null) {
