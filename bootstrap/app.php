@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+    $middleware->validateCsrfTokens(except: [
+        'payment/flow/return',
+        'payment/flow/confirmation',
+    ]);
+
+
         // REDIRECCIÓN INTELIGENTE SEGÚN LA RUTA
         $middleware->redirectGuestsTo(function (Request $request) {
 
