@@ -86,64 +86,60 @@
                     </div>
                 </div>
 
-                @forelse($orders as $order)
-                <div class="card order-card mb-4 shadow-sm border-0">
-                    <div class="card-body p-4">
-                        <div class="row align-items-center">
-                            <div class="col-md-5">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-primary bg-opacity-10 p-3 rounded-4 me-3 text-primary">
-                                        <i class="bi bi-file-earmark-medical fs-3"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="fw-bold mb-1">{{ $order->examType->name }}</h5>
-                                        <p class="text-muted small mb-0">Solicitado el {{ $order->created_at->format('d/m/Y') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 text-center py-3 py-md-0">
-                                @if($order->status === 'signed')
-                                    <span class="status-badge bg-signed">
-                                        <i class="bi bi-patch-check-fill me-1"></i> Firmada
-                                    </span>
-                                @elseif($order->status === 'paid')
-                                    <span class="status-badge bg-paid">
-                                        <i class="bi bi-clock-history me-1"></i> Esperando Firma
-                                    </span>
-                                @else
-                                    <span class="status-badge bg-pending">
-                                        <i class="bi bi-hourglass-split me-1"></i> Pendiente Pago
-                                    </span>
-                                @endif
-                            </div>
-
-                            <div class="col-md-4 text-md-end">
-                                @if($order->status === 'signed')
-                                    <a href="#" class="btn btn-primary btn-action w-100 w-md-auto">
-                                        <i class="bi bi-download me-2"></i> Descargar PDF
-                                    </a>
-                                @else
-                                    <button class="btn btn-light btn-action w-100 w-md-auto text-muted" disabled>
-                                        <i class="bi bi-lock me-2"></i> No disponible
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
+@forelse($orders as $order)
+<div class="card order-card mb-4 shadow-sm border-0">
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <div class="col-md-5">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-4 me-3 text-primary">
+                        <i class="bi bi-file-earmark-medical fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1">{{ $order->examType->name }}</h5>
+                        <p class="text-muted small mb-0">Solicitado el {{ $order->created_at->format('d/m/Y') }}</p>
                     </div>
                 </div>
-                @empty
-                <div class="text-center py-5">
-                    <div class="mb-4">
-                        <i class="bi bi-clipboard-x text-muted" style="font-size: 5rem;"></i>
-                    </div>
-                    <h3>Aún no tienes órdenes</h3>
-                    <p class="text-muted mb-4">Selecciona un examen en el inicio para generar tu primera orden médica.</p>
-                    <a href="{{ route('home') }}" class="btn btn-primary px-5 py-3 rounded-4 fw-bold shadow">
-                        Ir a Ver Exámenes
+            </div>
+
+            <div class="col-md-3 text-center py-3 py-md-0">
+                @if($order->status === 'signed')
+                    <span class="status-badge bg-signed text-success">
+                        <i class="bi bi-patch-check-fill me-1"></i> Lista para descargar
+                    </span>
+                @elseif($order->status === 'paid')
+                    <span class="status-badge bg-paid text-primary">
+                        <i class="bi bi-clock-history me-1"></i> En proceso de firma
+                    </span>
+                @else
+                    <span class="status-badge bg-pending text-warning">
+                        <i class="bi bi-hourglass-split me-1"></i> Requiere Pago
+                    </span>
+                @endif
+            </div>
+
+            <div class="col-md-4 text-md-end">
+                @if($order->status === 'signed')
+                    <a href="{{ route('orders.download', $order->id) }}" class="btn btn-primary btn-action w-100 w-md-auto">
+                        <i class="bi bi-download me-2"></i> Descargar PDF
                     </a>
-                </div>
-                @endforelse
+                @elseif($order->status === 'pending')
+                    <a href="{{ route('orders.retryPayment', $order->id) }}" class="btn btn-warning btn-action w-100 w-md-auto text-white">
+                        <i class="bi bi-credit-card me-2"></i> Pagar Ahora
+                    </a>
+                @else
+                    <button class="btn btn-light btn-action w-100 w-md-auto text-muted" disabled>
+                        <i class="bi bi-clock me-2"></i> Esperando al médico
+                    </button>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@empty
+
+
+
 
             </div>
         </div>
