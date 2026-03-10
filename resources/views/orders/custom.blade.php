@@ -23,7 +23,7 @@
 
             <div class="d-flex justify-content-between mb-4 px-3">
                 <div class="step-indicator text-primary"><i class="bi bi-1-circle-fill"></i> Solicitud</div>
-                <div class="step-indicator text-muted opacity-50"><i class="bi bi-2-circle"></i> Datos</div>
+                <div class="step-indicator text-muted opacity-50"><i class="bi bi-2-circle"></i> Perfil</div>
                 <div class="step-indicator text-muted opacity-50"><i class="bi bi-3-circle"></i> Pago</div>
             </div>
 
@@ -31,15 +31,18 @@
                 <div class="card-body p-0">
                     <div class="row g-0">
                         <div class="col-md-4 bg-medical p-4 p-md-5 rounded-start-4 d-none d-md-block">
-                            <h3 class="fw-bold h5 mb-4">Análisis Farmacéutico</h3>
-                            <p class="small opacity-75">Tu solicitud será revisada por un Químico Farmacéutico para asegurar la pertinencia técnica antes de la firma médica.</p>
+                            <h3 class="fw-bold h5 mb-4">Revisión Profesional</h3>
+                            <p class="small opacity-75">Tu solicitud será evaluada minuciosamente para asegurar que la orden médica sea emitida con la precisión técnica requerida.</p>
 
                             <div class="mt-4 pt-4 border-top border-primary-subtle">
-                                <div class="d-flex mb-3 small">
-                                    <i class="bi bi-shield-check me-2"></i> Firma Electrónica Avanzada
+                                <div class="d-flex mb-3 small align-items-center">
+                                    <i class="bi bi-shield-check me-2"></i> Firma Médica Legal
                                 </div>
-                                <div class="d-flex mb-3 small">
-                                    <i class="bi bi-clock-history me-2"></i> Entrega en < 24hrs
+                                <div class="d-flex mb-3 small align-items-center">
+                                    <i class="bi bi-clock-history me-2"></i> Entrega en menos de 24hrs
+                                </div>
+                                <div class="d-flex mb-3 small align-items-center">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i> Formato Digital PDF
                                 </div>
                             </div>
                         </div>
@@ -51,39 +54,39 @@
                                 @csrf
 
                                 <div class="form-section">
-                                    <label class="form-label fw-bold small text-muted text-uppercase">Detalle de Exámenes</label>
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Exámenes requeridos</label>
                                     <textarea name="custom_exam_name"
                                         class="form-control bg-light border-0 p-3"
                                         rows="3"
-                                        placeholder="Ej: Hemograma completo, TGO, TGP y Creatinina..."
+                                        placeholder="Ej: Hemograma completo, Perfil Lipídico y Creatinina..."
                                         required></textarea>
-                                    <div class="form-text small">Escribe los nombres tal como aparecen en tu indicación o receta previa.</div>
+                                    <div class="form-text small">Indica los nombres de los exámenes que te fueron sugeridos.</div>
                                 </div>
 
                                 <div class="form-section">
-                                    <label class="form-label fw-bold small text-muted text-uppercase">Contexto Clínico (Para el QF)</label>
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Síntomas o Motivo</label>
                                     <textarea name="symptoms"
                                         class="form-control bg-light border-0 p-3"
                                         rows="2"
-                                        placeholder="Ej: Control de tiroides por hipotiroidismo diagnosticado..."></textarea>
-                                    <div class="form-text small">Información relevante para que el profesional valide la orden.</div>
+                                        placeholder="Ej: Dolor abdominal recurrente, control de rutina, fatiga..."></textarea>
+                                    <div class="form-text small">Describe brevemente por qué necesitas estos exámenes.</div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-4">
-                                        <label class="form-label fw-bold small text-muted text-uppercase">Tipo de Paciente</label>
+                                        <label class="form-label fw-bold small text-muted text-uppercase">Rango de Edad</label>
                                         <select name="patient_type" class="form-select bg-light border-0">
-                                            <option value="adulto">Adulto</option>
-                                            <option value="pediatrico">Pediátrico</option>
-                                            <option value="geriatrico">Geriátrico</option>
+                                            <option value="adulto">Adulto (18+ años)</option>
+                                            <option value="pediatrico">Pediátrico (Niño/Adolescente)</option>
+                                            <option value="geriatrico">Adulto Mayor</option>
                                         </select>
                                     </div>
                                     <div class="col-md-6 mb-4">
                                         <label class="form-label fw-bold small text-muted text-uppercase">Urgencia</label>
                                         <select name="urgency" class="form-select bg-light border-0">
-                                            <option value="normal">Control de Rutina</option>
-                                            <option value="seguimiento">Seguimiento Patología</option>
-                                            <option value="urgente">Molestias Agudas</option>
+                                            <option value="normal">Preventivo / Rutina</option>
+                                            <option value="seguimiento">Seguimiento Crónico</option>
+                                            <option value="urgente">Molestias actuales</option>
                                         </select>
                                     </div>
                                 </div>
@@ -91,7 +94,7 @@
                                 <div class="alert bg-light border-0 d-flex align-items-center rounded-4 p-3 mb-4">
                                     <i class="bi bi-tag-fill me-3 fs-4 text-primary"></i>
                                     <div>
-                                        <div class="small text-muted">Precio único revisión manual</div>
+                                        <div class="small text-muted">Costo total del servicio</div>
                                         <div class="fw-bold fs-5">$9.990</div>
                                     </div>
                                 </div>
@@ -106,8 +109,7 @@
             </div>
 
             <p class="text-center mt-4 text-muted small">
-                Sesión: <strong>{{ auth()->user()->email }}</strong> |
-                <i class="bi bi-lock-fill text-success"></i> Conexión Segura
+                Conectado como: <strong>{{ auth()->user()->email }}</strong>
             </p>
         </div>
     </div>
