@@ -130,7 +130,8 @@ Route::prefix('payment/flow')->group(function () {
 
 });
 
-Route::get('/pago-exitoso/{order}', [PublicOrderController::class, 'showSuccess'])
+// Por esto (con el signo de interrogación):
+Route::get('/pago-exitoso/{order?}', [App\Http\Controllers\PublicOrderController::class, 'showSuccess'])
     ->name('payment.success');
 
 /*

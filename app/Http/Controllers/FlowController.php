@@ -22,21 +22,29 @@ public function returnUrl(Request $request)
 {
     $token = $request->query('token') ?? $request->input('token');
 
-    // 1. Si no hay token, al home
     if (!$token) return redirect()->route('home');
 
-    // 2. Buscamos la transacción
+    // DEBUG: Registremos qué estamos buscando
+    Log::info("Intentando buscar token: " . $token);
+
+    // DEBUG: Verifiquemos si existe algún token en la tabla
+    $totalRegistros = GatewayTransaction::count();
+    Log::info("Total de registros en GatewayTransaction: " . $totalRegistros);
+
     $gatewayTrx = GatewayTransaction::where('token', $token)->first();
 
-    // 3. VALIDACIÓN CRÍTICA:
-    // Si no existe la transacción O el ID de la orden es nulo, logueamos el error y evitamos el crash
-    if (!$gatewayTrx || empty($gatewayTrx->medical_order_id)) {
-        Log::error("Flow Error en returnUrl: No se encontró orden asociada al token: " . $token);
+    if (!$gatewayTrx) {
+        Log::error("TOKEN NO ENCONTRADO EN DB: " . $token);
+        // Opcional: Loguear los últimos tokens guardados para comparar
+        $ultimos = GatewayTransaction::latest()->limit(5)->pluck('token');
+        Log::error("Tokens recientes en DB: " . $ultimos);
+
         return redirect()->route('patient.orders')
-                         ->with('error', 'Hubo un problema recuperando tu orden. Por favor contacta a soporte.');
+                         ->with('error', 'El token de pago no se encontró en el sistema.');
     }
 
-    // 4. Si todo está OK, redirigimos pasando el ID de la orden
-    return redirect()->route('payment.success', ['order' => $gatewayTrx->medical_order_id]);
+    return redirect()->route('payment.success', ['order' => $gatewayTrx->payable_id]);
 }
+
+
 }

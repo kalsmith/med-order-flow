@@ -191,15 +191,24 @@ public function download($orderId)
 
 // En PublicOrderController.php
 
-public function showSuccess($orderId)
+public function showSuccess($orderId = null)
 {
-    // Usamos el nombre exacto de tu relación: paymentTransaction
-    $order = MedicalOrder::with(['paymentTransaction'])
-                ->findOrFail($orderId);
+    // Si no viene ID, mándalo a órdenes y que el usuario vea qué pasó
+    if (!$orderId) {
+        return redirect()->route('patient.orders')->with('error', 'No se pudo validar el ID de la orden.');
+    }
 
-    // Validamos que el usuario logueado sea el dueño de la orden
+    // Buscamos
+    $order = MedicalOrder::with(['paymentTransaction'])->find($orderId);
+
+    // Si el ID existe pero no encuentra la orden, redirige
+    if (!$order) {
+        return redirect()->route('patient.orders')->with('error', 'Orden no encontrada.');
+    }
+
+    // Seguridad simple
     if ($order->patient_id !== Auth::user()->patient->id) {
-        abort(403, 'No tienes acceso a esta orden.');
+        abort(403);
     }
 
     return view('payment_success', compact('order'));
