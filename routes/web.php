@@ -126,3 +126,7 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('api')->name('api.')->gr
         return $specialty->examTypes()->where('is_active', true)->get(['id', 'name', 'base_price']);
     })->name('exams.by.specialty');
 });
+
+Route::any('/test-flow', function () {
+    return "Si ves esto, el CSRF ya no está bloqueando esta ruta.";
+});
