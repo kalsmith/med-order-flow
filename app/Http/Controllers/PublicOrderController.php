@@ -166,12 +166,22 @@ class PublicOrderController extends Controller
 
 public function download($orderId)
 {
-    // 1. Buscamos la orden
-    $order = MedicalOrder::findOrFail($orderId);
+    // 1. Buscamos la orden con sus relaciones cargadas (Eager Loading)
+    // Esto es vital para que $order->patient->user funcione sin errores
+    $order = MedicalOrder::with(['patient.user', 'doctor.user'])->findOrFail($orderId);
 
-    // 2. Seguridad: ¿Es el paciente dueño de la orden O es el doctor asignado?
+    // 2. Logs de depuración para descubrir por qué falla el permiso
+    Log::debug("Usuario Autenticado ID: " . auth()->id());
+    Log::debug("Dueño de la Orden (User ID): " . ($order->patient->user->id ?? 'NO USER'));
+    Log::debug("Doctor asociado a la orden (Doctor ID en DB): " . ($order->doctor_id ?? 'NO DOCTOR'));
+
+    // 3. Seguridad corregida:
+    // Comparamos siempre ID de Usuario con ID de Usuario
     $isOwner = (auth()->id() === $order->patient->user_id);
-    $isDoctor = (auth()->id() === $order->doctor_id);
+
+    // Aquí está el punto clave:
+    // ¿El usuario logueado ES el usuario dueño de la cuenta del doctor?
+    $isDoctor = (auth()->id() === ($order->doctor->user_id ?? null));
 
     if (!$isOwner && !$isDoctor) {
         Log::warning("Intento de acceso no autorizado al archivo: Usuario " . auth()->id() . " intentó ver Orden {$orderId}");
@@ -180,7 +190,7 @@ public function download($orderId)
 
     Log::info("Acceso autorizado para la descarga. Orden ID: {$orderId}. Usuario: " . auth()->id());
 
-    // 3. Aquí tu lógica de PDF...
+    // 4. Aquí tu lógica de PDF...
     return "Descargando PDF seguro para la orden: " . $order->id;
 }
 

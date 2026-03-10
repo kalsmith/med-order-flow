@@ -91,12 +91,19 @@ class MedicalOrder extends Model
 
 public function finalizePayment()
 {
-    // Lógica limpia y simple:
-    if ($this->type === 'standard') {
-        $this->update(['status' => 'signed', 'signed_at' => now()]);
-    } else {
-        $this->update(['status' => 'paid']);
+    // Definimos el nuevo estado según el tipo de orden
+    $newStatus = ($this->type === 'standard') ? 'signed' : 'paid';
+
+    $data = ['status' => $newStatus];
+
+    // Si la orden es 'signed', marcamos la fecha
+    if ($newStatus === 'signed') {
+        $data['signed_at'] = now();
     }
+
+    $this->update($data);
+
+    Log::info("Orden {$this->id} actualizada a estado: {$newStatus}");
 }
 
 
