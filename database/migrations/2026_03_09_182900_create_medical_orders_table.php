@@ -11,19 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('medical_orders', function (Illuminate\Database\Schema\Blueprint $table) {
+        Schema::create('medical_orders', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('patient_id')->constrained()->onDelete('restrict');
-            $table->foreignId('doctor_id')->constrained()->onDelete('restrict');
-            $table->foreignId('exam_type_id')->constrained()->onDelete('restrict');
+            // Ahora sí, estas tablas ya existen arriba:
+            $table->foreignId('patient_id')->constrained();
+            $table->foreignId('doctor_id')->constrained();
+            $table->foreignId('exam_type_id')->constrained();
 
             $table->enum('status', ['pending', 'paid', 'signed', 'cancelled'])->default('pending');
             $table->integer('amount')->default(0);
-
-            $table->string('pdf_path')->nullable();
-            $table->string('verification_code')->unique()->nullable(); // Para validar en la web
-
-            $table->timestamp('signed_at')->nullable();
+            $table->string('verification_code')->unique()->nullable();
             $table->timestamps();
         });
     }
