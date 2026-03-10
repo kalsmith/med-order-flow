@@ -24,10 +24,13 @@ class OrderCheckout extends Component
     public function mount($examId)
     {
         $this->exam = ExamType::findOrFail($examId);
+
+        // Cargamos los pacientes asegurando que sea una colección
         $this->loadPatients();
 
-        // Seleccionamos al titular ("self") por defecto si ya existe
+        // Ahora el where() no fallará porque $this->patients es una colección (aunque esté vacía)
         $primary = $this->patients->where('relationship', 'self')->first();
+
         if ($primary) {
             $this->selectedPatientId = $primary->id;
         }
@@ -35,8 +38,8 @@ class OrderCheckout extends Component
 
     public function loadPatients()
     {
-        // Traemos todos los pacientes asociados al usuario de Google
-        $this->patients = Auth::user()->patients;
+        // Usamos la relación y obtenemos el resultado explícitamente como colección
+        $this->patients = Auth::user()->patients()->get() ?? collect();
     }
 
     public function selectPatient($id)
@@ -57,12 +60,9 @@ class OrderCheckout extends Component
     {
         $this->validate([
             'newName' => 'required|string|min:5',
-            'newRut' => 'required|string', // Aquí puedes añadir validación cl_rut
+            'newRut' => 'required|string',
             'newRelationship' => 'required|in:child,spouse,parent,other',
             'newBirthDate' => 'required|date|before:today',
-        ], [
-            'newName.required' => 'El nombre es obligatorio.',
-            'newRelationship.required' => 'Indica el parentesco.',
         ]);
 
         $patient = Auth::user()->patients()->create([
@@ -78,12 +78,12 @@ class OrderCheckout extends Component
         $this->selectedPatientId = $patient->id;
         $this->showNewPatientForm = false;
 
-        // Limpiar campos
         $this->reset(['newName', 'newRut', 'newRelationship', 'newBirthDate']);
     }
 
     public function render()
     {
+        // Evitamos buscar si no hay ID seleccionado
         $selectedPatient = $this->selectedPatientId
             ? Patient::find($this->selectedPatientId)
             : null;
