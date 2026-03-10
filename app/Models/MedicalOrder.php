@@ -90,22 +90,21 @@ class MedicalOrder extends Model
 
 public function finalizePayment()
 {
-    // Si la orden es de tipo estándar, la autogestionamos
-    if ($this->type === 'standard') {
+    // Si la orden es 'standard' (compra directa), saltamos de 'paid' a 'signed' automáticamente.
+    // Si es otro tipo (asistida/especial), nos quedamos en 'paid'.
 
+    if ($this->type === 'standard') {
         $this->update([
             'status'    => 'signed',
-            'signed_at' => now(),
+            'signed_at' => now(), // ¡Fundamental! Registra cuándo se firmó
         ]);
-
-        Log::info("Orden {$this->id} auto-firmada exitosamente (flujo standard).");
-
+        Log::info("Orden {$this->id} auto-firmada.");
     } else {
-        // Es una orden de flujo especial (consulta/formulario),
-        // solo marcamos pagado y el médico que atienda la firma después.
-        $this->update(['status' => 'paid']);
-
-        Log::info("Orden {$this->id} pagada, pendiente de revisión médica (flujo especial).");
+        // En cualquier otro caso, el pago es exitoso, pero la orden no se firma aún.
+        $this->update([
+            'status'    => 'paid',
+        ]);
+        Log::info("Orden {$this->id} pagada. Esperando firma manual.");
     }
 }
 
