@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GatewayTransaction;
 use App\Models\MedicalOrder;
 use App\Services\FlowService;
 use Illuminate\Http\Request;
@@ -52,38 +53,32 @@ class CheckoutController extends Controller
         }
     }
 
-public function flowReturn(Request $request)
-{
-    // 1. Logs para saber qué rayos está llegando realmente (Debug intenso)
-    Log::info('Entrando en flowReturn', ['query' => $request->query(), 'all' => $request->all()]);
+    public function flowReturn(Request $request)
+    {
+        $token = $request->query('token');
 
-    // 2. Intentamos obtener el token de varias formas (para ser más flexibles)
-    $token = $request->query('token') ?? $request->input('token');
+        if (!$token) {
+            return redirect()->route('home')->with('error', 'Token no recibido.');
+        }
 
-    // SI NO HAY TOKEN: No le demos error al usuario, mejor mandémoslo a mis-ordenes
-    // donde podrá ver si el pago aparece como 'pagado' o 'pendiente'.
-    if (!$token) {
-        Log::warning('flowReturn sin token recibido.');
-        return redirect()->route('patient.orders')
-            ->with('info', 'Estamos procesando tu pago. Si no ves tu orden, espera unos segundos.');
+        // BUSCAMOS EN LA TABLA DE TRANSACCIONES, NO EN LA ORDEN
+        $gatewayTrx = GatewayTransaction::where('token', $token)->first();
+
+        if (!$gatewayTrx) {
+            Log::error("No se encontró transacción para el token: $token");
+            return redirect()->route('home')->with('error', 'Transacción no encontrada.');
+        }
+
+        // OBTENEMOS LA ORDEN A TRAVÉS DE LA TRANSACCIÓN
+        // Asumiendo que tu transacción tiene un 'payable' o un 'medical_order_id'
+        $order = $gatewayTrx->payable; // o $gatewayTrx->medicalOrder
+
+        if (!$order) {
+            return redirect()->route('home')->with('error', 'Orden no encontrada.');
+        }
+
+        return redirect()->route('payment.success', ['order' => $order->id]);
     }
-
-    // 3. Buscamos la orden.
-    // IMPORTANTE: Asegúrate de que el modelo MedicalOrder tiene la columna 'flow_token'
-    // o cámbialo por 'GatewayTransaction::where('token', $token)->first()->payable'
-    $order = \App\Models\MedicalOrder::where('flow_token', $token)->first();
-
-    if (!$order) {
-        Log::error("Orden no encontrada para el token: $token");
-        // Si no encontramos la orden, redirigimos a órdenes pero con un aviso
-        return redirect()->route('patient.orders')
-            ->with('error', 'No pudimos encontrar tu orden asociada al pago.');
-    }
-
-    // 4. Si todo está OK, redirección a éxito
-    Log::info("Redirigiendo a éxito para orden ID: {$order->id}");
-    return redirect()->route('payment.success', ['order' => $order->id]);
-}
 
 
 
