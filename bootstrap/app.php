@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // pueda enviar sus Webhooks sin recibir un error de token CSRF
         $middleware->validateCsrfTokens(except: [
             'payment/flow/*',
+            'payment/flow/confirmation',
+            'payment/flow/refund-confirmation',
         ]);
 
         // Redirección inteligente: los pacientes van a Google, los admins al Login
