@@ -166,31 +166,25 @@ class PublicOrderController extends Controller
 
 public function download($orderId)
 {
-    // 1. Buscamos la orden con sus relaciones cargadas (Eager Loading)
-    // Esto es vital para que $order->patient->user funcione sin errores
     $order = MedicalOrder::with(['patient.user', 'doctor.user'])->findOrFail($orderId);
 
-    // 2. Logs de depuración para descubrir por qué falla el permiso
-    Log::debug("Usuario Autenticado ID: " . auth()->id());
-    Log::debug("Dueño de la Orden (User ID): " . ($order->patient->user->id ?? 'NO USER'));
-    Log::debug("Doctor asociado a la orden (Doctor ID en DB): " . ($order->doctor_id ?? 'NO DOCTOR'));
+    // Convertimos todo a (int) para evitar errores de tipo string vs integer
+    $currentUserId = (int) auth()->id();
+    $ownerUserId   = (int) ($order->patient->user->id ?? 0);
 
-    // 3. Seguridad corregida:
-    // Comparamos siempre ID de Usuario con ID de Usuario
-    $isOwner = (auth()->id() === $order->patient->user_id);
+    // Asumiendo que doctor también tiene relación user
+    $doctorUserId  = (int) ($order->doctor->user->id ?? 0);
 
-    // Aquí está el punto clave:
-    // ¿El usuario logueado ES el usuario dueño de la cuenta del doctor?
-    $isDoctor = (auth()->id() === ($order->doctor->user_id ?? null));
+    $isOwner = ($currentUserId === $ownerUserId);
+    $isDoctor = ($currentUserId === $doctorUserId);
 
     if (!$isOwner && !$isDoctor) {
-        Log::warning("Intento de acceso no autorizado al archivo: Usuario " . auth()->id() . " intentó ver Orden {$orderId}");
+        Log::warning("Intento de acceso no autorizado: Usuario {$currentUserId} intentó ver Orden {$orderId}");
         abort(403, 'No tienes permiso para ver este documento.');
     }
 
-    Log::info("Acceso autorizado para la descarga. Orden ID: {$orderId}. Usuario: " . auth()->id());
+    Log::info("Acceso autorizado. Usuario {$currentUserId} descargando orden {$orderId}");
 
-    // 4. Aquí tu lógica de PDF...
     return "Descargando PDF seguro para la orden: " . $order->id;
 }
 
