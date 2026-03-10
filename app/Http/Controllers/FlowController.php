@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GatewayTransaction;
 use App\Services\FlowService;
 use Illuminate\Http\Request;
 
@@ -18,11 +19,14 @@ class FlowController extends Controller
 
     public function returnUrl(Request $request)
     {
-        $token = $request->query('token');
-        // Si no hay token, fuera
+        // Asegúrate de que este método exista y no tenga errores de sintaxis
+        $token = $request->query('token') ?? $request->input('token'); // Captura tanto GET como POST
+
         if (!$token) return redirect()->route('home');
 
-        // Aquí podrías redirigir al éxito
-        return redirect()->route('payment.success', ['token' => $token]);
+        $gatewayTrx = GatewayTransaction::where('token', $token)->first();
+        if (!$gatewayTrx) return redirect()->route('home');
+
+        return redirect()->route('payment.success', ['order' => $gatewayTrx->medical_order_id]);
     }
 }

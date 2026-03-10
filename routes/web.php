@@ -111,7 +111,7 @@ Route::middleware([
 */
 Route::prefix('payment/flow')->group(function () {
     // Retorno del usuario al sitio web
-    Route::get('/return', [FlowController::class, 'returnUrl'])->name('flow.return');
+    Route::match(['get', 'post'], '/return', [FlowController::class, 'returnUrl'])->name('flow.return');
     // Webhook que llama Flow al servidor
     Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
 });
