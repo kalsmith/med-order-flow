@@ -87,57 +87,80 @@ public function createPayment(MedicalOrder $order)
      * Procesa el Webhook, cierra la pasarela y genera el movimiento contable
      */
 
+
     public function handleWebhook(string $token)
-    {
-        $status = $this->getStatus($token);
+{
+    $status = $this->getStatus($token);
 
-        if ($status && (int)$status->status === 2) {
-            return DB::transaction(function () use ($status, $token) {
-                // 1. Buscar el registro de la pasarela
-                $gatewayTrx = GatewayTransaction::where('buy_order', $status->commerceOrder)
-                    ->where('status', 'pending')
-                    ->first();
+    // Solo procesamos si el pago está autorizado (status 2)
+    if ($status && (int)$status->status === 2) {
+        return DB::transaction(function () use ($status, $token) {
+            // 1. Buscar el registro de la pasarela
+            $gatewayTrx = GatewayTransaction::where('buy_order', $status->commerceOrder)
+                ->where('status', 'pending')
+                ->first();
 
-                if (!$gatewayTrx) return false;
+            if (!$gatewayTrx) return false;
 
-                // 2. Actualizar GatewayTransaction (Pasarela)
-                $gatewayTrx->update([
-                    'status' => 'authorized',
-                    'raw_response' => (array)$status
+            // 2. Actualizar GatewayTransaction
+            $gatewayTrx->update([
+                'status' => 'authorized',
+                'raw_response' => (array)$status
+            ]);
+
+            // 3. Obtener la Orden Médica
+            $order = $gatewayTrx->payable;
+            if (!$order) return false;
+
+            // 4. Intentar Firma Digital (Integración con el Mock Service)
+            $signatureService = app(\App\Services\SignatureService::class);
+            $signatureResult = $signatureService->sign($order);
+
+            if ($signatureResult->success) {
+                // --- CASO ÉXITO ---
+
+                // Finalizamos el pago en la orden
+                $order->finalizePayment();
+
+                // Notificamos al usuario
+                $signatureService->notify($order);
+
+                // Registrar contabilidad
+                Transaction::create([
+                    'sender_id'      => $gatewayTrx->user_id,
+                    'receiver_id'    => $order->doctor_id ?? null,
+                    'reference_id'   => $order->id,
+                    'reference_code' => $gatewayTrx->buy_order,
+                    'amount'         => $gatewayTrx->amount,
+                    'platform_fee'   => 0,
+                    'type'           => 'medical_order',
+                    'status'         => 'completed',
+                    'metadata'       => [
+                        'gateway' => 'flow',
+                        'flow_token' => $token,
+                        'payment_method' => $status->paymentMethod ?? 'unknown'
+                    ]
                 ]);
 
-                // 3. Obtener la Orden Médica
-                $order = $gatewayTrx->payable;
-
-                if ($order) {
-                    // CAMBIO AQUÍ: Llamamos al método inteligente del modelo
-                    // Este método evalúa si es 'standard' para firmar o 'paid' para esperar
-                    $order->finalizePayment();
-
-                    // 4. CREAR EL MOVIMIENTO EN TRANSACTION (Contabilidad)
-                    Transaction::create([
-                        'sender_id'      => $gatewayTrx->user_id,
-                        'receiver_id'    => $order->doctor_id ?? null,
-                        'reference_id'   => $order->id,
-                        'reference_code' => $gatewayTrx->buy_order,
-                        'amount'         => $gatewayTrx->amount,
-                        'platform_fee'   => 0,
-                        'type'           => 'medical_order',
-                        'status'         => 'completed',
-                        'metadata'       => [
-                            'gateway' => 'flow',
-                            'flow_token' => $token,
-                            'payment_method' => $status->paymentMethod ?? 'unknown'
-                        ]
-                    ]);
-                }
-
                 return true;
-            });
-        }
-        return false;
+
+            } else {
+                // --- CASO FALLO EN FIRMA: REEMBOLSO ---
+
+                Log::error("CRITICAL: Firma fallida para orden {$order->id}. Iniciando reembolso.");
+
+                $order->update(['status' => 'refund_pending']);
+
+                // Llamamos a tu método de reembolso
+                $this->requestRefund($order, $gatewayTrx);
+
+                return false;
+            }
+        });
     }
 
+    return false;
+}
 
 
 
