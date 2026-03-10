@@ -1,5 +1,7 @@
 <?php
 
+<?php
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,23 +16,22 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
-    $middleware->validateCsrfTokens(except: [
-        'payment/flow/return',
-        'payment/flow/confirmation',
-    ]);
+        // Excluimos todo el prefijo de pagos para asegurar que Flow
+        // pueda enviar sus Webhooks sin recibir un error de token CSRF
+        $middleware->validateCsrfTokens(except: [
+            'payment/flow/*',
+        ]);
 
-
-        // REDIRECCIÓN INTELIGENTE SEGÚN LA RUTA
+        // Redirección inteligente: los pacientes van a Google, los admins al Login
         $middleware->redirectGuestsTo(function (Request $request) {
 
-            // Si el usuario intenta ir a rutas de pacientes (comprar o ver órdenes)
-            // lo mandamos DIRECTO al flujo de Google sin ver el login de admin.
+            // Si el usuario intenta entrar a rutas de pacientes sin estar logueado,
+            // forzamos el flujo de Google en lugar del login tradicional.
             if ($request->is('confirmar-pedido/*') || $request->is('mis-ordenes')) {
                 return route('auth.google');
             }
 
-            // Para cualquier otra ruta (como entrar a /admin),
-            // usamos el login tradicional de toda la vida.
+            // Por defecto, mandamos al login de toda la vida (admin/staff)
             return route('login');
         });
 
