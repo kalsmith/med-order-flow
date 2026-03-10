@@ -56,30 +56,34 @@ class OrderCheckout extends Component
         }
     }
 
-    public function saveNewPatient()
-    {
-        $this->validate([
-            'newName' => 'required|string|min:5',
-            'newRut' => 'required|string',
-            'newRelationship' => 'required|in:child,spouse,parent,other',
-            'newBirthDate' => 'required|date|before:today',
-        ]);
+public function saveNewPatient()
+{
+    $this->validate([
+        'newName' => 'required|string|max:255',
+        'newRut' => 'required|string', // Aquí podrías añadir tu regla de validación de RUT chileno
+        'newRelationship' => 'required|in:child,spouse,parent,other', // IMPORTANTE: No permitir 'self' aquí
+        'newBirthDate' => 'required|date',
+        'newGender' => 'required|in:M,F',
+    ]);
 
-        $patient = Auth::user()->patients()->create([
-            'full_name' => $this->newName,
-            'rut' => $this->newRut,
-            'relationship' => $this->newRelationship,
-            'birth_date' => $this->newBirthDate,
-            'gender_biologic' => $this->newGender,
-            'is_primary' => false
-        ]);
+    // Limpiar el RUT (quitar puntos y guion) antes de guardar
+    $cleanRut = preg_replace('/[^kK0-9]/', '', $this->newRut);
 
-        $this->loadPatients();
-        $this->selectedPatientId = $patient->id;
-        $this->showNewPatientForm = false;
+    $patient = Auth::user()->patients()->create([
+        'full_name' => $this->newName,
+        'rut' => $cleanRut,
+        'relationship' => $this->newRelationship, // <--- AQUÍ ESTÁ EL CAMBIO: Usar la variable del form
+        'birth_date' => $this->newBirthDate,
+        'gender' => $this->newGender,
+    ]);
 
-        $this->reset(['newName', 'newRut', 'newRelationship', 'newBirthDate']);
-    }
+    // Resetear el formulario y seleccionar al nuevo paciente
+    $this->reset(['newName', 'newRut', 'newRelationship', 'newBirthDate', 'newGender', 'showNewPatientForm']);
+    $this->selectPatient($patient->id);
+
+    // Refrescar la lista de pacientes
+    $this->patients = Auth::user()->patients()->get();
+}
 
     public function render()
     {
