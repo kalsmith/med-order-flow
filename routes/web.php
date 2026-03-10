@@ -71,7 +71,7 @@ Route::middleware([
         Route::get('/dashboard', function () { return view('dashboard'); })->name('dashboard.jetstream');
         Route::get('/orders/download/{order}', [PublicOrderController::class, 'download'])
             ->name('orders.download')
-            ->middleware('auth')
+            ->middleware('auth');
 
     });
 });
