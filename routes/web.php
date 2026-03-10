@@ -121,13 +121,17 @@ Route::middleware([
 Route::prefix('payment/flow')->group(function () {
     // Retorno del usuario al sitio web
     Route::match(['get', 'post'], '/return', [FlowController::class, 'returnUrl'])->name('flow.return');
-    // Webhook que llama Flow al servidor
+
+    // Webhook de Pago (Notificación de Pago Exitoso)
     Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
 
-    // --- ESTAS SON LAS QUE TE FALTAN Y CAUSAN LOS MAILS DE FLOW ---
+    // --- NUEVA RUTA PARA REEMBOLSOS ---
+    // Este es el urlCallBack que le enviamos a Flow en refund/create
+    Route::post('/refund-confirmation', [FlowController::class, 'refundConfirmation'])->name('flow.refund.webhook');
+
+    // Rutas de escape
     Route::get('/cancel', [FlowController::class, 'cancel'])->name('flow.cancel');
     Route::get('/fail', [FlowController::class, 'fail'])->name('flow.fail');
-
 });
 
 // Por esto (con el signo de interrogación):

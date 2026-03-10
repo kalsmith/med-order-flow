@@ -164,6 +164,93 @@ public function createPayment(MedicalOrder $order)
 
 
 
+/**
+     * Procesa el reembolso en la pasarela de pago.
+     */
+
+
+// ... dentro de tu clase FlowService
+
+protected function requestRefund($order, $gatewayTrx)
+{
+    // URL Hardcodeada para Sandbox como pediste
+    $url = "https://sandbox.flow.cl/api/refund/create";
+
+    Log::info("REEMBOLSO: Iniciando solicitud a Flow (Sandbox) para orden: " . $order->id);
+
+    // 1. Extraer flowTrxId del JSON guardado en la transacción
+    $rawResponse = is_string($gatewayTrx->raw_response)
+        ? json_decode($gatewayTrx->raw_response, true)
+        : $gatewayTrx->raw_response;
+
+    $flowTrxId = $rawResponse['flowTrxId'] ?? null;
+
+    if (!$flowTrxId) {
+        Log::error("REEMBOLSO: No se encontró flowTrxId para la orden " . $order->id);
+        return false;
+    }
+
+    // 2. Preparar parámetros (El orden aquí no importa, se ordena en generateSignature)
+    $params = [
+        'apiKey'               => config('services.flow.api_key'),
+        'refundCommerceOrder'  => 'REF-' . $order->id . '-' . time(),
+        'receiverEmail'        => $order->patient_email ?? 'cesar.labarca@example.com', // Ajusta según tu modelo
+        'amount'               => (int) $gatewayTrx->amount,
+        'urlCallBack'          => route('flow.refund.webhook'),
+        'commerceTrxId'        => $gatewayTrx->buy_order,
+        'flowTrxId'            => $flowTrxId,
+    ];
+
+    // 3. Generar la firma 's'
+    $params['s'] = $this->generateSignature($params);
+
+    // 4. Ejecutar la petición
+    try {
+
+        $response = Http::asForm()->post($url, $params);
+        if ($response->successful()) {
+            $data = $response->json();
+            Log::info("REEMBOLSO: Creado exitosamente en Flow. Token: " . ($data['token'] ?? 'N/A'));
+
+            // Actualizamos el estado para que el admin sepa que el proceso inició
+            $order->update(['status' => 'refund_pending']);
+            return true;
+        } else {
+            Log::error("REEMBOLSO: Error en respuesta de Flow: " . $response->body());
+            return false;
+        }
+    } catch (\Exception $e) {
+        Log::error("REEMBOLSO: Excepción al conectar con Flow: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Método para generar la firma requerida por Flow
+ */
+protected function generateSignature(array $params)
+{
+    $secret = config('services.flow.secret_key');
+
+    // 1. Ordenar por llave alfabéticamente
+    ksort($params);
+
+    // 2. Concatenar llave + valor
+    $toSign = "";
+    foreach ($params as $key => $value) {
+        $toSign .= $key . $value;
+    }
+
+    // 3. HMAC SHA256
+    return hash_hmac('sha256', $toSign, $secret);
+}
+
+/**
+ * Genera la firma HMAC-SHA256 (Estándar de Flow)
+ */
+
+
+
 
 
     public function getStatus(string $token)
