@@ -69,6 +69,10 @@ Route::middleware([
 
         Route::get('/mis-ordenes', [PublicOrderController::class, 'index'])->name('patient.orders');
         Route::get('/dashboard', function () { return view('dashboard'); })->name('dashboard.jetstream');
+        Route::get('/orders/download/{order}', [PublicOrderController::class, 'download'])
+            ->name('orders.download')
+            ->middleware('auth')
+
     });
 });
 

@@ -162,4 +162,27 @@ class PublicOrderController extends Controller
         return redirect()->route('patient.orders')
             ->with('warning', 'La orden se guardó, pero la pasarela de pago no respondió.');
     }
+
+
+public function download($orderId)
+{
+    // 1. Buscamos la orden
+    $order = MedicalOrder::findOrFail($orderId);
+
+    // 2. Seguridad: ¿Es el paciente dueño de la orden O es el doctor asignado?
+    $isOwner = (auth()->id() === $order->patient->user_id);
+    $isDoctor = (auth()->id() === $order->doctor_id);
+
+    if (!$isOwner && !$isDoctor) {
+        Log::warning("Intento de acceso no autorizado al archivo: Usuario " . auth()->id() . " intentó ver Orden {$orderId}");
+        abort(403, 'No tienes permiso para ver este documento.');
+    }
+
+    Log::info("Acceso autorizado para la descarga. Orden ID: {$orderId}. Usuario: " . auth()->id());
+
+    // 3. Aquí tu lógica de PDF...
+    return "Descargando PDF seguro para la orden: " . $order->id;
+}
+
+
 }
