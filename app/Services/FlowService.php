@@ -63,7 +63,7 @@ public function createPayment(MedicalOrder $order)
         'subject'         => "Orden Médica: #" . $order->id,
         'amount'          => (int)$order->amount,
         'email'           => auth()->user()->email,
-        'urlConfirmation' => route('flow.confirmation'), // Coincide con FlowController
+        'urlConfirmation' => route('flow.webhook'), // <-- AQUÍ DEBE DECIR flow.webhook
         'urlReturn'       => route('flow.return'),        // Coincide con FlowController
     ];
 
