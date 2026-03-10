@@ -75,15 +75,19 @@ class PublicOrderController extends Controller
             session(['pending_custom_exam' => $request->custom_exam_name]);
         }
 
-        DB::transaction(function () use ($request) {
+    DB::transaction(function () use ($request) {
             $user = Auth::user();
             $user->update(['name' => $request->full_name]);
 
-            Patient::updateOrCreate(
-                ['user_id' => $user->id],
+            // Limpiamos el RUT (quitamos puntos y guión)
+            $rutLimpio = preg_replace('/[^k0-9]/i', '', $request->rut);
+
+            // Usamos la relación plural 'patients' que definimos en el modelo User
+            $user->patients()->updateOrCreate(
+                ['relationship' => 'self'], // Buscamos el perfil del titular
                 [
                     'full_name'       => $request->full_name,
-                    'rut'             => preg_replace('/[^k0-9]/i', '', $request->rut),
+                    'rut'             => $rutLimpio,
                     'birth_date'      => $request->birth_date,
                     'gender_biologic' => $request->gender_biologic,
                     'prevision'       => 'Particular'
