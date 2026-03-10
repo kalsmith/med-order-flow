@@ -88,26 +88,31 @@ class MedicalOrder extends Model
 
 // En app/Models/MedicalOrder.php
 
-public function finalizePayment()
+public function download($orderId)
 {
-    // Si la orden es 'standard' (compra directa), saltamos de 'paid' a 'signed' automáticamente.
-    // Si es otro tipo (asistida/especial), nos quedamos en 'paid'.
+    // Usamos 'with' para encadenar las relaciones
+    $order = MedicalOrder::with('patient.user')->findOrFail($orderId);
 
-    if ($this->type === 'standard') {
-        $this->update([
-            'status'    => 'signed',
-            'signed_at' => now(), // ¡Fundamental! Registra cuándo se firmó
-        ]);
-        Log::info("Orden {$this->id} auto-firmada.");
-    } else {
-        // En cualquier otro caso, el pago es exitoso, pero la orden no se firma aún.
-        $this->update([
-            'status'    => 'paid',
-        ]);
-        Log::info("Orden {$this->id} pagada. Esperando firma manual.");
+    // Ahora sí, el encadenamiento está completo:
+    // 1. Accedemos al paciente: $order->patient
+    // 2. Accedemos al usuario del paciente: $order->patient->user
+
+    // Verificación defensiva:
+    if (!$order->patient || !$order->patient->user) {
+        abort(404, "Esta orden no tiene un dueño asociado correctamente.");
     }
-}
 
+    $isOwner = (auth()->id() == $order->patient->user->id);
+    $isDoctor = (auth()->id() == $order->doctor_id);
+
+    if (!$isOwner && !$isDoctor) {
+        Log::warning("Acceso denegado: Usuario " . auth()->id() . " intentó ver Orden {$orderId}");
+        abort(403, 'No tienes permiso para ver este documento.');
+    }
+
+    Log::info("Acceso autorizado para: " . auth()->id());
+    return "PDF generado";
+}
 
 
 
