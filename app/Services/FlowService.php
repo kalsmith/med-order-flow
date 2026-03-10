@@ -37,50 +37,51 @@ class FlowService
     /**
      * Crea el pago y registra el intento en GatewayTransaction
      */
-    public function createPayment(MedicalOrder $order)
-    {
-        $endpoint = $this->urlBase . '/payment/create';
-        $buyOrder = "MED-" . strtoupper(bin2hex(random_bytes(4)));
 
-        // 1. Registro técnico en GatewayTransaction (Auditoría de Pasarela)
-        $gatewayTrx = GatewayTransaction::create([
-            'user_id' => auth()->id(),
-            'gateway' => 'flow',
-            'buy_order' => $buyOrder,
-            'amount' => $order->amount,
-            'status' => 'pending',
-            'payable_type' => get_class($order),
-            'payable_id' => $order->id,
-        ]);
+    // ... imports igual que antes ...
 
-        $params = [
-            'apiKey'          => $this->apiKey,
-            'commerceOrder'   => $buyOrder,
-            'subject'         => "Orden Médica: " . ($order->examType->name ?? 'Examen'),
-            'amount'          => (int)$order->amount,
-            'email'           => auth()->user()->email,
-            'urlConfirmation' => route('flow.webhook'),
-            'urlReturn'       => route('flow.return'),
-        ];
+public function createPayment(MedicalOrder $order)
+{
+    $endpoint = $this->urlBase . '/payment/create';
+    $buyOrder = "MED-" . strtoupper(bin2hex(random_bytes(4)));
 
-        $params['s'] = $this->makeSignature($params);
+    // 1. Registro técnico (Único lugar donde se crea)
+    $gatewayTrx = GatewayTransaction::create([
+        'user_id' => auth()->id(),
+        'gateway' => 'flow',
+        'buy_order' => $buyOrder,
+        'amount' => (int)$order->amount,
+        'status' => 'pending',
+        'payable_type' => get_class($order),
+        'payable_id' => $order->id,
+    ]);
 
-        try {
-            $response = Http::asForm()->post($endpoint, $params);
+    // 2. Parámetros para Flow (Coherentes con las rutas de tu Controller)
+    $params = [
+        'apiKey'          => $this->apiKey,
+        'commerceOrder'   => $buyOrder,
+        'subject'         => "Orden Médica: #" . $order->id,
+        'amount'          => (int)$order->amount,
+        'email'           => auth()->user()->email,
+        'urlConfirmation' => route('flow.confirmation'), // Coincide con FlowController
+        'urlReturn'       => route('flow.return'),        // Coincide con FlowController
+    ];
 
-            if ($response->successful()) {
-                $res = $response->object();
-                $gatewayTrx->update(['token' => $res->token]);
-                return $res;
-            }
+    $params['s'] = $this->makeSignature($params);
 
-            Log::error("Flow Create Error", ['res' => $response->body(), 'params' => $params]);
-            return null;
-        } catch (\Exception $e) {
-            Log::critical("Flow Connection Exception: " . $e->getMessage());
-            return null;
+    try {
+        $response = Http::asForm()->post($endpoint, $params);
+        if ($response->successful()) {
+            $res = $response->object();
+            $gatewayTrx->update(['token' => $res->token]);
+            return $res;
         }
+        return null;
+    } catch (\Exception $e) {
+        return null;
     }
+}
+
 
     /**
      * Procesa el Webhook, cierra la pasarela y genera el movimiento contable

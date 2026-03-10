@@ -17,6 +17,7 @@ use App\Http\Controllers\MedicalOrderController;
 use App\Http\Controllers\PublicOrderController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\FlowController; // <--- Importante: Agregado
 
 /*
 |--------------------------------------------------------------------------
@@ -61,7 +62,11 @@ Route::middleware([
     Route::middleware(['check.profile'])->group(function () {
         Route::get('/confirmar-pedido/{exam_type}', [PublicOrderController::class, 'confirmOrder'])->name('orders.confirm');
         Route::post('/enviar-pedido', [PublicOrderController::class, 'store'])->name('orders.store.public');
-        Route::post('/pagar-orden/{order}', [CheckoutController::class, 'repayOrder'])->name('orders.repay');
+
+        // Checkout de Pago
+        Route::get('/checkout/{order}', [CheckoutController::class, 'index'])->name('checkout.index');
+        Route::post('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.process');
+
         Route::get('/mis-ordenes', [PublicOrderController::class, 'index'])->name('patient.orders');
         Route::get('/dashboard', function () { return view('dashboard'); })->name('dashboard.jetstream');
     });
@@ -101,17 +106,17 @@ Route::middleware([
 
 /*
 |--------------------------------------------------------------------------
-| 5. PASARELAS DE PAGO (PÚBLICAS - WEBHOOKS)
+| 5. PASARELAS DE PAGO (Flow)
 |--------------------------------------------------------------------------
 */
 Route::prefix('payment/flow')->group(function () {
-    Route::match(['get', 'post'], '/return', [CheckoutController::class, 'flowReturn'])->name('flow.return');
-    Route::post('/confirmation', [CheckoutController::class, 'handleWebhook'])->name('flow.webhook');
+    // Retorno del usuario al sitio web
+    Route::get('/return', [FlowController::class, 'returnUrl'])->name('flow.return');
+    // Webhook que llama Flow al servidor
+    Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
 });
 
-// NUEVA RUTA: Intermedia para evitar el loop de login
 Route::get('/pago-exitoso/{order?}', function ($order = null) {
-    // Aquí cargarás tu vista 'payment_success.blade.php'
     return view('payment_success', ['order' => $order]);
 })->name('payment.success');
 
@@ -124,8 +129,4 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('api')->name('api.')->gr
     Route::get('/specialties/{specialty}/exam-types', function (Specialty $specialty) {
         return $specialty->examTypes()->where('is_active', true)->get(['id', 'name', 'base_price']);
     })->name('exams.by.specialty');
-});
-
-Route::any('/test-flow', function () {
-    return "Si ves esto, el CSRF ya no está bloqueando esta ruta.";
 });
