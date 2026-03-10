@@ -170,31 +170,35 @@ public function createPayment(MedicalOrder $order)
 
 
 // ... dentro de tu clase FlowService
-
 protected function requestRefund($order, $gatewayTrx)
 {
-    // URL Hardcodeada para Sandbox como pediste
+    // URL Hardcodeada para Sandbox
     $url = "https://sandbox.flow.cl/api/refund/create";
 
     Log::info("REEMBOLSO: Iniciando solicitud a Flow (Sandbox) para orden: " . $order->id);
 
-    // 1. Extraer flowTrxId del JSON guardado en la transacción
-    $rawResponse = is_string($gatewayTrx->raw_response)
-        ? json_decode($gatewayTrx->raw_response, true)
-        : $gatewayTrx->raw_response;
+    // 1. Extraer flowTrxId del JSON guardado en la transacción de forma robusta
+    $raw = $gatewayTrx->raw_response;
 
-    $flowTrxId = $rawResponse['flowTrxId'] ?? null;
+    // Si es un string (JSON), lo decodificamos a array
+    if (is_string($raw)) {
+        $raw = json_decode($raw, true);
+    }
+
+    // Buscamos el ID en el JSON (Flow lo llama flowTrxId en el webhook de confirmación)
+    $flowTrxId = $raw['flowTrxId'] ?? null;
 
     if (!$flowTrxId) {
-        Log::error("REEMBOLSO: No se encontró flowTrxId para la orden " . $order->id);
+        Log::error("REEMBOLSO: No se encontró flowTrxId. Contenido raw: " . json_encode($raw));
         return false;
     }
 
-    // 2. Preparar parámetros (El orden aquí no importa, se ordena en generateSignature)
+    // 2. Preparar parámetros
+    // Nota: Usamos el email del paciente desde la relación con el usuario
     $params = [
         'apiKey'               => config('services.flow.api_key'),
         'refundCommerceOrder'  => 'REF-' . $order->id . '-' . time(),
-        'receiverEmail'        => $order->patient_email ?? 'cesar.labarca@example.com', // Ajusta según tu modelo
+        'receiverEmail'        => $order->user->email ?? 'cesar.labarca@example.com',
         'amount'               => (int) $gatewayTrx->amount,
         'urlCallBack'          => route('flow.refund.webhook'),
         'commerceTrxId'        => $gatewayTrx->buy_order,
@@ -206,13 +210,13 @@ protected function requestRefund($order, $gatewayTrx)
 
     // 4. Ejecutar la petición
     try {
+        $response = \Illuminate\Support\Facades\Http::asForm()->post($url, $params);
 
-        $response = Http::asForm()->post($url, $params);
         if ($response->successful()) {
             $data = $response->json();
             Log::info("REEMBOLSO: Creado exitosamente en Flow. Token: " . ($data['token'] ?? 'N/A'));
 
-            // Actualizamos el estado para que el admin sepa que el proceso inició
+            // Actualizamos el estado de la orden
             $order->update(['status' => 'refund_pending']);
             return true;
         } else {
@@ -232,7 +236,7 @@ protected function generateSignature(array $params)
 {
     $secret = config('services.flow.secret_key');
 
-    // 1. Ordenar por llave alfabéticamente
+    // 1. Ordenar por llave alfabéticamente (Requisito de Flow)
     ksort($params);
 
     // 2. Concatenar llave + valor
@@ -244,6 +248,7 @@ protected function generateSignature(array $params)
     // 3. HMAC SHA256
     return hash_hmac('sha256', $toSign, $secret);
 }
+
 
 /**
  * Genera la firma HMAC-SHA256 (Estándar de Flow)
