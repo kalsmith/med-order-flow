@@ -7,7 +7,6 @@ use App\Models\ExamType;
 use App\Models\MedicalOrder;
 use App\Models\Doctor;
 use App\Services\FlowService;
-use App\Helpers\RutHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +20,15 @@ class PublicOrderController extends Controller
     public function __construct(FlowService $flow)
     {
         $this->flow = $flow;
+    }
+
+    /**
+     * Muestra el formulario para orden personalizada.
+     * Accesible después de Google Login pero antes de completar perfil.
+     */
+    public function customOrder()
+    {
+        return view('orders.custom');
     }
 
     /**
@@ -48,14 +56,19 @@ class PublicOrderController extends Controller
     {
         $request->validate([
             'full_name'       => 'required|string|min:8',
-            'rut'             => 'required|string', // Se limpia dentro de la transacción
+            'rut'             => 'required|string',
             'birth_date'      => 'required|date',
             'gender_biologic' => 'required|in:M,F',
+            'custom_exam_name'=> 'nullable|string' // Capturamos si viene del flujo "A medida"
         ]);
+
+        // Si viene con una solicitud de examen especial, la guardamos en sesión
+        if ($request->has('custom_exam_name')) {
+            session(['pending_custom_exam' => $request->custom_exam_name]);
+        }
 
         DB::transaction(function () use ($request) {
             $user = Auth::user();
-
             $user->update(['name' => $request->full_name]);
 
             Patient::updateOrCreate(
@@ -70,6 +83,12 @@ class PublicOrderController extends Controller
             );
         });
 
+        // PRIORIDAD 1: Si pidió un examen personalizado
+        if (session()->has('pending_custom_exam')) {
+            return redirect()->route('orders.custom.confirm');
+        }
+
+        // PRIORIDAD 2: Si venía de un Pack estándar
         if (session()->has('pending_exam_id')) {
             $examId = session()->pull('pending_exam_id');
             return redirect()->route('orders.confirm', $examId);
@@ -79,7 +98,24 @@ class PublicOrderController extends Controller
     }
 
     /**
-     * Vista previa antes de pagar (Checkout Step)
+     * Vista previa para la orden personalizada (una vez que ya tiene perfil)
+     */
+    public function confirmCustomOrder()
+    {
+        $patient = Auth::user()->patient;
+        $customExam = session('pending_custom_exam');
+
+        if (!$customExam) return redirect()->route('home');
+
+        return view('front.confirm-custom-order', [
+            'patient' => $patient,
+            'description' => $customExam,
+            'price' => 9990 // Precio base para revisiones manuales
+        ]);
+    }
+
+    /**
+     * Vista previa antes de pagar (Pack estándar)
      */
     public function confirmOrder(ExamType $exam_type)
     {
@@ -92,40 +128,54 @@ class PublicOrderController extends Controller
      */
     public function store(Request $request)
     {
+        // Soporta tanto exam_type_id (estándar) como custom_description (especial)
         $request->validate([
-            'exam_type_id' => 'required|exists:exam_types,id'
+            'exam_type_id' => 'required_without:custom_description|exists:exam_types,id',
+            'custom_description' => 'required_without:exam_type_id|string'
         ]);
 
-        $exam = ExamType::findOrFail($request->exam_type_id);
         $doctor = Doctor::where('is_active', true)->first();
-
-        if (!$doctor) {
-            return back()->with('error', 'No hay médicos disponibles para la firma en este momento.');
-        }
+        if (!$doctor) return back()->with('error', 'No hay médicos disponibles.');
 
         try {
-            // 1. Creamos la orden en DB
-                $order = DB::transaction(function () use ($request, $doctor, $exam) {
-                    return MedicalOrder::create([
-                        'id'                => (string) Str::uuid(),
-                        'patient_id'        => Auth::user()->patient->id,
-                        'doctor_id'         => $doctor->id,
-                        'exam_type_id'      => $exam->id,
-                        'status'            => 'pending',
-                        'type'              => 'standard', // <--- AGREGAR ESTO
-                        'amount'            => $exam->base_price,
-                        'verification_code' => strtoupper(Str::random(8)),
-                    ]);
-                });
+            $order = DB::transaction(function () use ($request, $doctor) {
+                $amount = 9990; // Default para custom
+                $examId = null;
+                $type = 'custom';
 
-            // 2. Iniciamos el proceso en Flow
+                if ($request->exam_type_id) {
+                    $exam = ExamType::find($request->exam_type_id);
+                    $amount = $exam->base_price;
+                    $examId = $exam->id;
+                    $type = 'standard';
+                }
+
+                return MedicalOrder::create([
+                    'id'                => (string) Str::uuid(),
+                    'patient_id'        => Auth::user()->patient->id,
+                    'doctor_id'         => $doctor->id,
+                    'exam_type_id'      => $examId,
+                    'custom_description'=> $request->custom_description, // Debes tener este campo en tu migración
+                    'status'            => 'pending',
+                    'type'              => $type,
+                    'amount'            => $amount,
+                    'verification_code' => strtoupper(Str::random(8)),
+                ]);
+            });
+
+            session()->forget(['pending_custom_exam', 'pending_exam_id']);
             return $this->processFlowPayment($order);
 
         } catch (\Exception $e) {
             Log::error("Error creando orden: " . $e->getMessage());
-            return back()->with('error', 'Hubo un error al procesar tu solicitud.');
+            return back()->with('error', 'Error al procesar la solicitud.');
         }
     }
+
+
+
+
+
 
     /**
      * Método para reintentar el pago de una orden existente
@@ -206,10 +256,10 @@ public function showSuccess($orderId = null)
         return redirect()->route('patient.orders')->with('error', 'Orden no encontrada.');
     }
 
-    Log::info("DEBUG ACCESS: Intentando acceder a la orden: " . $order->id);
-    Log::info("DEBUG ACCESS: User ID logueado: " . (Auth::check() ? Auth::id() : 'NO LOGUEADO'));
-    Log::info("DEBUG ACCESS: Patient ID del usuario: " . (Auth::check() && Auth::user()->patient ? Auth::user()->patient->id : 'NO TIENE PACIENTE ASOCIADO'));
-    Log::info("DEBUG ACCESS: Patient ID de la orden: " . $order->patient_id);
+    // Log::info("DEBUG ACCESS: Intentando acceder a la orden: " . $order->id);
+    // Log::info("DEBUG ACCESS: User ID logueado: " . (Auth::check() ? Auth::id() : 'NO LOGUEADO'));
+    // Log::info("DEBUG ACCESS: Patient ID del usuario: " . (Auth::check() && Auth::user()->patient ? Auth::user()->patient->id : 'NO TIENE PACIENTE ASOCIADO'));
+    // Log::info("DEBUG ACCESS: Patient ID de la orden: " . $order->patient_id);
 
     // Seguridad simple
     if ($order->patient_id != Auth::user()->patient->id) {

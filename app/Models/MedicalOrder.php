@@ -15,13 +15,15 @@ class MedicalOrder extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'id',
         'patient_id',
-        'doctor_id', // Será null al inicio
+        'doctor_id',
         'exam_type_id',
         'status',
+        'type',               // <--- Nuevo
+        'custom_description', // <--- Nuevo
         'amount',
         'verification_code',
-        'pdf_path'
     ];
 
     protected $casts = [

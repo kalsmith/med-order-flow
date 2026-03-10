@@ -30,6 +30,9 @@ Route::get('/', function () {
     return view('welcome', compact('packs', 'individuales'));
 })->name('home');
 
+
+
+
 /*
 |--------------------------------------------------------------------------
 | 2. AUTENTICACIÓN GOOGLE (Socialite)
@@ -55,6 +58,11 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified'
 ])->group(function () {
+
+
+    Route::get('/orden-personalizada', [PublicOrderController::class, 'custom'])->name('orders.custom');
+
+    Route::get('/confirmar-orden-especial', [PublicOrderController::class, 'confirmCustomOrder'])->name('orders.custom.confirm');
 
     Route::get('/completar-perfil', [PublicOrderController::class, 'completeProfileForm'])->name('profile.complete');
     Route::post('/completar-perfil', [PublicOrderController::class, 'storeProfile'])->name('profile.store');
