@@ -44,7 +44,7 @@
 
             <hr class="my-4">
             <div class="d-flex justify-content-between">
-                <a href="{{ route('doctors.index') }}" class="btn btn-light">Cancelar</a>
+                <a href="{{ route('admin.doctors.index') }}" class="btn btn-light">Cancelar</a>
                 <button type="submit" class="btn btn-primary px-5">Guardar Profesional</button>
             </div>
         </form>
