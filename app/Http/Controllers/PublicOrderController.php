@@ -212,7 +212,7 @@ public function showSuccess($orderId = null)
     Log::info("DEBUG ACCESS: Patient ID de la orden: " . $order->patient_id);
 
     // Seguridad simple
-    if ($order->patient_id !== Auth::user()->patient->id) {
+    if ($order->patient_id != Auth::user()->patient->id) {
         abort(403);
     }
 
