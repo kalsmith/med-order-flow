@@ -51,14 +51,22 @@ class PublicOrderController extends Controller
     /**
      * Muestra el formulario de perfil.
      */
-    public function completeProfileForm()
-    {
-        // Actualizado: verificamos si ya existe el perfil 'self'
-        if (Auth::user()->patients()->where('relationship', 'self')->exists()) {
-            return redirect()->route('home');
-        }
-        return view('front.complete-profile');
+public function completeProfileForm()
+{
+    $user = Auth::user();
+
+    // 1. SI ES DOCTOR O ADMIN, PA' FUERA (al panel administrativo)
+    if ($user->hasAnyRole(['doctor', 'admin'])) {
+        return redirect()->route('admin.doctor.panel'); // o la ruta de tu dashboard
     }
+
+    // 2. Si ya tiene perfil 'self', enviarlo a home
+    if ($user->patients()->where('relationship', 'self')->exists()) {
+        return redirect()->route('home');
+    }
+
+    return view('front.complete-profile');
+}
 
     /**
      * Guarda el perfil y maneja las redirecciones.
