@@ -92,41 +92,41 @@ class CustomOrderFlow extends Component
     }
 
 public function submitRequest()
-    {
-        $this->validate([
-            'selected_patient_id' => 'required',
-            'description' => 'required|min:10',
-        ]);
+{
+    $this->validate([
+        'selected_patient_id' => 'required',
+        'description' => 'required|min:10',
+    ]);
 
-        $doctor = Doctor::where('is_active', true)->first();
-        if (!$doctor) {
-            $this->addError('description', 'Lo sentimos, no hay médicos disponibles.');
-            return;
-        }
-
-        try {
-            $order = DB::transaction(function () use ($doctor) {
-                return MedicalOrder::create([
-                    'id'                 => (string) Str::uuid(),
-                    'patient_id'         => $this->selected_patient_id,
-                    'doctor_id'          => $doctor->id,
-                    'exam_type_id'       => null, // Es personalizada
-                    'custom_description' => $this->description,
-                    'status'             => 'pending',
-                    'type'               => 'custom',
-                    'amount'             => 9990,
-                    'verification_code'  => strtoupper(Str::random(8)),
-                ]);
-            });
-
-            // Redirigimos al CheckoutController que ya tienes configurado
-            return redirect()->route('checkout.process', $order->id);
-
-        } catch (\Exception $e) {
-            Log::error("Error en CustomOrderFlow: " . $e->getMessage());
-            $this->addError('description', 'No pudimos procesar la solicitud.');
-        }
+    $doctor = Doctor::where('is_active', true)->first();
+    if (!$doctor) {
+        $this->addError('description', 'Lo sentimos, no hay médicos disponibles.');
+        return;
     }
+
+    try {
+        $order = DB::transaction(function () use ($doctor) {
+            return MedicalOrder::create([
+                'id'                 => (string) Str::uuid(),
+                'patient_id'         => $this->selected_patient_id,
+                'doctor_id'          => $doctor->id,
+                'exam_type_id'       => null,
+                'custom_description' => $this->description,
+                'status'             => 'pending',
+                'type'               => 'custom',
+                'amount'             => 9990,
+                'verification_code'  => strtoupper(Str::random(8)),
+            ]);
+        });
+
+        // EN LUGAR DE REDIRECT, LANZAMOS EVENTO
+        $this->dispatch('order-created', orderId: $order->id);
+
+    } catch (\Exception $e) {
+        Log::error("Error en CustomOrderFlow: " . $e->getMessage());
+        $this->addError('description', 'No pudimos procesar la solicitud.');
+    }
+}
 
     public function render()
     {

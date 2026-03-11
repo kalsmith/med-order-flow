@@ -79,20 +79,38 @@
     @endif
 
     {{-- Formulario de Orden Custom --}}
+{{-- Formulario de Orden Custom --}}
     @if($selected_patient_id)
         <div class="text-start mt-4 animate__animated animate__fadeIn">
             <div class="d-flex align-items-center mb-2">
                 <label class="fw-bold small text-uppercase text-muted mb-0">Detalle de tu requerimiento</label>
                 <hr class="flex-grow-1 ms-3 opacity-10">
             </div>
+
             <textarea wire:model="description" class="form-control mb-3 @error('description') is-invalid @enderror" rows="5"
-                      placeholder="Escribe aquí los exámenes que necesitas o describe tus síntomas..."></textarea>
+                    placeholder="Escribe aquí los exámenes que necesitas..."></textarea>
             @error('description') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
 
-<button wire:click="submitRequest" wire:loading.attr="disabled" class="btn btn-primary btn-send w-100 shadow-sm py-3">
-    <span wire:loading.remove>Enviar Solicitud <i class="bi bi-send ms-2"></i></span>
-    <span wire:loading><span class="spinner-border spinner-border-sm me-2"></span>Procesando...</span>
-</button>
+            {{-- BOTÓN QUE LLAMA A LIVEWIRE --}}
+            <button wire:click="submitRequest" wire:loading.attr="disabled" class="btn btn-primary btn-send w-100 shadow-sm py-3">
+                <span wire:loading.remove>Enviar Solicitud <i class="bi bi-send ms-2"></i></span>
+                <span wire:loading><span class="spinner-border spinner-border-sm me-2"></span>Procesando...</span>
+            </button>
+
+            {{-- FORMULARIO OCULTO PARA EL REDIRECT POR POST --}}
+            <form id="post-redirect-form" action="{{ route('checkout.process', ['order' => ':orderId']) }}" method="POST" style="display: none;">
+                @csrf
+            </form>
+
+            <script>
+                window.addEventListener('order-created', event => {
+                    let orderId = event.detail[0].orderId;
+                    let form = document.getElementById('post-redirect-form');
+                    // Reemplazamos el placeholder por el ID real
+                    form.action = form.action.replace(':orderId', orderId);
+                    form.submit();
+                });
+            </script>
         </div>
     @endif
 </div>
