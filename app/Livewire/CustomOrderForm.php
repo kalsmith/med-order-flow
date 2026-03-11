@@ -56,7 +56,9 @@ public function saveFamily()
     $this->validate([
         'new_full_name' => 'required|min:3|string',
         'new_rut' => 'required|string|min:7|max:9', // Ahora sí pasará porque mide max 9
-        'new_relationship' => 'required|string'
+        'new_relationship' => 'required|string',
+        'new_birth_date' => 'required|date', // <--- NUEVO
+        'new_gender' => 'required|in:M,F'     // <--- NUEVO
     ], [
         'new_full_name.required' => 'El nombre es obligatorio',
         'new_relationship.required' => 'Indica el parentesco',
@@ -69,6 +71,8 @@ public function saveFamily()
         'full_name' => $this->new_full_name,
         'rut' => $this->new_rut,
         'relationship' => $this->new_relationship,
+        'birth_date' => $this->new_birth_date,     // <--- NUEVO
+        'gender_biologic' => $this->new_gender,    // <--- NUEVO (usa el nombre exacto de tu DB)
         'is_active' => true,
         // Agregamos valores por defecto consistentes con tu DB
         'prevision' => 'Particular'
