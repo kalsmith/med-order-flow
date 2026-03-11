@@ -61,50 +61,63 @@ class PublicOrderController extends Controller
     /**
      * Guarda el perfil y maneja las redirecciones.
      */
+
+
     public function storeProfile(Request $request)
-    {
-        $request->validate([
-            'full_name'       => 'required|string|min:8',
-            'rut'             => 'required|string',
-            'birth_date'      => 'required|date',
-            'gender_biologic' => 'required|in:M,F',
-            'custom_exam_name'=> 'nullable|string'
-        ]);
+{
+    $request->validate([
+        'full_name'       => 'required|string|min:8',
+        'rut'             => 'required|string',
+        'birth_date'      => 'required|date',
+        'gender_biologic' => 'required|in:M,F',
+        'custom_exam_name'=> 'nullable|string'
+    ]);
 
-        if ($request->filled('custom_exam_name')) {
-            session(['pending_custom_exam' => $request->custom_exam_name]);
-        }
-
-        DB::transaction(function () use ($request) {
-            $user = Auth::user();
-            $user->update(['name' => $request->full_name]);
-
-            $rutLimpio = preg_replace('/[^k0-9]/i', '', $request->rut);
-
-            // Actualizado: updateOrCreate sobre la relación plural
-            $user->patients()->updateOrCreate(
-                ['relationship' => 'self'],
-                [
-                    'full_name'       => $request->full_name,
-                    'rut'             => $rutLimpio,
-                    'birth_date'      => $request->birth_date,
-                    'gender_biologic' => $request->gender_biologic,
-                    'prevision'       => 'Particular'
-                ]
-            );
-        });
-
-        if (session()->has('pending_custom_exam')) {
-            return redirect()->route('orders.custom.confirm');
-        }
-
-        if (session()->has('pending_exam_id')) {
-            $examId = session()->pull('pending_exam_id');
-            return redirect()->route('orders.confirm', $examId);
-        }
-
-        return redirect()->route('home')->with('success', 'Perfil completado con éxito.');
+    if ($request->filled('custom_exam_name')) {
+        session(['pending_custom_exam' => $request->custom_exam_name]);
     }
+
+    DB::transaction(function () use ($request) {
+        $user = Auth::user();
+        $user->update(['name' => $request->full_name]);
+
+        $rutLimpio = preg_replace('/[^k0-9]/i', '', $request->rut);
+
+        $user->patients()->updateOrCreate(
+            ['relationship' => 'self'],
+            [
+                'full_name'       => $request->full_name,
+                'rut'             => $rutLimpio,
+                'birth_date'      => $request->birth_date,
+                'gender_biologic' => $request->gender_biologic,
+                'prevision'       => 'Particular'
+            ]
+        );
+    });
+
+    // 1. Prioridad: Si venía por una orden personalizada (marcada en el Middleware)
+    if (session()->pull('pending_custom_order')) {
+        return redirect()->route('orders.custom');
+    }
+
+    // 2. Si ya escribió el nombre del examen en el formulario de perfil
+    if (session()->has('pending_custom_exam')) {
+        return redirect()->route('orders.custom.confirm');
+    }
+
+    // 3. Si venía por un Pack estándar
+    if (session()->has('pending_exam_id')) {
+        $examId = session()->pull('pending_exam_id');
+        return redirect()->route('orders.confirm', $examId);
+    }
+
+    return redirect()->route('home')->with('success', 'Perfil completado con éxito.');
+}
+
+
+
+
+
 
     /**
      * Vista de confirmación para solicitudes manuales ($9.990).

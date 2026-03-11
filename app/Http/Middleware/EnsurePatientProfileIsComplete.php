@@ -13,22 +13,21 @@ class EnsurePatientProfileIsComplete
     {
         $user = Auth::user();
 
-        /**
-         * CAMBIO CLAVE:
-         * Ahora verificamos si existe al menos un paciente asociado
-         * que tenga la relación 'self' (el titular).
-         */
         $hasProfile = $user && $user->patients()->where('relationship', 'self')->exists();
 
         if ($user && !$hasProfile) {
 
-            // Captura de intención para no perder el examen que el usuario quería comprar
+            // 1. Captura de intención para Exámenes Estándar
             $examId = $request->route('id') ?? $request->route('pack') ?? $request->route('exam_type');
-
             if ($examId) {
-                // Si el examId es un objeto de modelo (Route Model Binding), guardamos solo el ID
                 $idToStore = is_object($examId) ? $examId->id : $examId;
                 session(['pending_exam_id' => $idToStore]);
+            }
+
+            // 2. NUEVO: Captura de intención para Orden Personalizada
+            // Si el usuario viene de la ruta 'orders.custom', guardamos una marca en sesión
+            if ($request->routeIs('orders.custom')) {
+                session(['pending_custom_order' => true]);
             }
 
             // Evitamos bucle infinito
