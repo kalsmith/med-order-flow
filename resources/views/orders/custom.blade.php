@@ -55,7 +55,7 @@
                         <div class="col-md-12 col-lg-8 p-4 p-md-5 bg-white rounded-end-4">
                             <h2 class="fw-bold h4 mb-4 text-dark">Detalles de la Solicitud</h2>
 
-                            <form action="{{ route('orders.store.custom') }}" method="POST">
+                            <form action="{{ route('profile.store') }}" method="POST">
                                 @csrf
 
                                 {{-- Selector de Pacientes (Estilo Perfiles) --}}
