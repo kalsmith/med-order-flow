@@ -89,9 +89,10 @@
                       placeholder="Escribe aquí los exámenes que necesitas o describe tus síntomas..."></textarea>
             @error('description') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
 
-            <button wire:click="submitRequest" class="btn btn-primary btn-send w-100 shadow-sm py-3">
-                Enviar Solicitud <i class="bi bi-send ms-2"></i>
-            </button>
+<button wire:click="submitRequest" wire:loading.attr="disabled" class="btn btn-primary btn-send w-100 shadow-sm py-3">
+    <span wire:loading.remove>Enviar Solicitud <i class="bi bi-send ms-2"></i></span>
+    <span wire:loading><span class="spinner-border spinner-border-sm me-2"></span>Procesando...</span>
+</button>
         </div>
     @endif
 </div>

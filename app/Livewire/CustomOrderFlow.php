@@ -2,11 +2,15 @@
 
 namespace App\Livewire;
 
+use App\Models\Doctor;
+use App\Models\MedicalOrder;
 use Livewire\Component;
 use App\Models\Patient;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Support\RutHelper;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CustomOrderFlow extends Component
 {
@@ -87,16 +91,41 @@ class CustomOrderFlow extends Component
         }
     }
 
-    public function submitRequest()
+public function submitRequest()
     {
         $this->validate([
             'selected_patient_id' => 'required',
-            'description'         => 'required|min:10',
+            'description' => 'required|min:10',
         ]);
 
-        // Lógica de guardado de la orden personalizada aquí...
-        session()->flash('message', 'Solicitud enviada con éxito.');
-        return redirect()->route('home');
+        $doctor = Doctor::where('is_active', true)->first();
+        if (!$doctor) {
+            $this->addError('description', 'Lo sentimos, no hay médicos disponibles.');
+            return;
+        }
+
+        try {
+            $order = DB::transaction(function () use ($doctor) {
+                return MedicalOrder::create([
+                    'id'                 => (string) Str::uuid(),
+                    'patient_id'         => $this->selected_patient_id,
+                    'doctor_id'          => $doctor->id,
+                    'exam_type_id'       => null, // Es personalizada
+                    'custom_description' => $this->description,
+                    'status'             => 'pending',
+                    'type'               => 'custom',
+                    'amount'             => 9990,
+                    'verification_code'  => strtoupper(Str::random(8)),
+                ]);
+            });
+
+            // Redirigimos al CheckoutController que ya tienes configurado
+            return redirect()->route('checkout.process', $order->id);
+
+        } catch (\Exception $e) {
+            Log::error("Error en CustomOrderFlow: " . $e->getMessage());
+            $this->addError('description', 'No pudimos procesar la solicitud.');
+        }
     }
 
     public function render()
