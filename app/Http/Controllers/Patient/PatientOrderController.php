@@ -115,4 +115,22 @@ class PatientOrderController extends Controller
         return "Descargando Orden Médica #{$order->id} (Documento Firmado)";
     }
 
+    public function showSuccess(MedicalOrder $order = null)
+{
+    // Si no viene orden (por si alguien entra manual), lo mandamos a la lista
+    if (!$order) {
+        return redirect()->route('patient.orders');
+    }
+
+    // Seguridad: Verificar que la orden sea del usuario logueado
+    if ((string)$order->patient->user_id !== (string)auth()->id()) {
+        abort(403);
+    }
+
+    // Cargamos relaciones para el comprobante
+    $order->load(['patient.user', 'paymentTransaction']);
+
+    return view('payment.success', compact('order'));
+}
+
 }
