@@ -108,7 +108,7 @@
             <div class="col-md-6 mb-4">
                 <label class="form-label fw-bold small text-muted text-uppercase">Urgencia</label>
                 <select wire:model="urgency" class="form-select bg-light border-0">
-                    <option value="normal">Preventivo / Rutina</option>
+                    <option value="normal">Preventivo / Rutinasssss</option>
                     <option value="seguimiento">Seguimiento</option>
                     <option value="urgente">Molestias actuales</option>
                 </select>
