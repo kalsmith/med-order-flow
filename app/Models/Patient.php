@@ -6,9 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Casts\Attribute; // <--- IMPORTANTE
 use Carbon\Carbon;
-use App\Support\RutHelper; // <--- El Helper que creamos antes
+use App\Support\RutHelper;
 
 class Patient extends Model
 {
@@ -28,7 +27,7 @@ class Patient extends Model
 
     protected $casts = [
         'full_name'       => 'encrypted',
-        'rut'             => 'encrypted', // Se mantiene para que Laravel encripte/desencripte
+        'rut'             => 'encrypted',
         'birth_date'      => 'encrypted:date',
         'gender_biologic' => 'encrypted',
         'phone'           => 'encrypted',
@@ -37,23 +36,25 @@ class Patient extends Model
     ];
 
     /**
-     * UNIFICACIÓN DE RUT:
-     * Este atributo se encarga de que el RUT siempre se guarde limpio
-     * y se recupere formateado, sin importar el cifrado.
+     * MUTADOR (Set): Se ejecuta al asignar $patient->rut = '12.345.678-k'
+     * Limpia el dato ANTES de que el Cast 'encrypted' lo cifre.
      */
-    protected function rut(): Attribute
+    public function setRutAttribute($value)
     {
-        return Attribute::make(
-            // Al leer (get): Lo sacamos de la DB y lo formateamos (ej: 12.345.678-K)
-            get: fn ($value) => $value ? RutHelper::format($value) : null,
-
-            // Al escribir (set): Lo limpiamos antes de guardarlo (ej: 12345678K)
-            set: fn ($value) => $value ? RutHelper::clean($value) : null,
-        );
+        $this->attributes['rut'] = RutHelper::clean($value);
     }
 
     /**
-     * Accesor para calcular la edad automáticamente.
+     * ACCESOR (Get): Se ejecuta al leer $patient->rut
+     * Laravel primero desencripta el dato y luego este método lo formatea.
+     */
+    public function getRutAttribute($value)
+    {
+        return $value ? RutHelper::format($value) : null;
+    }
+
+    /**
+     * Edad automática
      */
     public function getAgeAttribute(): ?int
     {
