@@ -37,12 +37,10 @@
                         <span class="badge-step">1</span>
                         <span class="small text-uppercase fw-bold opacity-75">Configuración de cuenta</span>
                     </div>
-                    {{-- Usamos el nombre del examen que pasamos en el compact --}}
                     <h3 class="fw-extrabold mb-0">{{ $exam_type->name ?? 'Nueva Orden' }}</h3>
                 </div>
 
                 <div class="p-4 p-md-5">
-                    {{-- Caja de Usuario de Google (Porque NO hay $patient todavía) --}}
                     <div class="user-info-box p-3 mb-4">
                         <label class="small text-muted fw-bold text-uppercase mb-2 d-block" style="font-size: 0.7rem;">Cuenta de acceso</label>
                         <div class="d-flex align-items-center">
@@ -69,15 +67,16 @@
                         <div class="row">
                             <div class="col-7 mb-3">
                                 <label class="form-label fw-bold small text-muted text-uppercase">RUT</label>
-                                <input type="text" name="rut" class="form-control @error('rut') is-invalid @enderror" placeholder="12.345.678-k" value="{{ old('rut') }}" required>
+                                <input type="text" id="rut_input" name="rut" class="form-control @error('rut') is-invalid @enderror" placeholder="12.345.678-k" value="{{ old('rut') }}" required>
                                 @error('rut') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
+
                             <div class="col-5 mb-3">
                                 <label class="form-label fw-bold small text-muted text-uppercase">Género</label>
                                 <select name="gender_biologic" class="form-select" required>
                                     <option value="" selected disabled>...</option>
-                                    <option value="Masculino">Masc.</option>
-                                    <option value="Femenino">Fem.</option>
+                                    <option value="Masculino" {{ old('gender_biologic') == 'Masculino' ? 'selected' : '' }}>Masc.</option>
+                                    <option value="Femenino" {{ old('gender_biologic') == 'Femenino' ? 'selected' : '' }}>Fem.</option>
                                 </select>
                             </div>
                         </div>
@@ -88,8 +87,8 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase">Teléfono</label>
-                            <input type="text" name="phone" class="form-control" placeholder="+569..." value="{{ old('phone') }}">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Teléfono de contacto</label>
+                            <input type="text" name="phone" class="form-control" placeholder="+569 1234 5678" value="{{ old('phone') }}" required>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 btn-save shadow-sm mb-3">
@@ -105,6 +104,28 @@
         </div>
     </div>
 </div>
+
+<script>
+    const rutInput = document.getElementById('rut_input');
+
+    function formatRutValue(value) {
+        let clean = value.replace(/[^\dkK]/g, '');
+        if (clean.length <= 1) return clean.toUpperCase();
+        let dv = clean.slice(-1).toUpperCase();
+        let body = clean.slice(0, -1);
+        return body.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv;
+    }
+
+    rutInput.addEventListener('input', function(e) {
+        e.target.value = formatRutValue(e.target.value);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if (rutInput.value) {
+            rutInput.value = formatRutValue(rutInput.value);
+        }
+    });
+</script>
 
 </body>
 </html>

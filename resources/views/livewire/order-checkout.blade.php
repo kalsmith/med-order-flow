@@ -1,11 +1,10 @@
 <div class="p-1">
-    {{-- Título de Selección --}}
+    {{-- Título y Grid de Perfiles (Se mantiene igual, está muy bien) --}}
     <div class="mb-4">
         <h5 class="fw-bold mb-1">¿Para quién es el examen?</h5>
-        <p class="text-muted small">Selecciona un perfil o agrega a un familiar para emitir la orden.</p>
+        <p class="text-muted small">Selecciona un perfil o agrega a un familiar.</p>
     </div>
 
-    {{-- Grid de Perfiles --}}
     <div class="row g-3 mb-4">
         @foreach($patients as $p)
             <div class="col-6 col-md-4" wire:key="p-{{ $p->id }}">
@@ -31,29 +30,25 @@
         </div>
     </div>
 
-    {{-- Formulario de Nuevo Familiar --}}
+    {{-- Formulario de Familiar (Con wire:model optimizado) --}}
     @if($showAddFamily)
         <div class="card border-0 shadow-sm mb-4 animate__animated animate__fadeIn" style="border-radius: 24px; background-color: #f1f5f9;">
             <div class="card-body p-4">
                 <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-2"></i>Datos del Familiar</h6>
                 <div class="row g-3">
-                    {{-- Nombre --}}
                     <div class="col-12">
                         <label class="small fw-bold text-muted">Nombre Completo</label>
-                        <input type="text" wire:model="new_full_name" class="form-control @error('new_full_name') is-invalid @enderror" placeholder="Ej: Juan Pérez">
-                        @error('new_full_name') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        <input type="text" wire:model="new_full_name" class="form-control @error('new_full_name') is-invalid @enderror">
                     </div>
 
-                    {{-- RUT --}}
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">RUT</label>
-                        <input type="text" wire:model="new_rut" class="form-control @error('new_rut') is-invalid @enderror" placeholder="12.345.678-k">
+                        <input type="text" wire:model.live="new_rut" class="form-control @error('new_rut') is-invalid @enderror" placeholder="12.345.678-k">
                     </div>
 
-                    {{-- Parentesco --}}
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Parentesco</label>
-                        <select wire:model="new_relationship" class="form-select @error('new_relationship') is-invalid @enderror">
+                        <select wire:model="new_relationship" class="form-select">
                             <option value="">Seleccionar...</option>
                             <option value="hijo">Hijo/a</option>
                             <option value="conyuge">Cónyuge</option>
@@ -62,20 +57,17 @@
                         </select>
                     </div>
 
-                    {{-- Fecha Nacimiento --}}
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Fecha Nacimiento</label>
-                        <input type="date" wire:model="new_birth_date" class="form-control @error('new_birth_date') is-invalid @enderror">
+                        <input type="date" wire:model="new_birth_date" class="form-control">
                     </div>
 
-                    {{-- Sexo Biológico --}}
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Sexo Biológico</label>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" wire:model="new_gender_biologic" value="M" id="sexM" autocomplete="off">
+                        <div class="btn-group w-100">
+                            <input type="radio" class="btn-check" wire:model="new_gender_biologic" value="Masculino" id="sexM">
                             <label class="btn btn-outline-primary" for="sexM">Masc.</label>
-
-                            <input type="radio" class="btn-check" wire:model="new_gender_biologic" value="F" id="sexF" autocomplete="off">
+                            <input type="radio" class="btn-check" wire:model="new_gender_biologic" value="Femenino" id="sexF">
                             <label class="btn btn-outline-primary" for="sexF">Fem.</label>
                         </div>
                     </div>
@@ -90,7 +82,7 @@
         </div>
     @endif
 
-    {{-- Resumen de Pago --}}
+    {{-- Resumen de Pago (LIMPIO) --}}
     @if($selected_patient_id)
         @php $sel = $patients->firstWhere('id', $selected_patient_id); @endphp
         <div class="card border-0 shadow-lg" style="border-radius: 28px; background: white;">
@@ -106,7 +98,7 @@
                     </div>
                     <div class="d-flex justify-content-between mb-2 small">
                         <span class="text-muted">RUT:</span>
-                        <span class="fw-bold text-dark">{{ $sel->rut }}</span>
+                        <span class="fw-bold text-dark">{{ $sel->rut }}</span> {{-- Magia del Accessor --}}
                     </div>
                     <div class="d-flex justify-content-between small">
                         <span class="text-muted">Fecha Nac.:</span>
