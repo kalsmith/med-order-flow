@@ -89,13 +89,23 @@ class PatientOrderController extends Controller
     /**
      * Listado de órdenes del paciente.
      */
-    public function index()
-    {
-        $patient = Auth::user()->patients()->where('relationship', 'self')->first();
-        $orders = $patient ? $patient->medicalOrders()->with('examType')->latest()->get() : collect();
+public function index()
+{
+    // Obtenemos al paciente asociado al usuario actual
+    $patient = auth()->user()->patients()->where('relationship', 'self')->first();
 
-        return view('patient.orders.index', compact('orders'));
+    if (!$patient) {
+        return redirect()->route('home')->with('error', 'Perfil de paciente no encontrado.');
     }
+
+    // Traemos las órdenes con sus tipos de examen para mostrar los nombres
+    $orders = MedicalOrder::where('patient_id', $patient->id)
+        ->with(['examType', 'specialty'])
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
+
+    return view('patient.orders.index', compact('orders'));
+}
 
     public function download($orderId)
     {
