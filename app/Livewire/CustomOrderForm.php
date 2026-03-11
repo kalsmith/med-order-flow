@@ -36,12 +36,11 @@ class CustomOrderForm extends Component
     {
         if ($examId) {
             $this->exam = ExamType::find($examId);
-            // Si viene de un examen pack, podrías pre-llenar el nombre si quisieras
         }
 
         $this->loadPatients();
 
-        // Selección por defecto: El titular ('self')
+        // Seleccionar por defecto al titular (self)
         $primary = $this->patients->where('relationship', 'self')->first();
         if ($primary) {
             $this->selected_patient_id = $primary->id;
@@ -50,7 +49,6 @@ class CustomOrderForm extends Component
 
     public function loadPatients()
     {
-        // Cargamos los pacientes del usuario autenticado
         $this->patients = Auth::user()->patients()->get() ?? collect();
     }
 
@@ -74,6 +72,7 @@ class CustomOrderForm extends Component
 
     public function saveFamily()
     {
+        // 1. Validación estricta
         $this->validate([
             'new_full_name'       => 'required|string|min:3',
             'new_rut'             => 'required|string|min:7',
@@ -82,18 +81,21 @@ class CustomOrderForm extends Component
             'new_gender_biologic' => 'required|in:M,F',
         ]);
 
+        // 2. Limpieza de RUT
         $cleanRut = preg_replace('/[^kK0-9]/', '', $this->new_rut);
 
+        // 3. Creación asegurando que NO sea 'self'
         $patient = Auth::user()->patients()->create([
             'full_name'       => $this->new_full_name,
             'rut'             => $cleanRut,
-            'relationship'    => $this->new_relationship,
+            'relationship'    => $this->new_relationship, // hijo, conyuge, etc.
             'birth_date'      => $this->new_birth_date,
             'gender_biologic' => $this->new_gender_biologic,
-            'is_primary'      => 0, // Familiar nunca es primary (self)
+            'is_primary'      => 0, // Importante: Familiar nunca es principal
             'prevision'       => 'Particular',
         ]);
 
+        // 4. Reset de campos
         $this->reset([
             'new_full_name',
             'new_rut',
@@ -103,6 +105,7 @@ class CustomOrderForm extends Component
             'showAddFamily'
         ]);
 
+        // 5. Refrescar lista y seleccionar al nuevo
         $this->loadPatients();
         $this->selected_patient_id = $patient->id;
 
@@ -119,7 +122,7 @@ class CustomOrderForm extends Component
         $doctor = Doctor::where('is_active', true)->first();
 
         if (!$doctor) {
-            session()->flash('error', 'Lo sentimos, no hay médicos disponibles en este momento.');
+            session()->flash('error', 'No hay médicos disponibles.');
             return;
         }
 
@@ -129,20 +132,15 @@ class CustomOrderForm extends Component
                     'id'                 => (string) Str::uuid(),
                     'patient_id'         => $this->selected_patient_id,
                     'doctor_id'          => $doctor->id,
-                    'exam_type_id'       => null, // Al ser custom, esto va nulo
+                    'exam_type_id'       => null,
                     'custom_description' => $this->custom_exam_name,
                     'status'             => 'pending',
                     'type'               => 'custom',
                     'amount'             => 9990,
                     'verification_code'  => strtoupper(Str::random(8)),
-                    // Si agregaste estos campos a la tabla medical_orders, descomenta:
-                    // 'symptoms'        => $this->symptoms,
-                    // 'patient_type'    => $this->patient_type,
-                    // 'urgency'         => $this->urgency,
                 ]);
             });
 
-            // Flujo con FlowService
             $flowService = app(FlowService::class);
             $flowResponse = $flowService->createPayment($order);
 
@@ -150,11 +148,11 @@ class CustomOrderForm extends Component
                 return redirect()->away($flowResponse->url . "?token=" . $flowResponse->token);
             }
 
-            throw new \Exception('La pasarela de pago no devolvió un token válido.');
+            throw new \Exception('Error al generar el pago en Flow.');
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Error en CustomOrderForm: " . $e->getMessage());
-            session()->flash('error', 'No pudimos procesar el pago: ' . $e->getMessage());
+            session()->flash('error', 'Error: ' . $e->getMessage());
         }
     }
 
