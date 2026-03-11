@@ -117,7 +117,8 @@ Route::middleware([
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
 
         // Checkout Interno
-        Route::get('/checkout/{order}', [CheckoutController::class, 'index'])->name('checkout.index');
+        Route::get('/checkout/{order}', [CheckoutController::class, 'process'])->name('checkout.index');
+//        Route::get('/checkout/{order}', [CheckoutController::class, 'index'])->name('checkout.index');
         Route::post('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.process');
 
         // Éxito del Pago (Protegida)
