@@ -25,41 +25,74 @@ class Patient extends Model
         'prevision'
     ];
 
+    /**
+     * Dejamos en $casts solo lo que NO tiene mutadores personalizados
+     * o lo que queremos que se transforme al salir (como boolean).
+     */
     protected $casts = [
         'full_name'       => 'encrypted',
-        'rut'             => 'encrypted',
-        'birth_date'      => 'encrypted:date',
         'gender_biologic' => 'encrypted',
         'phone'           => 'encrypted',
         'prevision'       => 'encrypted',
         'is_primary'      => 'boolean',
     ];
 
+    // --- MUTADORES (SET) ---
+
     /**
-     * MUTADOR (Set): Se ejecuta al asignar $patient->rut = '12.345.678-k'
-     * Limpia el dato ANTES de que el Cast 'encrypted' lo cifre.
+     * Limpia el RUT y lo encripta manualmente para asegurar el orden.
      */
     public function setRutAttribute($value)
     {
-        $this->attributes['rut'] = RutHelper::clean($value);
+        $clean = RutHelper::clean($value);
+        $this->attributes['rut'] = encrypt($clean);
     }
 
     /**
-     * ACCESOR (Get): Se ejecuta al leer $patient->rut
-     * Laravel primero desencripta el dato y luego este método lo formatea.
+     * Asegura que la fecha se guarde siempre encriptada.
+     */
+    public function setBirthDateAttribute($value)
+    {
+        $this->attributes['birth_date'] = encrypt($value);
+    }
+
+
+    // --- ACCESORES (GET) ---
+
+    /**
+     * Desencripta y formatea el RUT para la vista.
      */
     public function getRutAttribute($value)
     {
-        return $value ? RutHelper::format($value) : null;
+        try {
+            return $value ? RutHelper::format(decrypt($value)) : null;
+        } catch (\Exception $e) {
+            return $value; // Por si hay datos viejos sin encriptar
+        }
     }
 
     /**
-     * Edad automática
+     * Desencripta la fecha y la retorna como objeto Carbon.
+     */
+    public function getBirthDateAttribute($value)
+    {
+        try {
+            return $value ? Carbon::parse(decrypt($value)) : null;
+        } catch (\Exception $e) {
+            return $value ? Carbon::parse($value) : null;
+        }
+    }
+
+    /**
+     * Edad automática basada en el objeto Carbon de birth_date.
      */
     public function getAgeAttribute(): ?int
     {
-        return $this->birth_date ? Carbon::parse($this->birth_date)->age : null;
+        return $this->birth_date ? $this->birth_date->age : null;
     }
+
+
+    // --- RELACIONES ---
 
     public function user(): BelongsTo
     {
