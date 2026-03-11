@@ -69,12 +69,12 @@
     }
 }">
     <label class="small fw-bold text-muted">RUT</label>
-    <input type="text"
-           wire:model="new_rut"
-           class="form-control border-0 shadow-sm"
-           placeholder="12.345.678-9"
-           x-on:input="$el.value = formatRut($el.value)"
-           maxlength="12">
+<input type="text"
+       wire:model.live="new_rut"
+       class="form-control border-0 shadow-sm"
+       placeholder="12.345.678-9"
+       x-on:input="$el.value = formatRut($el.value)"
+       maxlength="12">
     @error('new_rut') <span class="text-danger tiny">{{ $message }}</span> @enderror
 </div>
 

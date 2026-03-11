@@ -4,8 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitud Especial - MedOrder</title>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
     @livewireStyles
     <style>
         body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
@@ -19,9 +25,17 @@
         .patient-card { transition: all 0.2s ease; border-radius: 20px !important; }
         .patient-card:hover { transform: translateY(-3px); }
         .border-dashed { border-style: dashed !important; }
+
+        /* Ajuste para inputs en modo Livewire */
+        input:focus, select:focus, textarea:focus {
+            box-shadow: 0 0 0 0.25 margin-bottom: 2rem;rem rgba(13, 110, 253, 0.1) !important;
+            background-color: #fff !important;
+        }
+        .tiny { font-size: 0.75rem; }
     </style>
 </head>
 <body>
+
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-10 col-xl-9">
