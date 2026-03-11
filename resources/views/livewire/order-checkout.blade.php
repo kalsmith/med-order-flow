@@ -85,36 +85,68 @@
         </div>
     @endif
 
-    {{-- Resumen Dinámico y Botón de Pago --}}
-    @if($selected_patient_id)
-        @php
-            $selectedPatient = $patients->firstWhere('id', $selected_patient_id);
-        @endphp
+{{-- Resumen Dinámico y Botón de Pago --}}
+@if($selected_patient_id)
+    @php
+        $selectedPatient = $patients->firstWhere('id', $selected_patient_id);
+    @endphp
 
-        @if($selectedPatient)
-            <div class="card card-confirm shadow-lg border-0" style="border-radius: 24px; background: white;">
-                 <div class="card-body p-4 p-md-5">
-                    {{-- ... (Resto del resumen igual, solo asegúrate de usar $selectedPatient) ... --}}
-                    <div class="text-center mb-4">
-                        <h2 class="fw-bold h3">Resumen de tu Orden</h2>
+    @if($selectedPatient)
+        <div class="card card-confirm shadow-lg border-0 mt-4" style="border-radius: 24px; background: white;">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-2 text-uppercase" style="font-size: 0.7rem;">Paso Final</span>
+                    <h2 class="fw-bold h3">Resumen de tu Orden</h2>
+                </div>
+
+                <div class="bg-light p-3 rounded-4 mb-4 border-start border-primary border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-primary fw-bold small text-uppercase mb-1" style="font-size: 0.65rem;">Paciente Seleccionado</h6>
+                            <p class="mb-0 fw-bold text-dark fs-5">{{ $selectedPatient->full_name }}</p>
+                            <p class="mb-0 text-muted small">RUT: {{ $selectedPatient->rut }}</p>
+                        </div>
+                        <i class="bi bi-person-check-fill text-primary fs-3"></i>
+                    </div>
+                </div>
+
+                <h6 class="text-muted fw-bold small text-uppercase mb-3" style="font-size: 0.7rem;">Detalle del Servicio</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold text-dark">{{ $exam->name }}</span>
+                    <span class="fw-bold text-dark">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between mt-3 bg-primary-subtle p-3 rounded-4">
+                    <span class="fw-bold text-primary fs-5">Total a Pagar</span>
+                    <span class="fw-bold text-primary fs-5">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
+                </div>
+
+                <div class="alert mt-4 d-flex align-items-start shadow-sm border-0" style="background-color: #fff8eb; border-radius: 15px;">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-3 fs-4"></i>
+                    <div class="small text-dark">
+                        <strong class="d-block mb-1">Aviso de Producto Digital</strong>
+                        Este es un servicio de emisión inmediata. Una vez realizado el pago, el sistema genera la orden automáticamente, por lo que <strong>no se aceptan devoluciones</strong>.
+                    </div>
+                </div>
+
+                <form action="{{ route('orders.store.public') }}" method="POST" class="mt-4">
+                    @csrf
+                    <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
+                    <input type="hidden" name="exam_type_id" value="{{ $exam->id }}">
+
+                    <div class="form-check mb-4 bg-light p-3 rounded-3 border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" id="terms" required>
+                        <label class="form-check-label small text-muted lh-sm" for="terms" style="cursor: pointer;">
+                            Confirmo que los datos de <strong>{{ $selectedPatient->full_name }}</strong> son correctos y acepto los términos de servicio.
+                        </label>
                     </div>
 
-                    <div class="bg-light p-3 rounded-4 mb-4 border-start border-primary border-4">
-                        <p class="mb-0 fw-bold text-dark fs-5">{{ $selectedPatient->full_name }}</p>
-                        <p class="mb-0 text-muted small">RUT: {{ $selectedPatient->rut }}</p>
-                    </div>
-
-                    <form action="{{ route('orders.store.public') }}" method="POST" class="mt-4">
-                        @csrf
-                        <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
-                        <input type="hidden" name="exam_type_id" value="{{ $exam->id }}">
-
-                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" style="border-radius: 18px; padding: 15px;">
-                            <i class="bi bi-credit-card-2-back me-2"></i> Pagar con Flow
-                        </button>
-                    </form>
-                 </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" style="border-radius: 18px; padding: 15px; transition: all 0.3s;">
+                        <i class="bi bi-credit-card-2-back me-2"></i> Pagar con Flow
+                    </button>
+                </form>
             </div>
-        @endif
+        </div>
     @endif
+@endif
 </div>
