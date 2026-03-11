@@ -22,8 +22,13 @@ class MedicalOrder extends Model
         'status',
         'type',               // <--- Nuevo
         'custom_description', // <--- Nuevo
+        'clinical_context', // Agrégalo
+        'rejection_reason', // Nuevo
+        'internal_notes',   // Nuevo
+        'flow_refund_id',   // Nuevo
         'amount',
         'verification_code',
+        'signed_at',        // Agrégalo para poder actualizarlo manualmente
     ];
 
     protected $casts = [
