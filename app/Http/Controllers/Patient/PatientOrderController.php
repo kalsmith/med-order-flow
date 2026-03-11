@@ -130,7 +130,7 @@ class PatientOrderController extends Controller
     // Cargamos relaciones para el comprobante
     $order->load(['patient.user', 'paymentTransaction']);
 
-    return view('patient.payment-success', compact('order'));
+return view('payments.payment-success', compact('order'));
 }
 
 }
