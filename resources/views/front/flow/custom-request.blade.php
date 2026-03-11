@@ -10,56 +10,62 @@
     @livewireStyles
     <style>
         :root { --primary-color: #0d6efd; --soft-bg: #f8faff; }
-        body { font-family: 'Inter', sans-serif; background-color: #f8faff; color: #212529; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8faff;
+            color: #212529;
+            background-image: radial-gradient(#d1d9e6 0.5px, transparent 0.5px);
+            background-size: 20px 20px;
+        }
         .card-custom { border: none; border-radius: 28px; box-shadow: 0 25px 50px rgba(0,0,0,0.06); overflow: hidden; background: white; }
         .bg-gradient-blue { background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%); }
         .transition-all { transition: all 0.3s ease; }
 
-        /* Estilos consistentes con tu formulario de perfil */
+        /* Estilos para los inputs dentro del componente */
         .form-control, .form-select { border-radius: 12px; padding: 12px 15px; border-color: #edf2f7; }
-        .form-control:focus { box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1); }
-        .btn-send { border-radius: 16px; font-weight: 700; padding: 16px; transition: all 0.3s; }
+        .form-control:focus { box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1); border-color: var(--primary-color); }
 
-        /* Estilos para el grid de pacientes */
         .patient-card { cursor: pointer; border-radius: 20px; border: 2px solid #f1f5f9; transition: all 0.2s; }
-        .patient-card.active { border-color: var(--primary-color); background-color: #eff6ff; }
     </style>
 </head>
 <body>
 
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
+        <div class="col-12 col-lg-7">
 
-            {{-- Encabezado --}}
-            <div class="text-center mb-4">
-                <a href="{{ route('home') }}" class="text-decoration-none small fw-bold text-primary mb-3 d-inline-block">
-                    <i class="bi bi-arrow-left me-1"></i> Volver al inicio
+            {{-- Navegación superior --}}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <a href="{{ route('home') }}" class="btn btn-link text-decoration-none fw-bold p-0 text-dark">
+                    <i class="bi bi-chevron-left"></i> Volver
                 </a>
-                <h2 class="fw-bold h3 mb-1">Orden Personalizada</h2>
-                <p class="text-muted">Dinos qué necesitas y un médico revisará tu solicitud.</p>
+                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">Flujo Personalizado</span>
             </div>
 
             <div class="card-custom">
-                {{-- Banner Superior --}}
+                {{-- Encabezado Visual --}}
                 <div class="bg-gradient-blue p-4 text-white text-center">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-circle mb-3" style="width: 60px; height: 60px;">
-                        <i class="bi bi-magic fs-3"></i>
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-circle mb-3" style="width: 56px; height: 56px;">
+                        <i class="bi bi-chat-quote fs-3"></i>
                     </div>
-                    <h5 class="fw-bold mb-0 text-white">Nueva Solicitud</h5>
+                    <h2 class="fw-bold h4 mb-1">Solicitud a Medida</h2>
+                    <p class="text-white text-opacity-75 small mb-0">Un médico revisará tu requerimiento manualmente</p>
                 </div>
 
-                <div class="card-body p-4 p-md-5">
-                    {{-- Aquí inyectaremos el componente --}}
-                    @livewire('custom-order-flow', ['patient' => $patient])
+                <div class="card-body p-4">
+                    {{--
+                        REUTILIZACIÓN: Llamamos al componente OrderCheckout
+                        pero pasamos null en examTypeId para activar el modo "Custom"
+                    --}}
+                    @livewire('order-checkout', ['examTypeId' => null])
                 </div>
             </div>
 
-            {{-- Footer info --}}
+            {{-- Seguridad --}}
             <div class="text-center mt-4">
-                <p class="small text-muted">
-                    <i class="bi bi-shield-check me-1 text-success"></i>
-                    Tus datos médicos están protegidos con encriptación de grado militar.
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-lock-fill me-1 text-primary"></i>
+                    Solicitud segura y encriptada bajo estándares HIPAA
                 </p>
             </div>
 
