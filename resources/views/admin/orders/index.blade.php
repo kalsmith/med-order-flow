@@ -28,7 +28,7 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">Paciente</th>
-                        <th>Examen</th>
+                        <th>Examen / Requerimiento</th>
                         @role('admin|director_tecnico')
                         <th>Doctor Asignado</th>
                         @endrole
@@ -41,17 +41,33 @@
                     @forelse($orders as $order)
                     <tr>
                         <td class="ps-4">
-                            <div class="fw-bold text-dark">{{ $order->patient->user->name ?? 'N/A' }}</div>
+                            {{-- Usamos full_name del modelo Patient que ya maneja la desencriptación --}}
+                            <div class="fw-bold text-dark">{{ $order->patient->full_name }}</div>
                             <small class="text-muted">RUT: {{ $order->patient->rut }}</small>
                         </td>
                         <td>
-                            <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                {{ $order->examType->name }}
-                            </span>
+                            @if($order->examType)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                    {{ $order->examType->name }}
+                                </span>
+                            @else
+                                <div class="d-flex flex-column">
+                                    <span class="badge bg-purple-subtle text-purple border border-purple-subtle mb-1" style="background-color: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; align-self: start;">
+                                        <i class="bi bi-stars me-1"></i> Solicitud Especial
+                                    </span>
+                                    <small class="text-muted text-truncate" style="max-width: 200px;" title="{{ $order->custom_description }}">
+                                        {{ Str::limit($order->custom_description, 40) }}
+                                    </small>
+                                </div>
+                            @endif
                         </td>
                         @role('admin|director_tecnico')
                         <td>
-                            <div class="small">Dr. {{ $order->doctor->user->name ?? 'Sin asignar' }}</div>
+                            @if($order->doctor && $order->doctor->user)
+                                <div class="small">Dr. {{ $order->doctor->user->name }}</div>
+                            @else
+                                <span class="text-muted small italic">Sin asignar</span>
+                            @endif
                         </td>
                         @endrole
                         <td>
@@ -59,29 +75,45 @@
                             <div class="text-muted" style="font-size: 0.75rem;">{{ $order->created_at->format('H:i') }} hrs</div>
                         </td>
                         <td>
-                            @if($order->status == 'pending')
-                                <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i> Pendiente</span>
-                            @elseif($order->status == 'signed')
-                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Firmada</span>
-                            @else
-                                <span class="badge bg-secondary">{{ $order->status }}</span>
-                            @endif
+                            @php
+                                $statusBadge = [
+                                    'pending' => 'bg-warning text-dark',
+                                    'signed' => 'bg-success',
+                                    'rejected' => 'bg-danger',
+                                    'cancelled' => 'bg-secondary'
+                                ];
+                                $statusIcon = [
+                                    'pending' => 'bi-clock-history',
+                                    'signed' => 'bi-check-circle',
+                                    'rejected' => 'bi-x-circle',
+                                    'cancelled' => 'bi-slash-circle'
+                                ];
+                                $currentStatus = $order->status;
+                            @endphp
+                            <span class="badge {{ $statusBadge[$currentStatus] ?? 'bg-secondary' }}">
+                                <i class="bi {{ $statusIcon[$currentStatus] ?? 'bi-info-circle' }} me-1"></i>
+                                {{ ucfirst(__($currentStatus)) }}
+                            </span>
                         </td>
                         <td class="text-end pe-4">
-                            @if(auth()->user()->hasRole('doctor') && $order->status == 'pending')
-<a href="{{ route('admin.orders.sign.form', $order->id) }}" class="btn btn-sm btn-primary">
-    <i class="bi bi-vector-pen"></i> Firmar
-</a>
-                            @endif
-                            <a href="#" class="btn btn-sm btn-outline-dark">
-                                <i class="bi bi-eye"></i>
-                            </a>
+                            <div class="btn-group">
+                                @if(auth()->user()->hasRole('doctor') && $order->status == 'pending')
+                                    <a href="{{ route('admin.orders.sign.form', $order->id) }}" class="btn btn-sm btn-primary shadow-sm">
+                                        <i class="bi bi-vector-pen me-1"></i> Firmar
+                                    </a>
+                                @endif
+
+                                <a href="#" class="btn btn-sm btn-outline-dark ms-1" title="Ver detalles">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            No se encontraron órdenes registradas.
+                        <td colspan="{{ auth()->user()->hasRole('doctor') ? '5' : '6' }}" class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                            <span class="text-muted">No se encontraron órdenes registradas.</span>
                         </td>
                     </tr>
                     @endforelse
@@ -89,8 +121,10 @@
             </table>
         </div>
     </div>
-    <div class="card-footer bg-white">
-        {{ $orders->links() }}
-    </div>
+    @if($orders->hasPages())
+        <div class="card-footer bg-white py-3">
+            {{ $orders->links() }}
+        </div>
+    @endif
 </div>
 @endsection
