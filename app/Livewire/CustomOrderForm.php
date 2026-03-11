@@ -22,6 +22,8 @@ class CustomOrderForm extends Component
     public $new_full_name;
     public $new_rut;
     public $new_relationship = '';
+    public $new_birth_date;        // <--- Faltaba esta
+    public $new_gender_biologic = 'M'; // <--- Faltaba esta (ajustada a tu DB)
 
     public function mount()
     {
