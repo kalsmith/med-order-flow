@@ -16,11 +16,12 @@
                     <i class="bi bi-clipboard2-pulse-fill"></i> Especialidades
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.doctors.*') ? 'active' : '' }}" href="{{ route('admin.doctors.index') }}">
-                    <i class="bi bi-person-badge-fill"></i> Médicos
-                </a>
-            </li>
+<li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('admin.admin.doctors.*') ? 'active' : '' }}"
+       href="{{ route('admin.admin.doctors.index') }}">
+        <i class="bi bi-people-fill"></i> Médicos
+    </a>
+</li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.exam-types.*') ? 'active' : '' }}" href="{{ route('admin.exam-types.index') }}">
                     <i class="bi bi-microscope-fill"></i> Catálogo Exámenes

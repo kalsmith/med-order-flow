@@ -22,23 +22,32 @@ use App\Http\Controllers\FlowController;
 
 /*
 |--------------------------------------------------------------------------
-| 1. RUTAS PÚBLICAS (LANDING & GOOGLE AUTH)
+| 1. RUTAS PÚBLICAS & ACCESO
 |--------------------------------------------------------------------------
 */
 
-// La Landing Page vuelve a ser la entrada principal
+// Bloqueo de la ruta por defecto de Jetstream/Fortify
+Route::get('/login', function () {
+    abort(404);
+});
+
+// La raíz vuelve a estar habilitada para pacientes (Landing Page)
 Route::get('/', function () {
     $packs = ExamType::has('children')->where('is_active', true)->get();
     $individuales = ExamType::doesntHave('children')->where('is_active', true)->take(6)->get();
     return view('welcome', compact('packs', 'individuales'));
 })->name('home');
 
-// Acceso Staff (Email/Password tradicional)
+// Acceso oficial para Staff (Email/Password)
+// Mostramos el formulario
 Route::get('/acceso', function() {
     return view('auth.login');
 })->name('login');
 
-// Acceso Pacientes (Google Socialite)
+// Procesamos el inicio de sesión (Permite que el POST funcione en /acceso)
+Route::post('/acceso', [\Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class, 'store']);
+
+// Acceso para Pacientes (Google)
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
@@ -51,29 +60,29 @@ Route::post('/logout', function() {
 
 /*
 |--------------------------------------------------------------------------
-| 2. DISTRIBUIDOR DE TRÁFICO (Post-Login)
+| 2. DISTRIBUIDOR DE TRÁFICO (Redirección Post-Login)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
     $user = Auth::user();
 
-    // 1. Si es Staff (Médicos, Admin, QF, Contables)
+    // Prioridad Staff: Van al panel de gestión
     if ($user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
         return redirect()->route('admin.panel');
     }
 
-    // 2. Si es Paciente sin perfil (necesitamos su RUT para la orden)
+    // Pacientes: Si no tienen perfil (RUT), a completar perfil
     if (!$user->patients()->where('relationship', 'self')->exists()) {
         return redirect()->route('profile.complete');
     }
 
-    // 3. Paciente con todo al día
+    // Pacientes con perfil: A sus órdenes
     return redirect()->route('patient.orders');
 })->name('user.dispatch');
 
 /*
 |--------------------------------------------------------------------------
-| 3. PANEL DE GESTIÓN (MUNDO STAFF / CLÍNICO)
+| 3. PANEL DE GESTIÓN (STAFF / MUNDO CLÍNICO)
 |--------------------------------------------------------------------------
 */
 Route::middleware([
@@ -83,10 +92,10 @@ Route::middleware([
     'role:admin|doctor|director_tecnico|contable'
 ])->prefix('gestion')->name('admin.')->group(function () {
 
-    // Panel Principal (Métricas generales)
+    // Panel Principal
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
-    // Módulo de Firma Médica
+    // Módulo Doctores
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
         Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
@@ -94,25 +103,38 @@ Route::middleware([
         Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectCustomOrder'])->name('orders.reject');
     });
 
-    // Administración y Catálogos (Admin / QF - Director Técnico)
+    // Administración y QF (Director Técnico)
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
-        Route::resource('especialidades', SpecialtyController::class)->names('specialties');
-        Route::resource('medicos', DoctorController::class)->names('doctors');
-        Route::resource('examenes', ExamTypeController::class)->names('exam-types');
-        // El Admin ve el listado pero respetando la ética (sin ver el detalle clínico si no es QF)
+        Route::resource('especialidades', SpecialtyController::class)
+            ->names('specialties')
+            ->parameters(['especialidades' => 'specialty']);
+
+        Route::resource('medicos', DoctorController::class)
+            ->names('admin.doctors')
+            ->parameters(['medicos' => 'doctor']);
+
+        Route::resource('examenes', ExamTypeController::class)
+            ->names('exam-types')
+            ->parameters(['examenes' => 'exam_type']);
+
         Route::resource('ordenes', MedicalOrderController::class)->names('orders')->except(['create', 'store']);
     });
 
-    // Finanzas
+    // Módulo Contable
     Route::middleware(['role:contable|admin'])->group(function () {
         Route::get('/reportes', [DashboardController::class, 'reports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
     });
 });
 
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
-| 4. PORTAL DEL PACIENTE (CLIENTE)
+| 4. PORTAL DE PACIENTES (CLIENTES)
 |--------------------------------------------------------------------------
 */
 Route::middleware([
@@ -121,22 +143,22 @@ Route::middleware([
     'verified'
 ])->group(function () {
 
-    // Configuración de Orden (Antes de completar perfil)
+    // Flujo de compra inicial
     Route::get('/orden-personalizada', [PublicOrderController::class, 'customOrder'])->name('orders.custom');
     Route::get('/confirmar-orden-especial', [PublicOrderController::class, 'confirmCustomOrder'])->name('orders.custom.confirm');
     Route::get('/confirmar-pedido/{exam_type}', [PublicOrderController::class, 'confirmOrder'])->name('orders.confirm');
 
-    // Registro de datos legales (RUT, etc.)
+    // Gestión de Perfil Legal (RUT)
     Route::get('/completar-perfil', [PublicOrderController::class, 'completeProfileForm'])->name('profile.complete');
     Route::post('/completar-perfil', [PublicOrderController::class, 'storeProfile'])->name('profile.store');
 
-    // Rutas protegidas por validación de perfil (Requiere RUT)
+    // Acciones con Perfil Validado
     Route::middleware(['check.profile'])->group(function () {
         Route::get('/mis-ordenes', [PublicOrderController::class, 'index'])->name('patient.orders');
         Route::post('/enviar-pedido', [PublicOrderController::class, 'store'])->name('orders.store.public');
         Route::get('/descargar/{order}', [PublicOrderController::class, 'download'])->name('orders.download');
 
-        // Proceso de Pago
+        // Checkout & Pagos
         Route::get('/checkout/{order}', [CheckoutController::class, 'index'])->name('checkout.index');
         Route::post('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.process');
         Route::post('/mis-ordenes/{order}/reintentar-pago', [PublicOrderController::class, 'retryPayment'])->name('orders.retryPayment');
@@ -145,7 +167,7 @@ Route::middleware([
 
 /*
 |--------------------------------------------------------------------------
-| 5. PASARELAS DE PAGO & WEBHOOKS (FLOW)
+| 5. PAGOS & WEBHOOKS (FLOW)
 |--------------------------------------------------------------------------
 */
 Route::prefix('payment/flow')->group(function () {
@@ -156,12 +178,11 @@ Route::prefix('payment/flow')->group(function () {
     Route::get('/fail', [FlowController::class, 'fail'])->name('flow.fail');
 });
 
-// Página de éxito tras pago exitoso
 Route::get('/pago-exitoso/{order?}', [PublicOrderController::class, 'showSuccess'])->name('payment.success');
 
 /*
 |--------------------------------------------------------------------------
-| 6. UTILIDADES & APIs
+| 6. APIs INTERNAS
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'verified'])->prefix('api')->name('api.')->group(function () {

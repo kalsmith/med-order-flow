@@ -3,12 +3,21 @@
 @section('header', 'Cuerpo Médico')
 
 @section('header-actions')
-<a href="{{ route('admin.doctors.create') }}" class="btn btn-primary">
-            <i class="bi bi-person-plus-fill me-2"></i>Nuevo Doctor
+    {{-- Ajuste: admin.admin.doctors.create --}}
+    <a href="{{ route('admin.admin.doctors.create') }}" class="btn btn-primary">
+        <i class="bi bi-person-plus-fill me-2"></i>Nuevo Doctor
     </a>
 @endsection
 
 @section('content')
+
+{{-- Bloque de alertas para confirmar acciones exitosas --}}
+@if (session('status'))
+    <div class="alert alert-success border-0 shadow-sm mb-4">
+        {{ session('status') }}
+    </div>
+@endif
+
 <div class="card shadow-sm border-0">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -69,7 +78,8 @@
                     </td>
                     <td class="text-end">
                         <div class="btn-group">
-                            <a href="{{ route('admin.doctors.edit', $doctor) }}" class="btn btn-sm btn-outline-primary" title="Editar perfil">
+                            {{-- Ajuste: admin.admin.doctors.edit con el parámetro 'doctor' --}}
+                            <a href="{{ route('admin.admin.doctors.edit', ['doctor' => $doctor->id]) }}" class="btn btn-sm btn-outline-primary" title="Editar perfil">
                                 <i class="bi bi-pencil"></i>
                             </a>
                         </div>

@@ -1,6 +1,5 @@
 <?php
 
-
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,32 +14,32 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
-        $middleware->redirectGuestsTo(fn () => route('auth.google.login')); // <-- ASEGÚRATE QUE ESTE NOMBRE SEA EL MISMO
-        // Excluimos todo el prefijo de pagos para asegurar que Flow
-        // pueda enviar sus Webhooks sin recibir un error de token CSRF
-        $middleware->validateCsrfTokens(except: [
-            'payment/flow/*',
-            'payment/flow/confirmation',
-            'payment/flow/refund-confirmation',
-        ]);
-
-        // Redirección inteligente: los pacientes van a Google, los admins al Login
+        // 1. REDIRECCIÓN INTELIGENTE (Paso 1 de tu esquema: ¿Está logueado?)
         $middleware->redirectGuestsTo(function (Request $request) {
-
-            // Si el usuario intenta entrar a rutas de pacientes sin estar logueado,
-            // forzamos el flujo de Google en lugar del login tradicional.
-            if ($request->is('confirmar-pedido/*') || $request->is('mis-ordenes')) {
-                return route('auth.google');
+            // Si es una ruta de administración o staff, login por formulario
+            if ($request->is('gestion/*') || $request->is('admin/*') || $request->is('acceso')) {
+                return route('login');
             }
 
-            // Por defecto, mandamos al login de toda la vida (admin/staff)
-            return route('login');
+            // Para pacientes (Ruta A, B, C...), saltamos directo al login de Google
+            // Laravel guardará la URL de destino en session('url.intended') automáticamente
+            return route('auth.google');
         });
 
+        // 2. EXCEPCIONES CSRF (Para que Flow pueda avisarnos de los pagos)
+        $middleware->validateCsrfTokens(except: [
+            'auth/google/callback',
+            'payment/flow/*',
+        ]);
+
+        // 3. ALIAS DE MIDDLEWARES
         $middleware->alias([
+            // Spatie (Roles y Permisos)
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+
+            // PASO 2 de tu esquema: ¿Tiene registro local en User? (Patient Profile)
             'check.profile' => \App\Http\Middleware\EnsurePatientProfileIsComplete::class,
         ]);
     })

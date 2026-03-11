@@ -10,8 +10,8 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-md-9">
-        <form action="{{ route('admin.exam-types.store') }}" method="POST">
+    <div class="col-md-10">
+        <form action="{{ route('admin.exam-types.store') }}" method="POST" id="examForm">
             @csrf
 
             <div class="card shadow-sm border-0 mb-4">
@@ -57,41 +57,113 @@
                 </div>
             </div>
 
-            {{-- Sección de Composición (Pila) --}}
+            {{-- Sección de Composición (Pila con Dual Listbox) --}}
             <div class="card shadow-sm border-0 border-start border-primary border-4">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-stack fs-4 text-primary me-2"></i>
-                        <h5 class="card-title m-0 text-dark fw-bold">Definir como Pila (Opcional)</h5>
+                        <h5 class="card-title m-0 text-dark fw-bold">Configurar Pila de Exámenes</h5>
                     </div>
-                    <p class="text-muted small mb-4">
-                        Si este nuevo registro es una batería de exámenes, selecciona aquí sus componentes.
-                        <strong>Nota:</strong> Solo aparecen exámenes ya existentes en el sistema.
-                    </p>
 
-                    <div class="col-md-12">
-                        <label class="form-label fw-semibold">Exámenes incluidos en esta batería</label>
-                        <select name="bundle_ids[]" class="form-select @error('bundle_ids') is-invalid @enderror" multiple style="min-height: 180px;">
-                            @foreach($allExams as $item)
-                                <option value="{{ $item->id }}" {{ (is_array(old('bundle_ids')) && in_array($item->id, old('bundle_ids'))) ? 'selected' : '' }}>
-                                    {{ $item->name }} {{ $item->code_fonasa ? "($item->code_fonasa)" : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <div class="form-text mt-2 text-info">
-                            <i class="bi bi-info-circle me-1"></i> Mantén presionado Ctrl/Cmd para seleccionar varios.
+                    <div class="row">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Exámenes Disponibles</label>
+                            <input type="text" id="searchAvailable" class="form-control form-control-sm mb-2" placeholder="Buscar examen...">
+                            <select id="availableExams" class="form-select" multiple style="height: 250px;">
+                                @foreach($allExams as $item)
+                                    <option value="{{ $item->id }}">
+                                        {{ $item->name }} {{ $item->code_fonasa ? "($item->code_fonasa)" : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
-                        @error('bundle_ids') <div class="text-danger small">{{ $message }}</div> @enderror
+
+                        <div class="col-md-2 d-flex flex-column justify-content-center align-items-center">
+                            <button type="button" id="btnAdd" class="btn btn-outline-primary mb-2 w-100">
+                                <i class="bi bi-chevron-right d-none d-md-inline"></i>
+                                <i class="bi bi-chevron-down d-md-none"></i>
+                            </button>
+                            <button type="button" id="btnRemove" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-chevron-left d-none d-md-inline"></i>
+                                <i class="bi bi-chevron-up d-md-none"></i>
+                            </button>
+                        </div>
+
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-primary text-uppercase">Incluidos en el Pack</label>
+                            <div class="mb-2" style="height: 31px;"></div> <select id="selectedExams" name="bundle_ids[]" class="form-select border-primary" multiple style="height: 250px;">
+                                {{-- Aquí se moverán los exámenes seleccionados --}}
+                            </select>
+                            <div class="form-text mt-2">
+                                <span id="countSelected" class="badge bg-primary">0</span> exámenes seleccionados
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="mt-4 pt-3 d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary px-5 shadow-sm">
-                    <i class="bi bi-check-lg me-2"></i> Crear Examen / Pack
+                <button type="submit" class="btn btn-primary px-5 shadow-sm btn-lg">
+                    <i class="bi bi-check-lg me-2"></i> Guardar Examen / Pack
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const availableSelect = document.getElementById('availableExams');
+    const selectedSelect = document.getElementById('selectedExams');
+    const btnAdd = document.getElementById('btnAdd');
+    const btnRemove = document.getElementById('btnRemove');
+    const searchInput = document.getElementById('searchAvailable');
+    const form = document.getElementById('examForm');
+
+    // Función para mover opciones
+    function moveOptions(from, to) {
+        const selectedOptions = Array.from(from.selectedOptions);
+        selectedOptions.forEach(option => {
+            to.appendChild(option);
+            option.selected = false;
+        });
+        updateCounter();
+        sortSelect(to);
+    }
+
+    function updateCounter() {
+        document.getElementById('countSelected').innerText = selectedSelect.options.length;
+    }
+
+    function sortSelect(select) {
+        const tmp = Array.from(select.options);
+        tmp.sort((a, b) => a.text.localeCompare(b.text));
+        select.innerHTML = '';
+        tmp.forEach(opt => select.add(opt));
+    }
+
+    btnAdd.addEventListener('click', () => moveOptions(availableSelect, selectedSelect));
+    btnRemove.addEventListener('click', () => moveOptions(selectedSelect, availableSelect));
+
+    // Doble click para mover rápido
+    availableSelect.addEventListener('dblclick', () => moveOptions(availableSelect, selectedSelect));
+    selectedSelect.addEventListener('dblclick', () => moveOptions(selectedSelect, availableSelect));
+
+    // Buscador simple
+    searchInput.addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        Array.from(availableSelect.options).forEach(option => {
+            const text = option.text.toLowerCase();
+            option.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+
+    // IMPORTANTE: Antes de enviar el form, seleccionar todos los del panel derecho
+    form.addEventListener('submit', function() {
+        Array.from(selectedSelect.options).forEach(option => option.selected = true);
+    });
+});
+</script>
+@endpush
 @endsection

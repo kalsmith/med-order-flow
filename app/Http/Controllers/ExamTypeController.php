@@ -9,22 +9,51 @@ use Illuminate\Support\Facades\DB;
 
 class ExamTypeController extends Controller
 {
-    public function index()
-    {
-        // Cargamos la especialidad y contamos los hijos para saber si es un pack
-        $exams = ExamType::with('specialty')
-            ->withCount('children')
-            ->latest()
-            ->paginate(15);
 
-        return view('admin.exam_types.index', compact('exams'));
+public function index(Request $request)
+{
+    $query = ExamType::with(['specialty', 'parents'])->withCount('children');
+
+    // Filtro por nombre o código
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'LIKE', "%{$search}%")
+              ->orWhere('code_fonasa', 'LIKE', "%{$search}%");
+        });
     }
 
-    public function create()
-    {
-        $specialties = Specialty::all();
-        return view('admin.exam_types.create', compact('specialties'));
+    // Filtro por Especialidad
+    if ($request->filled('specialty_id')) {
+        $query->where('specialty_id', $request->specialty_id);
     }
+
+    // Filtro por Tipo (Pack o Individual)
+    if ($request->filled('type')) {
+        if ($request->type === 'pack') {
+            $query->has('children');
+        } elseif ($request->type === 'individual') {
+            $query->doesntHave('children');
+        }
+    }
+
+    $exams = $query->latest()->paginate(15)->withQueryString();
+    $specialties = Specialty::orderBy('name')->get();
+
+    return view('admin.exam_types.index', compact('exams', 'specialties'));
+}
+public function create()
+{
+    $specialties = Specialty::all();
+
+    // Filtramos: Solo exámenes que NO tengan hijos (individuales)
+    $allExams = ExamType::doesntHave('children')
+        ->where('is_active', true)
+        ->orderBy('name')
+        ->get();
+
+    return view('admin.exam_types.create', compact('specialties', 'allExams'));
+}
 
     public function store(Request $request)
     {
@@ -33,26 +62,46 @@ class ExamTypeController extends Controller
             'specialty_id' => 'required|exists:specialties,id',
             'code_fonasa' => 'nullable|string|max:20',
             'base_price' => 'required|integer|min:0',
+            'bundle_ids' => 'nullable|array',
+            'bundle_ids.*' => 'exists:exam_types,id'
         ]);
 
-        ExamType::create($request->all());
+        try {
+            DB::beginTransaction();
 
-        return redirect()->route('exam-types.index')->with('status', 'Examen creado exitosamente.');
+            // 1. Crear el examen principal
+            $examType = ExamType::create($request->only([
+                'name', 'specialty_id', 'code_fonasa', 'base_price', 'is_active'
+            ]));
+
+            // 2. Si seleccionó exámenes para el pack, los vinculamos
+            if ($request->has('bundle_ids')) {
+                $examType->children()->sync($request->bundle_ids);
+            }
+
+            DB::commit();
+            // IMPORTANTE: Verifica el nombre de la ruta, pusimos 'admin.exam-types.index' en web.php
+            return redirect()->route('admin.exam-types.index')->with('status', 'Examen creado exitosamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Error al crear: ' . $e->getMessage()]);
+        }
     }
 
-    public function edit(ExamType $examType)
-    {
-        $specialties = Specialty::all();
+public function edit(ExamType $examType)
+{
+    $specialties = Specialty::all();
 
-        // Obtenemos todos los exámenes para poder armar la batería
-        // Excluimos el examen actual para evitar circularidad
-        $allExams = ExamType::where('id', '!=', $examType->id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+    // Filtramos: Solo exámenes individuales y excluimos al actual
+    $allExams = ExamType::doesntHave('children')
+        ->where('id', '!=', $examType->id)
+        ->where('is_active', true)
+        ->orderBy('name')
+        ->get();
 
-        return view('admin.exam_types.edit', compact('examType', 'specialties', 'allExams'));
-    }
+    return view('admin.exam_types.edit', compact('examType', 'specialties', 'allExams'));
+}
 
     public function update(Request $request, ExamType $examType)
     {
