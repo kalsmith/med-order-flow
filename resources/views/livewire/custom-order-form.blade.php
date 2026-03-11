@@ -70,7 +70,7 @@
 }">
     <label class="small fw-bold text-muted">RUT</label>
 <input type="text"
-       wire:model.live="new_rut"
+       wire:model="new_rut"
        class="form-control border-0 shadow-sm"
        placeholder="12.345.678-9"
        x-on:input="$el.value = formatRut($el.value)"

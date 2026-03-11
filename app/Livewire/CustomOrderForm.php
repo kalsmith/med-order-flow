@@ -46,33 +46,43 @@ class CustomOrderForm extends Component
         }
     }
 
-    public function saveFamily()
-    {
-        $this->validate([
-            'new_full_name' => 'required|min:3|string',
-            'new_rut' => 'required|string|min:7|max:9', // Ajustado para RUT sin puntos
-            'new_relationship' => 'required|string'
-        ], [
-            'new_full_name.required' => 'El nombre es obligatorio',
-            'new_new_relationship.required' => 'Indica el parentesco'
-        ]);
+public function saveFamily()
+{
+    // 1. Limpiamos el RUT antes de validar (quitamos puntos y guion)
+    // Usamos el mismo patrón que en tus otros componentes para mantener la consistencia
+    $this->new_rut = preg_replace('/[^kK0-9]/', '', $this->new_rut);
 
-        $patient = Auth::user()->patients()->create([
-            'full_name' => $this->new_full_name,
-            'rut' => $this->new_rut,
-            'relationship' => $this->new_relationship,
-            'is_active' => true
-        ]);
+    // 2. Ahora validamos el RUT limpio
+    $this->validate([
+        'new_full_name' => 'required|min:3|string',
+        'new_rut' => 'required|string|min:7|max:9', // Ahora sí pasará porque mide max 9
+        'new_relationship' => 'required|string'
+    ], [
+        'new_full_name.required' => 'El nombre es obligatorio',
+        'new_relationship.required' => 'Indica el parentesco',
+        'new_rut.max' => 'El RUT no es válido (demasiados caracteres)',
+        'new_rut.min' => 'El RUT es muy corto'
+    ]);
 
-        // Seleccionamos automáticamente al nuevo paciente
-        $this->selected_patient_id = $patient->id;
-        $this->showAddFamily = false;
+    // 3. Guardamos (ya viene limpio)
+    $patient = Auth::user()->patients()->create([
+        'full_name' => $this->new_full_name,
+        'rut' => $this->new_rut,
+        'relationship' => $this->new_relationship,
+        'is_active' => true,
+        // Agregamos valores por defecto consistentes con tu DB
+        'prevision' => 'Particular'
+    ]);
 
-        // Reset de campos
-        $this->reset(['new_full_name', 'new_rut', 'new_relationship']);
+    // Seleccionamos automáticamente al nuevo paciente
+    $this->selected_patient_id = $patient->id;
+    $this->showAddFamily = false;
 
-        session()->flash('patient_added', 'Familiar agregado correctamente.');
-    }
+    // Reset de campos
+    $this->reset(['new_full_name', 'new_rut', 'new_relationship']);
+
+    session()->flash('patient_added', 'Familiar agregado correctamente.');
+}
 
     public function submit()
     {
