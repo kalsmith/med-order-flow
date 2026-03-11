@@ -151,10 +151,21 @@
                                     <div class="small fw-semibold opacity-75">Desde</div>
                                     <div class="price-tag">$9.990</div>
                                 </div>
-<button class="btn btn-select w-100 shadow-sm"
-    onclick="window.location.href='{{ route('orders.custom') }}'">
-    Solicitar a Medida <i class="bi bi-pencil-square ms-1"></i>
-</button>
+@auth
+    {{-- Usuario logueado: Va directo al formulario de solicitud especial --}}
+    <button class="btn btn-select w-100 shadow-sm" 
+            onclick="window.location.href='{{ route('orders.custom') }}'">
+        Solicitar a Medida <i class="bi bi-pencil-square ms-1"></i>
+    </button>
+@else
+    {{-- Usuario NO logueado: Salta directo al login de Google --}}
+    <button class="btn btn-select w-100 shadow-sm" 
+            onclick="window.location.href='{{ route('auth.google') }}'">
+        <i class="bi bi-google me-2"></i> Solicitar con Google
+    </button>
+@endauth
+
+
                             </div>
                         </div>
                     </div>
