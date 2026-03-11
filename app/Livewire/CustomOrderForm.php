@@ -50,7 +50,7 @@ class CustomOrderForm extends Component
     {
         $this->validate([
             'new_full_name' => 'required|min:3|string',
-            'new_rut' => 'required|string', // Aquí podrías usar una regla de validación de RUT personalizada
+            'new_rut' => 'required|string|min:7|max:9', // Ajustado para RUT sin puntos
             'new_relationship' => 'required|string'
         ], [
             'new_full_name.required' => 'El nombre es obligatorio',

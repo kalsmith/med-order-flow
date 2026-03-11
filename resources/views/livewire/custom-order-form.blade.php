@@ -51,11 +51,35 @@
                         <input type="text" wire:model="new_full_name" class="form-control border-0 shadow-sm" placeholder="Ej: Juan Pérez">
                         @error('new_full_name') <span class="text-danger tiny">{{ $message }}</span> @enderror
                     </div>
-                    <div class="col-md-6">
-                        <label class="small fw-bold text-muted">RUT</label>
-                        <input type="text" wire:model="new_rut" class="form-control border-0 shadow-sm" placeholder="12.345.678-9">
-                        @error('new_rut') <span class="text-danger tiny">{{ $message }}</span> @enderror
-                    </div>
+
+
+<div class="col-md-6" x-data="{
+    formatRut(value) {
+        if (!value) return '';
+        // Limpiar puntos y guion, dejar solo números y K
+        let rut = value.replace(/[^\dkK]/g, '').toUpperCase();
+        if (rut.length <= 1) return rut;
+
+        let cuerpo = rut.slice(0, -1);
+        let dv = rut.slice(-1);
+
+        // Formatear cuerpo con puntos
+        cuerpo = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return cuerpo + '-' + dv;
+    }
+}">
+    <label class="small fw-bold text-muted">RUT</label>
+    <input type="text"
+           wire:model="new_rut"
+           class="form-control border-0 shadow-sm"
+           placeholder="12.345.678-9"
+           x-on:input="$el.value = formatRut($el.value)"
+           maxlength="12">
+    @error('new_rut') <span class="text-danger tiny">{{ $message }}</span> @enderror
+</div>
+
+
+
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Parentesco</label>
                         <select wire:model="new_relationship" class="form-select border-0 shadow-sm">
