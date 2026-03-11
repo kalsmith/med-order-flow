@@ -4,34 +4,38 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Patient;
+use App\Models\ExamType;
 use Illuminate\Support\Facades\Auth;
 
-class CustomOrderForm extends Component
+class OrderCheckout extends Component
 {
-    // Campos de la Orden
+    public $exam;
+    public $patients;
     public $selected_patient_id;
-    public $custom_exam_name;
-    public $symptoms;
-    public $patient_type = 'adulto';
-    public $urgency = 'normal';
-
-    // Estado del Formulario de Familiar
     public $showAddFamily = false;
 
-    // Campos para Nuevo Familiar
+    // --- PROPIEDADES PARA EL FORMULARIO (Sincronizadas con wire:model) ---
     public $new_full_name;
     public $new_rut;
-    public $new_relationship = '';
-    public $new_birth_date;        // <--- Faltaba esta
-    public $new_gender_biologic = 'M'; // <--- Faltaba esta (ajustada a tu DB)
+    public $new_relationship;
+    public $new_birth_date;
+    public $new_gender_biologic = 'M'; // Default Masculino para evitar nulos
 
-    public function mount()
+    public function mount($examId)
     {
-        // Seleccionamos al usuario principal por defecto si existe
-        $self = Auth::user()->patients()->where('relationship', 'self')->first();
-        if ($self) {
-            $this->selected_patient_id = $self->id;
+        $this->exam = ExamType::find($examId);
+        $this->loadPatients();
+
+        // Seleccionar por defecto al titular (self)
+        $primary = $this->patients->where('relationship', 'self')->first();
+        if ($primary) {
+            $this->selected_patient_id = $primary->id;
         }
+    }
+
+    public function loadPatients()
+    {
+        $this->patients = Auth::user()->patients()->get() ?? collect();
     }
 
     public function selectPatient($id)
@@ -48,69 +52,49 @@ class CustomOrderForm extends Component
         }
     }
 
-public function saveFamily()
-{
-    // 1. Limpiamos el RUT antes de validar (quitamos puntos y guion)
-    // Usamos el mismo patrón que en tus otros componentes para mantener la consistencia
-    $this->new_rut = preg_replace('/[^kK0-9]/', '', $this->new_rut);
-
-    // 2. Ahora validamos el RUT limpio
-    $this->validate([
-        'new_full_name' => 'required|min:3|string',
-        'new_rut' => 'required|string|min:7|max:9', // Ahora sí pasará porque mide max 9
-        'new_relationship' => 'required|string',
-        'new_birth_date' => 'required|date', // <--- NUEVO
-        'new_gender' => 'required|in:M,F'     // <--- NUEVO
-    ], [
-        'new_full_name.required' => 'El nombre es obligatorio',
-        'new_relationship.required' => 'Indica el parentesco',
-        'new_rut.max' => 'El RUT no es válido (demasiados caracteres)',
-        'new_rut.min' => 'El RUT es muy corto'
-    ]);
-
-    // 3. Guardamos (ya viene limpio)
-    $patient = Auth::user()->patients()->create([
-        'full_name' => $this->new_full_name,
-        'rut' => $this->new_rut,
-        'relationship' => $this->new_relationship,
-        'birth_date' => $this->new_birth_date,     // <--- NUEVO
-        'gender_biologic' => $this->new_gender,    // <--- NUEVO (usa el nombre exacto de tu DB)
-        'is_active' => true,
-        // Agregamos valores por defecto consistentes con tu DB
-        'prevision' => 'Particular'
-    ]);
-
-    // Seleccionamos automáticamente al nuevo paciente
-    $this->selected_patient_id = $patient->id;
-    $this->showAddFamily = false;
-
-    // Reset de campos
-    $this->reset(['new_full_name', 'new_rut', 'new_relationship']);
-
-    session()->flash('patient_added', 'Familiar agregado correctamente.');
-}
-
-    public function submit()
+    public function saveFamily()
     {
+        // 1. Validación estricta con los nombres de las propiedades públicas
         $this->validate([
-            'selected_patient_id' => 'required',
-            'custom_exam_name' => 'required|min:5',
+            'new_full_name'       => 'required|string|min:3',
+            'new_rut'             => 'required|string|min:7',
+            'new_relationship'    => 'required|in:hijo,conyuge,padre,otro',
+            'new_birth_date'      => 'required|date',
+            'new_gender_biologic' => 'required|in:M,F',
         ]);
 
-        // Aquí rediriges a la lógica de guardado/pago
-        return redirect()->route('orders.custom.confirm', [
-            'patient_id' => $this->selected_patient_id,
-            'exams' => $this->custom_exam_name,
-            'symptoms' => $this->symptoms,
-            'type' => $this->patient_type,
-            'urgency' => $this->urgency
+        // 2. Limpieza de RUT para la base de datos
+        $cleanRut = preg_replace('/[^kK0-9]/', '', $this->new_rut);
+
+        // 3. Creación usando el esquema exacto de tu tabla SQL
+        $patient = Auth::user()->patients()->create([
+            'full_name'       => $this->new_full_name,
+            'rut'             => $cleanRut,
+            'relationship'    => $this->new_relationship,
+            'birth_date'      => $this->new_birth_date,
+            'gender_biologic' => $this->new_gender_biologic,
+            'is_primary'      => 0,
+            'prevision'       => 'Particular', // Valor por defecto
         ]);
+
+        // 4. Reset de variables y refresco de interfaz
+        $this->reset([
+            'new_full_name',
+            'new_rut',
+            'new_relationship',
+            'new_birth_date',
+            'new_gender_biologic',
+            'showAddFamily'
+        ]);
+
+        $this->loadPatients();
+
+        // 5. Seleccionar automáticamente al familiar recién creado
+        $this->selected_patient_id = $patient->id;
     }
 
     public function render()
     {
-        return view('livewire.custom-order-form', [
-            'patients' => Auth::user()->patients()->orderBy('relationship', 'asc')->get()
-        ]);
+        return view('livewire.order-checkout');
     }
 }

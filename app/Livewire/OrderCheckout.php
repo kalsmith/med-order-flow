@@ -11,89 +11,92 @@ class OrderCheckout extends Component
 {
     public $exam;
     public $patients;
-    public $selectedPatientId;
-    public $showNewPatientForm = false;
+    public $selected_patient_id;
+    public $showAddFamily = false;
 
-    // Campos para registro de familiar
-    public $newName;
-    public $newRut;
-    public $newRelationship;
-    public $newBirthDate;
-    public $newGender = 'masculino';
+    // --- PROPIEDADES PARA EL FORMULARIO (Coinciden con wire:model) ---
+    public $new_full_name;
+    public $new_rut;
+    public $new_relationship;
+    public $new_birth_date;
+    public $new_gender_biologic = 'M'; // Default Masculino
 
     public function mount($examId)
     {
-        $this->exam = ExamType::findOrFail($examId);
-
-        // Cargamos los pacientes asegurando que sea una colección
+        // Si usas ExamType para el ID que viene por la URL
+        $this->exam = ExamType::find($examId);
         $this->loadPatients();
 
-        // Ahora el where() no fallará porque $this->patients es una colección (aunque esté vacía)
+        // Seleccionar por defecto al titular
         $primary = $this->patients->where('relationship', 'self')->first();
-
         if ($primary) {
-            $this->selectedPatientId = $primary->id;
+            $this->selected_patient_id = $primary->id;
         }
     }
 
     public function loadPatients()
     {
-        // Usamos la relación y obtenemos el resultado explícitamente como colección
+        // Obtenemos los pacientes del usuario autenticado
         $this->patients = Auth::user()->patients()->get() ?? collect();
     }
 
     public function selectPatient($id)
     {
-        $this->selectedPatientId = $id;
-        $this->showNewPatientForm = false;
+        $this->selected_patient_id = $id;
+        $this->showAddFamily = false;
     }
 
-    public function toggleNewPatient()
+    public function toggleAddFamily()
     {
-        $this->showNewPatientForm = !$this->showNewPatientForm;
-        if ($this->showNewPatientForm) {
-            $this->selectedPatientId = null;
+        $this->showAddFamily = !$this->showAddFamily;
+        if ($this->showAddFamily) {
+            $this->selected_patient_id = null;
         }
     }
 
-public function saveNewPatient()
-{
-    $this->validate([
-        'newName' => 'required|string|max:255',
-        'newRut' => 'required|string', // Aquí podrías añadir tu regla de validación de RUT chileno
-        'newRelationship' => 'required|in:child,spouse,parent,other', // IMPORTANTE: No permitir 'self' aquí
-        'newBirthDate' => 'required|date',
-        'newGender' => 'required|in:M,F',
-    ]);
+    public function saveFamily()
+    {
+        // 1. Validación (Los nombres deben coincidir con las propiedades public arriba)
+        $this->validate([
+            'new_full_name'       => 'required|string|min:3',
+            'new_rut'             => 'required|string|min:7',
+            'new_relationship'    => 'required|in:hijo,conyuge,padre,otro',
+            'new_birth_date'      => 'required|date',
+            'new_gender_biologic' => 'required|in:M,F',
+        ]);
 
-    // Limpiar el RUT (quitar puntos y guion) antes de guardar
-    $cleanRut = preg_replace('/[^kK0-9]/', '', $this->newRut);
+        // 2. Limpieza de RUT
+        $cleanRut = preg_replace('/[^kK0-9]/', '', $this->new_rut);
 
-    $patient = Auth::user()->patients()->create([
-        'full_name' => $this->newName,
-        'rut' => $cleanRut,
-        'relationship' => $this->newRelationship, // <--- AQUÍ ESTÁ EL CAMBIO: Usar la variable del form
-        'birth_date' => $this->newBirthDate,
-        'gender' => $this->newGender,
-    ]);
+        // 3. Creación en la DB (Usando los nombres de columna de tu CREATE TABLE)
+        $patient = Auth::user()->patients()->create([
+            'full_name'       => $this->new_full_name,
+            'rut'             => $cleanRut,
+            'relationship'    => $this->new_relationship,
+            'birth_date'      => $this->new_birth_date, // Se guarda como texto según tu tabla
+            'gender_biologic' => $this->new_gender_biologic,
+            'is_primary'      => 0,
+            'prevision'       => 'Particular', // Valor por defecto para evitar error de null si no tiene default
+        ]);
 
-    // Resetear el formulario y seleccionar al nuevo paciente
-    $this->reset(['newName', 'newRut', 'newRelationship', 'newBirthDate', 'newGender', 'showNewPatientForm']);
-    $this->selectPatient($patient->id);
+        // 4. Limpiar formulario y refrescar lista
+        $this->reset([
+            'new_full_name',
+            'new_rut',
+            'new_relationship',
+            'new_birth_date',
+            'new_gender_biologic',
+            'showAddFamily'
+        ]);
 
-    // Refrescar la lista de pacientes
-    $this->patients = Auth::user()->patients()->get();
-}
+        $this->loadPatients();
+
+        // 5. Seleccionar automáticamente al nuevo familiar
+        $this->selected_patient_id = $patient->id;
+    }
 
     public function render()
     {
-        // Evitamos buscar si no hay ID seleccionado
-        $selectedPatient = $this->selectedPatientId
-            ? Patient::find($this->selectedPatientId)
-            : null;
-
-        return view('livewire.order-checkout', [
-            'selectedPatient' => $selectedPatient
-        ]);
+        return view('livewire.order-checkout');
     }
 }
