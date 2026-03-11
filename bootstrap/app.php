@@ -14,19 +14,23 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
-        // 1. REDIRECCIÓN INTELIGENTE (Paso 1 de tu esquema: ¿Está logueado?)
+        // 0. CONFIANZA EN PROXIES (Solución al "Doble Clic" / Login persistente)
+        // Esto permite que Laravel detecte correctamente el HTTPS del servidor y asiente la cookie a la primera.
+        $middleware->trustProxies(at: '*');
+
+        // 1. REDIRECCIÓN INTELIGENTE
         $middleware->redirectGuestsTo(function (Request $request) {
             // Si es una ruta de administración o staff, login por formulario
             if ($request->is('gestion/*') || $request->is('admin/*') || $request->is('acceso')) {
                 return route('login');
             }
 
-            // Para pacientes (Ruta A, B, C...), saltamos directo al login de Google
+            // Para pacientes, saltamos directo al login de Google
             // Laravel guardará la URL de destino en session('url.intended') automáticamente
             return route('auth.google');
         });
 
-        // 2. EXCEPCIONES CSRF (Para que Flow pueda avisarnos de los pagos)
+        // 2. EXCEPCIONES CSRF (Para Google Callback y Webhooks de Flow)
         $middleware->validateCsrfTokens(except: [
             'auth/google/callback',
             'payment/flow/*',
@@ -39,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
 
-            // PASO 2 de tu esquema: ¿Tiene registro local en User? (Patient Profile)
+            // Perfil de Paciente Completo
             'check.profile' => \App\Http\Middleware\EnsurePatientProfileIsComplete::class,
         ]);
     })
