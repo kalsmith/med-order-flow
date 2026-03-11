@@ -50,25 +50,20 @@ class OrderCheckout extends Component
         if ($this->showAddFamily) $this->selected_patient_id = null;
     }
 
-    public function saveFamily()
-    {
-        // Validación estricta
-        $this->validate([
-            'new_full_name'       => 'required|string|min:8', // Nombre y Apellido
-            'new_rut'             => 'required|string|min:7|unique:patients,rut',
-            'new_relationship'    => 'required|in:hijo,conyuge,padre,otro',
-            'new_birth_date'      => 'required|date|before:today',
-            'new_gender_biologic' => 'required|in:M,F',
-        ], [
-            'new_full_name.required' => 'El nombre es obligatorio.',
-            'new_birth_date.before'  => 'La fecha de nacimiento no es válida.',
-        ]);
+public function saveFamily()
+{
+    $this->validate([
+        'new_full_name'       => 'required|string|min:8',
+        'new_rut'             => 'required|string|min:7', // QUITAMOS el unique
+        'new_relationship'    => 'required|in:hijo,conyuge,padre,otro',
+        'new_birth_date'      => 'required|date|before:today',
+        'new_gender_biologic' => 'required|in:M,F',
+    ]);
 
-        $cleanRut = preg_replace('/[^kK0-9]/', '', $this->new_rut);
-
+    try {
         $patient = Auth::user()->patients()->create([
             'full_name'       => $this->new_full_name,
-            'rut'             => $cleanRut,
+            'rut'             => $this->new_rut, // Se limpia en el Modelo
             'relationship'    => $this->new_relationship,
             'birth_date'      => $this->new_birth_date,
             'gender_biologic' => $this->new_gender_biologic,
@@ -79,7 +74,13 @@ class OrderCheckout extends Component
         $this->reset(['new_full_name', 'new_rut', 'new_relationship', 'new_birth_date', 'new_gender_biologic', 'showAddFamily']);
         $this->loadPatients();
         $this->selected_patient_id = $patient->id;
+
+    } catch (\Exception $e) {
+        \Log::error("Error al guardar familiar: " . $e->getMessage());
+        // Esto te permitirá ver el error en la pantalla si algo falla
+        $this->addError('new_rut', 'Error técnico: ' . $e->getMessage());
     }
+}
 
     public function render()
     {
