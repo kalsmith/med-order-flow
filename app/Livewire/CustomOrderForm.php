@@ -70,9 +70,9 @@ class CustomOrderForm extends Component
         }
     }
 
+
     public function saveFamily()
     {
-        // 1. Validación estricta
         $this->validate([
             'new_full_name'       => 'required|string|min:3',
             'new_rut'             => 'required|string|min:7',
@@ -81,36 +81,30 @@ class CustomOrderForm extends Component
             'new_gender_biologic' => 'required|in:M,F',
         ]);
 
-        // 2. Limpieza de RUT
         $cleanRut = preg_replace('/[^kK0-9]/', '', $this->new_rut);
 
-        // 3. Creación asegurando que NO sea 'self'
+        // Creamos usando los nombres exactos del $fillable
         $patient = Auth::user()->patients()->create([
             'full_name'       => $this->new_full_name,
             'rut'             => $cleanRut,
-            'relationship'    => $this->new_relationship, // hijo, conyuge, etc.
+            'relationship'    => $this->new_relationship, // Ahora sí lo aceptará el modelo
             'birth_date'      => $this->new_birth_date,
             'gender_biologic' => $this->new_gender_biologic,
-            'is_primary'      => 0, // Importante: Familiar nunca es principal
+            'is_primary'      => 0,
             'prevision'       => 'Particular',
         ]);
 
-        // 4. Reset de campos
         $this->reset([
-            'new_full_name',
-            'new_rut',
-            'new_relationship',
-            'new_birth_date',
-            'new_gender_biologic',
-            'showAddFamily'
+            'new_full_name', 'new_rut', 'new_relationship',
+            'new_birth_date', 'new_gender_biologic', 'showAddFamily'
         ]);
 
-        // 5. Refrescar lista y seleccionar al nuevo
         $this->loadPatients();
         $this->selected_patient_id = $patient->id;
 
         session()->flash('success', 'Familiar registrado correctamente.');
     }
+
 
     public function submit()
     {

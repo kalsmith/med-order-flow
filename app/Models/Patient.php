@@ -14,12 +14,14 @@ class Patient extends Model
 
     protected $fillable = [
         'user_id',
-        'full_name',      // Nuevo: Cifrado
-        'rut',            // Cifrado
-        'birth_date',     // Cifrado (se maneja como Carbon)
-        'gender_biologic', // Nuevo: Cifrado (M/F)
-        'phone',          // Cifrado
-        'prevision'       // Cifrado
+        'full_name',
+        'rut',
+        'birth_date',
+        'gender_biologic', // Asegúrate que se llame así en tu BD
+        'relationship',    // ¡ESTE FALTABA!
+        'is_primary',      // ¡ESTE TAMBIÉN!
+        'phone',
+        'prevision'
     ];
 
     /**
