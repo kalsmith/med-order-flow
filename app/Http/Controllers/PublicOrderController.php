@@ -27,7 +27,9 @@ class PublicOrderController extends Controller
      */
     public function customOrder()
     {
-        return view('orders.custom');
+        $patients = Auth::user()->patients;
+
+        return view('orders.custom', compact('patients'));
     }
 
     /**
