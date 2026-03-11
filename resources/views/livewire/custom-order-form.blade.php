@@ -1,44 +1,53 @@
 <div>
     {{-- Selector de Pacientes --}}
+
+
     <div class="form-section">
-        <label class="form-label fw-bold small text-muted text-uppercase mb-3">
-            <i class="bi bi-people-fill me-1"></i> ¿Para quién es el examen?
-        </label>
+    <label class="form-label fw-bold small text-muted text-uppercase mb-3">
+        <i class="bi bi-people-fill me-1"></i> ¿Para quién es el examen?
+    </label>
 
-        <div class="row g-3 mb-3">
-            @foreach($patients as $p)
-                <div class="col-6 col-sm-4">
-                    <div wire:click="selectPatient({{ $p->id }})"
-                         class="card h-100 border-2 transition-all shadow-sm patient-card {{ $selected_patient_id == $p->id ? 'border-primary bg-primary-subtle' : 'border-light bg-white' }}"
-                         style="cursor: pointer;">
-                        <div class="card-body p-3 text-center">
-                            <div class="mb-2">
-                                <i class="bi bi-person-circle fs-2 {{ $selected_patient_id == $p->id ? 'text-primary' : 'text-muted' }}"></i>
-                            </div>
-                            <p class="mb-1 fw-bold small text-truncate text-dark">{{ $p->full_name }}</p>
-                            <span class="badge rounded-pill {{ $selected_patient_id == $p->id ? 'bg-primary' : 'bg-light text-muted border' }}" style="font-size: 0.65rem;">
-                                {{ $p->relationship == 'self' ? 'Tú' : ucfirst(__($p->relationship)) }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-
-            {{-- Botón Agregar Familiar (Toggle) --}}
-            <div class="col-6 col-sm-4">
-                <div wire:click="toggleAddFamily"
-                     class="card h-100 border-2 border-dashed transition-all patient-card {{ $showAddFamily ? 'border-primary bg-primary-subtle' : 'border-muted bg-white' }}"
+    <div class="row g-3 mb-3">
+        @foreach($patients as $patient)
+            <div class="col-6 col-sm-4" wire:key="patient-{{ $patient->id }}">
+                <div wire:click="selectPatient({{ $patient->id }})"
+                     class="card h-100 border-2 transition-all shadow-sm patient-card {{ $selected_patient_id == $patient->id ? 'border-primary bg-primary-subtle' : 'border-light bg-white' }}"
                      style="cursor: pointer;">
-                    <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
-                        <i class="bi bi-person-plus fs-2 {{ $showAddFamily ? 'text-primary' : 'text-muted' }} mb-1"></i>
-                        <p class="mb-0 fw-bold small {{ $showAddFamily ? 'text-primary' : 'text-muted' }}">Otro familiar</p>
+
+                    <div class="card-body p-3 text-center">
+                        <div class="mb-2">
+                            <i class="bi bi-person-circle fs-2 {{ $selected_patient_id == $patient->id ? 'text-primary' : 'text-muted' }}"></i>
+                        </div>
+                        <p class="mb-1 fw-bold small text-truncate {{ $selected_patient_id == $patient->id ? 'text-primary' : 'text-dark' }}">
+                            {{ $patient->full_name }}
+                        </p>
+
+                        @if($patient->relationship == 'self')
+                            <span class="badge rounded-pill {{ $selected_patient_id == $patient->id ? 'bg-primary' : 'bg-light text-muted border' }}" style="font-size: 0.65rem;">
+                                Tú
+                            </span>
+                        @else
+                            <span class="badge rounded-pill {{ $selected_patient_id == $patient->id ? 'bg-primary' : 'bg-light text-muted border' }}" style="font-size: 0.65rem;">
+                                {{ ucfirst($patient->relationship) }}
+                            </span>
+                        @endif
                     </div>
                 </div>
             </div>
-        </div>
+        @endforeach
 
-        @error('selected_patient_id') <span class="text-danger small d-block mb-3">Por favor selecciona un paciente</span> @enderror
+        <div class="col-6 col-sm-4">
+            <div wire:click="toggleAddFamily"
+                 class="card h-100 border-2 border-dashed transition-all patient-card {{ $showAddFamily ? 'border-primary bg-light' : 'border-muted bg-white' }}"
+                 style="cursor: pointer;">
+                <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
+                    <i class="bi bi-person-plus fs-2 {{ $showAddFamily ? 'text-primary' : 'text-muted' }} mb-1"></i>
+                    <p class="mb-0 fw-bold small {{ $showAddFamily ? 'text-primary' : 'text-muted' }}">Otro familiar</p>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
 
 {{-- Formulario Expandible de Nuevo Familiar --}}
