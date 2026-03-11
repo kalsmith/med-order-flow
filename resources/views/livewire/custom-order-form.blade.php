@@ -40,47 +40,61 @@
         @error('selected_patient_id') <span class="text-danger small d-block mb-3">Por favor selecciona un paciente</span> @enderror
     </div>
 
-    {{-- Formulario Expandible de Nuevo Familiar --}}
+
+{{-- Formulario Expandible de Nuevo Familiar --}}
     @if($showAddFamily)
         <div class="card border-0 bg-light rounded-4 mb-4 shadow-sm border-start border-primary border-4 animate__animated animate__fadeIn">
             <div class="card-body p-4">
                 <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Registrar Nuevo Familiar</h6>
                 <div class="row g-3">
+                    {{-- Nombre Completo --}}
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Nombre Completo</label>
                         <input type="text" wire:model="new_full_name" class="form-control border-0 shadow-sm" placeholder="Ej: Juan Pérez">
                         @error('new_full_name') <span class="text-danger tiny">{{ $message }}</span> @enderror
                     </div>
 
+                    {{-- RUT con Formateador AlpineJS --}}
+                    <div class="col-md-6" x-data="{
+                        formatRut(value) {
+                            if (!value) return '';
+                            let rut = value.replace(/[^\dkK]/g, '').toUpperCase();
+                            if (rut.length <= 1) return rut;
+                            let cuerpo = rut.slice(0, -1);
+                            let dv = rut.slice(-1);
+                            cuerpo = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                            return cuerpo + '-' + dv;
+                        }
+                    }">
+                        <label class="small fw-bold text-muted">RUT</label>
+                        <input type="text"
+                               wire:model="new_rut"
+                               class="form-control border-0 shadow-sm"
+                               placeholder="12.345.678-9"
+                               x-on:input="$el.value = formatRut($el.value)"
+                               maxlength="12">
+                        @error('new_rut') <span class="text-danger tiny">{{ $message }}</span> @enderror
+                    </div>
 
-<div class="col-md-6" x-data="{
-    formatRut(value) {
-        if (!value) return '';
-        // Limpiar puntos y guion, dejar solo números y K
-        let rut = value.replace(/[^\dkK]/g, '').toUpperCase();
-        if (rut.length <= 1) return rut;
+                    {{-- Fecha de Nacimiento (NUEVO) --}}
+                    <div class="col-md-4">
+                        <label class="small fw-bold text-muted">Fecha de Nacimiento</label>
+                        <input type="date" wire:model="new_birth_date" class="form-control border-0 shadow-sm">
+                        @error('new_birth_date') <span class="text-danger tiny">{{ $message }}</span> @enderror
+                    </div>
 
-        let cuerpo = rut.slice(0, -1);
-        let dv = rut.slice(-1);
+                    {{-- Sexo Biológico (NUEVO) --}}
+                    <div class="col-md-4">
+                        <label class="small fw-bold text-muted">Sexo Biológico</label>
+                        <select wire:model="new_gender_biologic" class="form-select border-0 shadow-sm">
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                        @error('new_gender_biologic') <span class="text-danger tiny">{{ $message }}</span> @enderror
+                    </div>
 
-        // Formatear cuerpo con puntos
-        cuerpo = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        return cuerpo + '-' + dv;
-    }
-}">
-    <label class="small fw-bold text-muted">RUT</label>
-<input type="text"
-       wire:model="new_rut"
-       class="form-control border-0 shadow-sm"
-       placeholder="12.345.678-9"
-       x-on:input="$el.value = formatRut($el.value)"
-       maxlength="12">
-    @error('new_rut') <span class="text-danger tiny">{{ $message }}</span> @enderror
-</div>
-
-
-
-                    <div class="col-md-6">
+                    {{-- Parentesco --}}
+                    <div class="col-md-4">
                         <label class="small fw-bold text-muted">Parentesco</label>
                         <select wire:model="new_relationship" class="form-select border-0 shadow-sm">
                             <option value="">Selecciona...</option>
@@ -91,7 +105,9 @@
                         </select>
                         @error('new_relationship') <span class="text-danger tiny">{{ $message }}</span> @enderror
                     </div>
-                    <div class="col-md-6 d-flex align-items-end">
+
+                    {{-- Botón de Acción --}}
+                    <div class="col-12 mt-4">
                         <button type="button" wire:click="saveFamily" class="btn btn-primary w-100 fw-bold py-2 rounded-3">
                             <i class="bi bi-check-lg me-1"></i> Guardar y Seleccionar
                         </button>
@@ -100,6 +116,8 @@
             </div>
         </div>
     @endif
+
+
 
     {{-- Cuerpo Principal de la Orden --}}
     <form wire:submit.prevent="submit">
