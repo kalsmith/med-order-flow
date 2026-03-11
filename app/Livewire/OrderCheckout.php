@@ -59,7 +59,7 @@ public function saveFamily()
         'new_rut'             => 'required|string|min:7',
         'new_relationship'    => 'required|in:hijo,conyuge,padre,otro',
         'new_birth_date'      => 'required|date|before:today',
-        'new_gender_biologic' => 'required|in:M,F',
+        'new_gender_biologic' => 'required|in:Masculino,Femenino',
     ]);
 
     // 2. Validación de Dígito Verificador (Helper)
