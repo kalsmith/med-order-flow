@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        $middleware->redirectGuestsTo(fn () => route('auth.google.login')); // <-- ASEGÚRATE QUE ESTE NOMBRE SEA EL MISMO
         // Excluimos todo el prefijo de pagos para asegurar que Flow
         // pueda enviar sus Webhooks sin recibir un error de token CSRF
         $middleware->validateCsrfTokens(except: [
