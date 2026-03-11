@@ -1,10 +1,10 @@
 <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
     <div class="sidebar-sticky">
         <ul class="nav flex-column">
-            {{-- Dashboard General --}}
+            {{-- Panel Principal --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                <a class="nav-link {{ request()->routeIs('admin.panel') ? 'active' : '' }}" href="{{ route('admin.panel') }}">
+                    <i class="bi bi-grid-1x2-fill"></i> Panel Principal
                 </a>
             </li>
 
@@ -18,7 +18,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.doctors.*') ? 'active' : '' }}" href="{{ route('admin.doctors.index') }}">
-                    <i class="bi bi-person-badge-fill"></i> Doctores
+                    <i class="bi bi-person-badge-fill"></i> Médicos
                 </a>
             </li>
             <li class="nav-item">
@@ -58,14 +58,14 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.accounting.*') ? 'active' : '' }}" href="{{ route('admin.accounting.index') }}">
+                <a class="nav-link {{ request()->routeIs('admin.accounting.index') ? 'active' : '' }}" href="{{ route('admin.accounting.index') }}">
                     <i class="bi bi-wallet2"></i> Contabilidad
                 </a>
             </li>
             @endrole
         </ul>
 
-        {{-- Logout móvil o acceso rápido --}}
+        {{-- Logout móvil --}}
         <div class="d-md-none p-3 border-top mt-auto">
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

@@ -2,75 +2,65 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
 
-// Modelos
-use App\Models\Specialty;
-use App\Models\ExamType;
-
-// Controladores
+// Controladores Staff
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\SpecialtyController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ExamTypeController;
 use App\Http\Controllers\MedicalOrderController;
-use App\Http\Controllers\PublicOrderController;
+
+// Controladores Otros
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\PublicOrderController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FlowController;
 
 /*
 |--------------------------------------------------------------------------
-| 1. RUTAS PÚBLICAS & ACCESO
+| 1. ACCESO Y AUTENTICACIÓN (STAFF)
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
-    $packs = ExamType::has('children')->where('is_active', true)->get();
-    $individuales = ExamType::doesntHave('children')->where('is_active', true)->take(6)->get();
-    return view('welcome', compact('packs', 'individuales'));
-})->name('home');
 
-// Acceso Staff (Email/Password)
+// La raíz ahora te lleva al login de staff mientras desarrollas
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+// Login renombrado a "Acceso"
 Route::get('/acceso', function() {
     return view('auth.login');
 })->name('login');
-
-// Acceso Pacientes (Google)
-Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
-Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
 Route::post('/logout', function() {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
-    return redirect('/');
+    return redirect('/acceso');
 })->name('logout');
 
 /*
 |--------------------------------------------------------------------------
-| 2. DISTRIBUIDOR DE TRÁFICO (Redirección Post-Login)
+| 2. DISTRIBUIDOR DE TRÁFICO
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
     $user = Auth::user();
 
-    // Si es Staff, al panel de gestión
+    // Prioridad Staff
     if ($user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
         return redirect()->route('admin.panel');
     }
 
-    // Si es paciente sin perfil completo
-    if (!$user->patients()->where('relationship', 'self')->exists()) {
-        return redirect()->route('profile.complete');
-    }
-
-    return redirect()->route('patient.orders');
+    // Si por error entra un paciente, lo mandamos al login por ahora
+    return redirect()->route('login');
 })->name('user.dispatch');
 
 /*
 |--------------------------------------------------------------------------
-| 3. PANEL DE GESTIÓN CLÍNICA & ADMIN (STAFF)
+| 3. PANEL DE GESTIÓN (MUNDO ADMINISTRATIVO)
 |--------------------------------------------------------------------------
+| Reemplazamos 'dashboard' por 'panel' y prefijo 'gestion'
 */
 Route::middleware([
     'auth:sanctum',
@@ -79,18 +69,18 @@ Route::middleware([
     'role:admin|doctor|director_tecnico|contable'
 ])->prefix('gestion')->name('admin.')->group(function () {
 
-    // Dashboard Principal (Panel de Control)
-    Route::get('/', [DashboardController::class, 'index'])->name('panel');
+    // Panel Principal (Sustituye al Dashboard)
+    Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
-    // Módulo exclusivo para Doctores
+    // Gestión para Doctores (Panel Clínico)
     Route::middleware(['role:doctor'])->group(function () {
-        Route::get('/panel-clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
+        Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
         Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
         Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
         Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectCustomOrder'])->name('orders.reject');
     });
 
-    // Módulo de Configuración y Mantenedores (Admin / DT)
+    // Mantenedores de Configuración (Admin / Director Técnico)
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
@@ -98,7 +88,7 @@ Route::middleware([
         Route::resource('ordenes', MedicalOrderController::class)->names('orders')->except(['create', 'store']);
     });
 
-    // Módulo Contable
+    // Área Contable
     Route::middleware(['role:contable|admin'])->group(function () {
         Route::get('/reportes', [DashboardController::class, 'reports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
@@ -107,59 +97,37 @@ Route::middleware([
 
 /*
 |--------------------------------------------------------------------------
-| 4. PORTAL DE PACIENTES
-|--------------------------------------------------------------------------
-*/
-Route::middleware([
-    'auth:sanctum',
-    config('jetstream.auth_session'),
-    'verified'
-])->group(function () {
-
-    // Flujo de configuración de orden (Accesible sin perfil completo)
-    Route::get('/orden-personalizada', [PublicOrderController::class, 'customOrder'])->name('orders.custom');
-    Route::get('/confirmar-orden-especial', [PublicOrderController::class, 'confirmCustomOrder'])->name('orders.custom.confirm');
-    Route::get('/confirmar-pedido/{exam_type}', [PublicOrderController::class, 'confirmOrder'])->name('orders.confirm');
-
-    // Gestión de Perfil
-    Route::get('/completar-perfil', [PublicOrderController::class, 'completeProfileForm'])->name('profile.complete');
-    Route::post('/completar-perfil', [PublicOrderController::class, 'storeProfile'])->name('profile.store');
-
-    // Acciones que REQUIEREN Perfil Validado (check.profile)
-    Route::middleware(['check.profile'])->group(function () {
-        Route::get('/mis-ordenes', [PublicOrderController::class, 'index'])->name('patient.orders');
-        Route::post('/enviar-pedido', [PublicOrderController::class, 'store'])->name('orders.store.public');
-        Route::get('/descargar/{order}', [PublicOrderController::class, 'download'])->name('orders.download');
-
-        // Checkout
-        Route::get('/checkout/{order}', [CheckoutController::class, 'index'])->name('checkout.index');
-        Route::post('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.process');
-        Route::post('/mis-ordenes/{order}/reintentar-pago', [PublicOrderController::class, 'retryPayment'])->name('orders.retryPayment');
-    });
-});
-
-/*
-|--------------------------------------------------------------------------
-| 5. PASARELAS DE PAGO (Flow) & ÉXITO
+| 4. PASARELAS DE PAGO (FLOW WEBHOOKS)
 |--------------------------------------------------------------------------
 */
 Route::prefix('payment/flow')->group(function () {
     Route::match(['get', 'post'], '/return', [FlowController::class, 'returnUrl'])->name('flow.return');
     Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
     Route::post('/refund-confirmation', [FlowController::class, 'refundConfirmation'])->name('flow.refund.webhook');
-    Route::get('/cancel', [FlowController::class, 'cancel'])->name('flow.cancel');
-    Route::get('/fail', [FlowController::class, 'fail'])->name('flow.fail');
 });
-
-Route::get('/pago-exitoso/{order?}', [PublicOrderController::class, 'showSuccess'])->name('payment.success');
 
 /*
 |--------------------------------------------------------------------------
-| 6. APIs INTERNAS
+| BLOQUE COMENTADO: PACIENTES & GOOGLE (DEPRECADO TEMPORALMENTE)
+|--------------------------------------------------------------------------
+/*
+Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
+
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/orden-personalizada', [PublicOrderController::class, 'customOrder'])->name('orders.custom');
+    Route::get('/completar-perfil', [PublicOrderController::class, 'completeProfileForm'])->name('profile.complete');
+    // ... resto de rutas de pacientes ...
+});
+*/
+
+/*
+|--------------------------------------------------------------------------
+| 5. APIs INTERNAS
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'verified'])->prefix('api')->name('api.')->group(function () {
-    Route::get('/specialties/{specialty}/exam-types', function (Specialty $specialty) {
+    Route::get('/specialties/{specialty}/exam-types', function (App\Models\Specialty $specialty) {
         return $specialty->examTypes()->where('is_active', true)->get(['id', 'name', 'base_price']);
     })->name('exams.by.specialty');
 });

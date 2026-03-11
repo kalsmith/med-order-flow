@@ -94,7 +94,7 @@
 <body>
 
     <header class="navbar navbar-light sticky-top flex-md-nowrap p-0 shadow-sm">
-        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4 fs-5" href="{{ route('admin.dashboard') }}">
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4 fs-5" href="{{ route('admin.panel') }}">
             <i class="bi bi-droplet-fill text-primary"></i> MedOrder Flow
         </a>
         <button class="navbar-toggler position-absolute d-md-none collapsed border-0" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
