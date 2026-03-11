@@ -41,10 +41,24 @@
                         <input type="text" wire:model="new_full_name" class="form-control @error('new_full_name') is-invalid @enderror">
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="small fw-bold text-muted">RUT</label>
-                        <input type="text" wire:model.live="new_rut" class="form-control @error('new_rut') is-invalid @enderror" placeholder="12.345.678-k">
-                    </div>
+{{-- RUT con Alpine.js para formateo en tiempo real --}}
+<div class="col-md-6">
+    <label class="small fw-bold text-muted">RUT</label>
+    <input type="text"
+           wire:model.live="new_rut"
+           class="form-control @error('new_rut') is-invalid @enderror"
+           placeholder="12.345.678-k"
+           x-data
+           x-on:input="$el.value = (function(v){
+               v = v.replace(/[^\dkK]/g,'');
+               if(v.length <= 1) return v.toUpperCase();
+               let dv = v.slice(-1).toUpperCase();
+               let body = v.slice(0, -1);
+               return body.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
+           })($el.value)"
+    >
+    @error('new_rut') <span class="invalid-feedback">{{ $message }}</span> @enderror
+</div>
 
                     <div class="col-md-6">
                         <label class="small fw-bold text-muted">Parentesco</label>
