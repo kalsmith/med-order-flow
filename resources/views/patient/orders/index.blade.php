@@ -28,7 +28,7 @@
                 <i class="bi bi-droplet-fill me-2"></i>
                 <span style="letter-spacing: -1px;">MedOrder<span class="text-dark">Flow</span></span>
             </a>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex align-items-center">
                 <span class="text-muted small d-none d-md-inline me-3">Hola, {{ auth()->user()->name }}</span>
                 <form action="{{ route('logout') }}" method="POST" class="d-inline">
                     @csrf
@@ -45,7 +45,7 @@
                 <p class="text-muted">Gestiona tus solicitudes y descarga tus órdenes firmadas.</p>
             </div>
             <div class="col-md-6 text-md-end">
-                <a href="{{ route('order.flow', ['type' => 'standard']) }}" class="btn btn-primary btn-action shadow-sm px-4">
+                <a href="{{ route('home') }}" class="btn btn-primary btn-action shadow-sm px-4">
                     <i class="bi bi-plus-lg me-2"></i> Nueva Solicitud
                 </a>
             </div>
@@ -66,11 +66,26 @@
                             <div class="row align-items-center">
                                 <div class="col-md-5 mb-3 mb-md-0">
                                     <div class="d-flex align-items-center mb-2">
-                                        <span class="badge bg-light text-primary border me-2">#{{ $order->id }}</span>
+                                        <span class="badge bg-light text-primary border me-2" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
                                         <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
                                     </div>
-                                    <h5 class="fw-bold mb-1 text-dark">{{ $order->examType->name ?? 'Examen General' }}</h5>
-                                    <p class="text-muted small mb-0"><i class="bi bi-hospital me-1"></i> {{ $order->specialty->name ?? 'Especialidad' }}</p>
+
+                                    <h5 class="fw-bold mb-1 text-dark">
+                                        @if($order->type === 'custom')
+                                            Solicitud Especial
+                                        @else
+                                            {{ $order->examType->name ?? 'Examen General' }}
+                                        @endif
+                                    </h5>
+
+                                    <p class="text-muted small mb-0">
+                                        <i class="bi bi-hospital me-1"></i>
+                                        @if($order->type === 'custom')
+                                            Revisión por Especialista
+                                        @else
+                                            {{ $order->examType->specialty->name ?? 'Especialidad Médica' }}
+                                        @endif
+                                    </p>
                                 </div>
 
                                 <div class="col-md-3 text-md-center mb-3 mb-md-0">
@@ -85,11 +100,11 @@
                                             @case('signed')
                                                 <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
                                                 @break
-                                            @case('rejected')
-                                                <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Rechazada</span>
+                                            @case('cancelled')
+                                                <span class="badge badge-status bg-secondary-subtle text-secondary border border-secondary-subtle">Anulada</span>
                                                 @break
                                             @default
-                                                <span class="badge badge-status bg-secondary-subtle text-secondary">{{ $order->status }}</span>
+                                                <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">{{ ucfirst($order->status) }}</span>
                                         @endswitch
                                     </div>
                                     <div class="fw-bold text-dark fs-5">$ {{ number_format($order->amount, 0, ',', '.') }}</div>
@@ -98,18 +113,19 @@
                                 <div class="col-md-4 text-md-end">
                                     <div class="d-flex gap-2 justify-content-md-end">
                                         @if($order->status === 'pending')
-                                            <a href="{{ route('checkout.index', $order) }}" class="btn btn-primary btn-action flex-grow-1">
+                                            <a href="{{ route('checkout.index', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
                                                 <i class="bi bi-credit-card me-2"></i> Pagar
                                             </a>
                                         @elseif($order->status === 'signed')
-                                            <a href="{{ route('orders.download', $order) }}" class="btn btn-success btn-action flex-grow-1">
+                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm">
                                                 <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar
                                             </a>
                                         @endif
 
                                         @if($order->status === 'rejected' && $order->rejection_reason)
-                                            <button class="btn btn-outline-danger btn-action" title="Ver motivo de rechazo"
-                                                onclick="alert('Motivo de rechazo: {{ $order->rejection_reason }}')">
+                                            <button class="btn btn-outline-danger btn-action"
+                                                onclick="alert('Motivo de rechazo: {{ $order->rejection_reason }}')"
+                                                title="Ver motivo">
                                                 <i class="bi bi-info-circle"></i>
                                             </button>
                                         @endif
@@ -122,7 +138,7 @@
                 @endforeach
             </div>
 
-            <div class="mt-4 d-flex justify-content-center">
+            <div class="mt-5 d-flex justify-content-center">
                 {{ $orders->links() }}
             </div>
         @endif

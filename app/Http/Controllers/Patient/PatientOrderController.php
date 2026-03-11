@@ -91,16 +91,15 @@ class PatientOrderController extends Controller
      */
 public function index()
 {
-    // Obtenemos al paciente asociado al usuario actual
     $patient = auth()->user()->patients()->where('relationship', 'self')->first();
 
     if (!$patient) {
         return redirect()->route('home')->with('error', 'Perfil de paciente no encontrado.');
     }
 
-    // Traemos las órdenes con sus tipos de examen para mostrar los nombres
+    // Corregido: Cargamos examType y su relación specialty anidada
     $orders = MedicalOrder::where('patient_id', $patient->id)
-        ->with(['examType', 'specialty'])
+        ->with(['examType.specialty'])
         ->orderBy('created_at', 'desc')
         ->paginate(10);
 
