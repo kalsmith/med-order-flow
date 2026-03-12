@@ -151,18 +151,27 @@ class MedicalOrderController extends Controller
     /**
      * Permite al médico liberar la orden manualmente si decide no firmarla (sin rechazarla).
      */
-    public function releaseOrder(MedicalOrder $order)
-    {
-        // Solo liberamos si el doctor es el mismo que la tiene tomada
-        if ($order->doctor_id === auth()->user()->doctor->id) {
-            $order->update([
-                'doctor_id' => null,
-                'claimed_at' => null
-            ]);
-        }
+public function releaseOrder(MedicalOrder $order)
+{
+    $myDoctorId = auth()->user()->doctor->id ?? null;
 
-        return redirect()->route('admin.doctor.panel')->with('success', 'Orden liberada.');
+    // Verificamos que el doctor actual sea quien tiene la orden
+    if ($order->doctor_id == $myDoctorId) {
+
+        // Usamos save() asignando directamente para saltar posibles temas de fillable
+        $order->doctor_id = null;
+        $order->claimed_at = null;
+
+        // Importante: Si usas observadores o eventos, esto asegura que se guarde
+        $order->save();
+
+        return redirect()->route('admin.doctor.panel')
+            ->with('success', 'La orden ha sido liberada correctamente.');
     }
+
+    return redirect()->route('admin.doctor.panel')
+        ->with('error', 'No tienes permiso para liberar esta orden.');
+}
 
     // ... create y store se mantienen igual ...
 
