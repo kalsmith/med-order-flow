@@ -19,7 +19,13 @@
         .btn-action { border-radius: 12px; font-weight: 600; }
         .empty-state { padding: 4rem 2rem; text-align: center; }
         .patient-tag { font-size: 0.75rem; background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
-        /* Estilo para SweetAlert personalizado */
+
+        /* Estilos para estados informativos */
+        .info-box { border-radius: 15px; border-left-width: 5px !important; }
+        .bg-waiting { background-color: #e7f1ff; border-color: #0d6efd; }
+        .spinner-review { width: 1.2rem; height: 1.2rem; border-width: 0.2em; }
+
+        /* SweetAlert personalizado */
         .swal2-popup-custom { border-radius: 20px !important; }
     </style>
 </head>
@@ -78,16 +84,32 @@
                                         {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
                                     </h5>
 
+                                    {{-- CASO: EN REVISIÓN (PAID) --}}
+                                    @if($order->status === 'paid')
+                                        <div class="mt-3 p-3 info-box bg-waiting border-start border-primary shadow-sm">
+                                            <div class="d-flex align-items-center">
+                                                <div class="spinner-border spinner-review text-primary me-3" role="status"></div>
+                                                <div>
+                                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Médico revisando su solicitud</strong>
+                                                    <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
+                                                        Plazo aproximado: <strong>24 horas</strong> (casi siempre antes).
+                                                        Te enviaremos un email cuando esté lista.
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- CASO: REEMBOLSO PENDIENTE --}}
                                     @if($order->status === 'refund_pending')
-                                        <div class="mt-3 p-3 bg-info-subtle border-start border-4 border-info rounded-end">
+                                        <div class="mt-3 p-3 info-box bg-info-subtle border-start border-info shadow-sm">
                                             <div class="d-flex">
                                                 <i class="bi bi-info-circle-fill text-info me-2 fs-5"></i>
                                                 <div>
                                                     <strong class="d-block text-dark" style="font-size: 0.85rem;">Proceso de devolución iniciado</strong>
                                                     <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
-                                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong>.
-                                                        Debe completar sus datos en el enlace de Flow.
-                                                        <span class="text-dark fw-bold small d-block mt-1">Depende de la pasarela de pagos.</span>
+                                                        Revisa tu correo: <strong>"Solicitud de reembolso"</strong>.
+                                                        Debes completar tus datos en el enlace de Flow.
                                                     </span>
                                                 </div>
                                             </div>
@@ -124,21 +146,20 @@
                                     <div class="d-flex gap-2 justify-content-md-end">
                                         @if($order->status === 'pending')
                                             <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
-                                                <i class="bi bi-credit-card me-2"></i> Pagar
+                                                <i class="bi bi-credit-card me-2"></i> Pagar ahora
                                             </a>
                                         @elseif($order->status === 'signed')
-                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm">
-                                                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar
+                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm text-white">
+                                                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar PDF
                                             </a>
                                         @endif
 
-                                        {{-- Usamos data-attributes para evitar conflictos de JS --}}
                                         @if($order->rejection_reason)
                                             <button type="button"
                                                     class="btn btn-outline-secondary btn-action px-3 btn-show-reason"
                                                     data-reason="{{ $order->rejection_reason }}"
                                                     data-id="{{ substr($order->id, 0, 8) }}">
-                                                <i class="bi bi-chat-left-text me-1"></i> Motivo
+                                                <i class="bi bi-chat-left-text me-1"></i> Ver Motivo
                                             </button>
                                         @endif
                                     </div>
@@ -161,7 +182,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Manejador único para todos los botones de motivo
             const reasonButtons = document.querySelectorAll('.btn-show-reason');
 
             reasonButtons.forEach(button => {
@@ -170,7 +190,7 @@
                     const orderId = this.getAttribute('data-id');
 
                     Swal.fire({
-                        title: 'Información de la Orden #' + orderId,
+                        title: 'Nota del Médico - Orden #' + orderId,
                         text: reason,
                         icon: 'info',
                         confirmButtonColor: '#0d6efd',
