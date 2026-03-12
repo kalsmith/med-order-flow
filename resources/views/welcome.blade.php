@@ -12,76 +12,82 @@
     <style>
         :root { --primary-color: #0d6efd; --soft-bg: #f8faff; }
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; background-color: #ffffff; color: #212529; }
-        .navbar { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        .sticky-nav { position: sticky; top: 0; z-index: 1020; }
+        .navbar { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 
-        /* Hero Section */
-        .hero-section { padding: 80px 0 60px; background: radial-gradient(circle at 80% 20%, #e7f1ff 0%, #ffffff 50%); }
+        /* Hero mejorado */
+        .hero-section { padding: 100px 0 80px; background: radial-gradient(circle at 100% 0%, #eef5ff 0%, #ffffff 40%); }
+        .hero-title { font-weight: 800; letter-spacing: -2px; line-height: 1.1; }
 
-        /* Cards */
-        .card-examen { transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); border: 1px solid #edf2f7; border-radius: 24px; background: #fff; position: relative; }
-        .card-examen:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06); border-color: var(--primary-color); }
+        /* Contenedores de Sección */
+        .section-header { margin-bottom: 2.5rem; display: flex; align-items: center; gap: 12px; }
+        .section-header i { font-size: 1.5rem; color: var(--primary-color); background: var(--soft-bg); padding: 10px; border-radius: 12px; }
+        .section-header h3 { font-weight: 800; margin-bottom: 0; letter-spacing: -1px; }
 
-        .card-pack { border-top: 5px solid var(--primary-color); }
-        .card-individual { background-color: #fafbfc; }
-        .card-custom-order { background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%); color: white; border: none; }
+        /* Card de PACKS */
+        .card-pack {
+            border: 1px solid #eef2f7;
+            border-radius: 28px;
+            transition: all 0.3s ease;
+            background: white;
+            overflow: hidden;
+            height: 100%;
+        }
+        .card-pack:hover { transform: translateY(-10px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); border-color: #d1e3ff; }
 
-        .price-tag { font-size: 1.5rem; font-weight: 800; color: #000; letter-spacing: -0.5px; }
-        .card-custom-order .price-tag { color: white !important; }
+        .pack-badge { background: #eef2ff; color: #4338ca; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; }
+        .price-text { font-size: 2rem; font-weight: 800; color: #1e293b; letter-spacing: -1px; }
 
-        .btn-select { border-radius: 14px; font-weight: 700; padding: 12px; transition: all 0.3s; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        /* Chips de Exámenes */
+        .exam-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #475569;
+            margin: 3px;
+            font-weight: 500;
+        }
+        .exam-chip i { color: #10b981; margin-right: 6px; }
 
-        .icon-box { width: 48px; height: 48px; background: var(--soft-bg); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary-color); margin-bottom: 1rem; }
-        .card-custom-order .icon-box { background: rgba(255,255,255,0.2); color: white; }
+        /* Card INDIVIDUAL (Compacta) */
+        .card-individual {
+            border-radius: 18px;
+            border: 1px solid #f1f5f9;
+            background: #ffffff;
+            padding: 1rem;
+            transition: all 0.2s;
+        }
+        .card-individual:hover { background: #f8faff; border-color: var(--primary-color); }
+        .btn-mini-select { border-radius: 10px; font-weight: 700; font-size: 0.8rem; }
 
-        /* Badge para los items de un pack */
-        .pack-item { font-size: 0.75rem; background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 8px; font-weight: 600; display: inline-block; margin: 2px; }
-
-        .section-title { font-weight: 800; letter-spacing: -1px; margin-bottom: 2rem; }
+        /* Card ESPECIAL (Azul) */
+        .card-special {
+            background: linear-gradient(135deg, #0d6efd 0%, #004dc7 100%);
+            color: white;
+            border-radius: 28px;
+            border: none;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(13, 110, 253, 0.2);
+        }
+        .btn-white { background: white; color: var(--primary-color); font-weight: 700; border-radius: 15px; padding: 12px; }
+        .btn-white:hover { background: #f8faff; color: #004dc7; }
     </style>
 </head>
 <body>
 
-    {{-- Notificaciones --}}
-    <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000; margin-top: 70px;">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show shadow-lg border-0 rounded-4" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-    </div>
-
-    <nav class="navbar navbar-expand-lg navbar-light sticky-nav border-bottom shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top border-bottom">
         <div class="container">
-            <a class="navbar-brand fw-extrabold text-primary fs-3 d-flex align-items-center" href="{{ route('home') }}">
-                <i class="bi bi-droplet-fill me-2"></i>
-                <span style="letter-spacing: -1px;">MedOrder<span class="text-dark">Flow</span></span>
+            <a class="navbar-brand fw-extrabold text-primary fs-3 d-flex align-items-center" href="/">
+                <i class="bi bi-droplet-fill me-2"></i> MedOrderFlow
             </a>
-
             <div class="ms-auto">
                 @auth
-                    <div class="dropdown">
-                        <button class="btn btn-white border dropdown-toggle px-3 py-2 rounded-4 shadow-sm fw-bold" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1 text-primary"></i>
-                            {{ explode(' ', auth()->user()->name)[0] }}
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 p-2 rounded-4">
-                            <li><a class="dropdown-item rounded-3 py-2" href="{{ route('patient.orders') }}"><i class="bi bi-file-earmark-medical me-2 text-primary"></i> Mis Órdenes</a></li>
-                            <li><a class="dropdown-item rounded-3 py-2" href="{{ route('patient.circle') }}"><i class="bi bi-people me-2 text-primary"></i> Mi Círculo</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item rounded-3 py-2 text-danger"><i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
+                    <a href="{{ route('patient.orders') }}" class="btn btn-light rounded-pill px-4 fw-bold">Mi Panel</a>
                 @else
-                    <a href="{{ route('auth.google') }}" class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm rounded-4">
-                        <i class="bi bi-google me-2"></i> Acceder
-                    </a>
+                    <a href="{{ route('auth.google') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Ingresar</a>
                 @endauth
             </div>
         </div>
@@ -89,73 +95,79 @@
 
     <header class="hero-section text-center">
         <div class="container">
-            <span class="badge bg-light text-primary py-2 px-3 rounded-pill mb-3 border">100% Online · Firma Digital · Todo Chile</span>
-            <h1 class="display-3 fw-bold text-dark mb-4" style="letter-spacing: -2px;">
+            <span class="badge bg-primary bg-opacity-10 text-primary py-2 px-3 rounded-pill mb-4 border border-primary border-opacity-25 fw-bold">
+                ✨ 100% Online · Firma Digital · Todo Chile
+            </span>
+            <h1 class="display-3 hero-title text-dark mb-4">
                 Tus Exámenes, <br><span class="text-primary">Sin Esperas.</span>
             </h1>
-            <p class="lead text-muted mx-auto mb-5" style="max-width: 650px;">
-                Selecciona tu examen o pack, completa tus datos y recibe tu orden médica firmada directamente en tu perfil.
+            <p class="lead text-muted mx-auto mb-5" style="max-width: 600px;">
+                Obtén tu orden médica oficial firmada por un profesional en minutos.
             </p>
         </div>
     </header>
 
-    <section class="py-5 bg-light">
+    <section class="py-5">
         <div class="container">
 
-            {{-- 1. SECCIÓN PACKS PREVENTIVOS --}}
-            <h3 class="section-title text-center text-md-start"><i class="bi bi-collection-play text-primary me-2"></i> Packs Preventivos</h3>
+            {{-- SECCIÓN PACKS --}}
+            <div class="section-header">
+                <i class="bi bi-collection-fill"></i>
+                <h3>Packs Preventivos</h3>
+            </div>
+
             <div class="row g-4 mb-5">
                 @foreach($packs as $pack)
-                <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 card-examen card-pack p-4 border-0 shadow-sm">
-                        <div class="card-body d-flex flex-column p-0">
-                            <div class="icon-box">
-                                <i class="bi bi-layers-fill fs-4"></i>
-                            </div>
-                            <h4 class="card-title fw-bold mb-3">{{ $pack->name }}</h4>
+                <div class="col-lg-4 col-md-6">
+                    <div class="card card-pack p-4">
+                        <div class="mb-3">
+                            <span class="pack-badge">Perfil Completo</span>
+                        </div>
+                        <h4 class="fw-bold mb-3">{{ $pack->name }}</h4>
 
-                            {{-- Visualización de items del Pack --}}
-                            <div class="mb-4 flex-grow-1">
-                                <p class="text-muted small mb-2 fw-bold">Incluye los siguientes exámenes:</p>
+                        <div class="mb-4 flex-grow-1">
+                            <p class="text-muted small fw-bold mb-2">Exámenes incluidos:</p>
+                            <div class="d-flex flex-wrap">
                                 @foreach($pack->children as $child)
-                                    <span class="pack-item"><i class="bi bi-check2 me-1"></i>{{ $child->name }}</span>
+                                    <div class="exam-chip"><i class="bi bi-check-circle-fill"></i> {{ $child->name }}</div>
                                 @endforeach
                             </div>
+                        </div>
 
-                            <div class="mt-3 pt-4 border-top">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <span class="text-muted small fw-semibold">Valor Total</span>
-                                    <span class="price-tag">${{ number_format($pack->base_price, 0, ',', '.') }}</span>
+                        <div class="mt-auto pt-4 border-top">
+                            <div class="d-flex justify-content-between align-items-end mb-4">
+                                <div>
+                                    <span class="text-muted small d-block mb-0 fw-bold">Total Pack</span>
+                                    <span class="price-text">${{ number_format($pack->base_price, 0, ',', '.') }}</span>
                                 </div>
-                                <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $pack->id]) }}" class="btn btn-primary w-100 btn-select shadow-sm">
-                                    Seleccionar Pack <i class="bi bi-arrow-right ms-2"></i>
-                                </a>
                             </div>
+                            <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $pack->id]) }}" class="btn btn-primary w-100 py-3 fw-bold rounded-4 shadow-sm">
+                                Seleccionar Pack <i class="bi bi-arrow-right ms-2"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
                 @endforeach
             </div>
 
-            <hr class="my-5 opacity-10">
-
-            {{-- 2. SECCIÓN EXÁMENES INDIVIDUALES Y PERSONALIZADOS --}}
-            <div class="row g-4">
-                <div class="col-lg-8">
-                    <h3 class="section-title"><i class="bi bi-search text-primary me-2"></i> Exámenes Frecuentes</h3>
+            <div class="row g-5">
+                {{-- COLUMNA IZQUIERDA: INDIVIDUALES --}}
+                <div class="col-lg-7">
+                    <div class="section-header">
+                        <i class="bi bi-search"></i>
+                        <h3>Exámenes Frecuentes</h3>
+                    </div>
                     <div class="row g-3">
-                        {{-- Aquí podrías loopear exámenes individuales si los envías desde el controlador --}}
-                        {{-- Ejemplo estático basado en tu requerimiento de "sueltos" --}}
-                        @foreach($individualExams ?? [] as $exam)
+                        @foreach($individuales as $exam)
                         <div class="col-md-6">
-                            <div class="card card-examen card-individual p-3 border-0 shadow-sm">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <h6 class="fw-bold mb-0">{{ $exam->name }}</h6>
-                                        <small class="text-primary fw-bold">${{ number_format($exam->base_price, 0, ',', '.') }}</small>
+                            <div class="card card-individual h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div style="max-width: 65%;">
+                                        <h6 class="fw-bold mb-1 text-truncate">{{ $exam->name }}</h6>
+                                        <span class="text-primary fw-bold small">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
                                     </div>
-                                    <a href="{{ route('order.flow', ['type' => 'exam', 'id' => $exam->id]) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                        Solicitar
+                                    <a href="{{ route('order.flow', ['type' => 'exam', 'id' => $exam->id]) }}" class="btn btn-outline-primary btn-mini-select px-3">
+                                        Pedir
                                     </a>
                                 </div>
                             </div>
@@ -164,27 +176,24 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4">
-                    <h3 class="section-title">Especial</h3>
-                    <div class="card h-100 card-examen card-custom-order p-4 shadow-lg">
-                        <div class="card-body d-flex flex-column p-0">
-                            <div class="icon-box shadow-sm">
-                                <i class="bi bi-magic fs-4"></i>
-                            </div>
-                            <h4 class="card-title fw-bold mb-2 text-white">¿Buscas algo más?</h4>
-                            <p class="card-text small flex-grow-1 opacity-90">
-                                Si no encuentras tu examen en la lista, solicítalo aquí. Un médico revisará tu requerimiento.
-                            </p>
-                            <div class="mt-4 pt-4 border-top border-white border-opacity-25">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <span class="small fw-semibold opacity-75">Desde</span>
-                                    <span class="price-tag text-white">$9.990</span>
-                                </div>
-                                <a href="{{ route('order.flow', ['type' => 'personalizada']) }}" class="btn btn-light w-100 btn-select text-primary shadow-sm">
-                                    Orden Personalizada <i class="bi bi-pencil-square ms-2"></i>
-                                </a>
-                            </div>
+                {{-- COLUMNA DERECHA: ESPECIAL --}}
+                <div class="col-lg-5">
+                    <div class="section-header">
+                        <i class="bi bi-magic"></i>
+                        <h3>¿No está en la lista?</h3>
+                    </div>
+                    <div class="card card-special h-100 d-flex flex-column justify-content-center">
+                        <h2 class="fw-bold mb-3 text-white">Orden Personalizada</h2>
+                        <p class="opacity-90 mb-4">
+                            Dinos qué exámenes necesitas y un médico emitirá una orden a tu medida tras revisar tu solicitud.
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold">Valor base</span>
+                            <span class="fs-3 fw-extrabold">$9.990</span>
                         </div>
+                        <a href="{{ route('order.flow', ['type' => 'personalizada']) }}" class="btn btn-white w-100 shadow-lg">
+                            Solicitar a Medida <i class="bi bi-pencil-square ms-2"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -192,8 +201,10 @@
         </div>
     </section>
 
-    <footer class="py-5 text-center text-muted border-top bg-white">
-        <p class="small mb-0">&copy; {{ date('Y') }} MedOrder Flow. Todos los derechos reservados.</p>
+    <footer class="py-5 text-center text-muted border-top mt-5 bg-light">
+        <div class="container">
+            <p class="small mb-0 fw-bold">© 2026 MedOrder Flow. Todo Chile.</p>
+        </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
