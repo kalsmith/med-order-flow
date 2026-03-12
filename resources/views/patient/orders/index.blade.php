@@ -18,6 +18,7 @@
         .badge-status { border-radius: 10px; padding: 0.5em 1em; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
         .btn-action { border-radius: 12px; font-weight: 600; }
         .empty-state { padding: 4rem 2rem; text-align: center; }
+        .patient-tag { font-size: 0.75rem; background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -65,9 +66,11 @@
                         <div class="card-body p-4">
                             <div class="row align-items-center">
                                 <div class="col-md-5 mb-3 mb-md-0">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <span class="badge bg-light text-primary border me-2" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
+                                    <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+                                        <span class="badge bg-light text-primary border" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
                                         <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
+                                        {{-- Nuevo: Etiqueta del Paciente --}}
+                                        <span class="patient-tag"><i class="bi bi-person me-1"></i>{{ $order->patient->full_name ?? 'Titular' }}</span>
                                     </div>
 
                                     <h5 class="fw-bold mb-1 text-dark">
@@ -113,7 +116,8 @@
                                 <div class="col-md-4 text-md-end">
                                     <div class="d-flex gap-2 justify-content-md-end">
                                         @if($order->status === 'pending')
-                                            <a href="{{ route('checkout.index', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
+                                            {{-- ACTUALIZADO: Cambiado checkout.index por checkout.process --}}
+                                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
                                                 <i class="bi bi-credit-card me-2"></i> Pagar
                                             </a>
                                         @elseif($order->status === 'signed')
@@ -144,6 +148,4 @@
         @endif
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <script src="

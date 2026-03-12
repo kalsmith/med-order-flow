@@ -134,6 +134,8 @@ Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle
 
         // CHECKOUT: Una sola ruta clara para procesar el pago
         // Cuando el controlador de la orden termina, redirige aquí.
+        Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
+
         Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])->name('checkout.process');
 
         // ÉXITO
