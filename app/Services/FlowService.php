@@ -211,11 +211,11 @@ class FlowService
             if ($response->successful()) {
                 $res = $response->object();
 
-                $order->update([
-                    'flow_refund_id' => $res->token,
-                    'status' => 'refunded',
-                    'internal_notes' => $order->internal_notes . "\n[Reembolso Flow Creado: {$res->flowRefundOrder} el " . now() . "]"
-                ]);
+            $order->update([
+                'flow_refund_id' => $res->token,
+                'status'         => 'refund_pending', // Estado válido en tu SQL
+                'internal_notes' => $order->internal_notes . "\n[Reembolso Creado en Flow: {$res->flowRefundOrder} el " . now() . "]"
+            ]);
 
                 Log::info("REEMBOLSO FLOW CREADO EXITOSAMENTE", [
                     'token' => $res->token,

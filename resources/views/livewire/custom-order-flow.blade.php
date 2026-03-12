@@ -111,15 +111,18 @@
 
             {{-- BOTÓN DE ENVÍO --}}
             <button wire:click="submitRequest" wire:loading.attr="disabled" class="btn btn-primary btn-send w-100 shadow-sm py-3 fw-bold rounded-pill">
-                <span wire:loading.remove>Enviar Solicitud <i class="bi bi-send ms-2"></i></span>
+                <span wire:loading.remove>Continuar al Pago <i class="bi bi-credit-card ms-2"></i></span>
                 <span wire:loading>
-                    <span class="spinner-border spinner-border-sm me-2"></span>Procesando Solicitud...
+                    <span class="spinner-border spinner-border-sm me-2"></span>Procesando...
                 </span>
             </button>
 
-            {{-- FORMULARIO OCULTO PARA EL REDIRECT POR POST --}}
-            <form id="post-redirect-form" action="{{ route('checkout.process', ['order' => 'ORDER_ID']) }}" method="POST" style="display: none;">
+            {{-- FORMULARIO OCULTO PARA EL ENVÍO REAL (Evita el 405) --}}
+            <form id="post-redirect-form" action="{{ route('orders.store.public') }}" method="POST" style="display: none;">
                 @csrf
+                <input type="hidden" name="patient_id" id="hidden_patient_id">
+                <input type="hidden" name="custom_description" id="hidden_description">
+                <input type="hidden" name="type" value="custom">
             </form>
         </div>
     @endif
@@ -127,18 +130,14 @@
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('order-created', (event) => {
-                // Manejo de datos para Livewire 3 (event.detail o event[0])
                 const data = Array.isArray(event) ? event[0] : (event.detail ? event.detail : event);
-                const orderId = data.orderId;
 
-                if (orderId) {
-                    const form = document.getElementById('post-redirect-form');
-                    // Reemplazamos el string placeholder por el ID real recibido
-                    form.action = form.action.replace('ORDER_ID', orderId);
-                    form.submit();
-                } else {
-                    console.error('No se recibió el ID de la orden.');
-                }
+                // Llenamos el formulario oculto con los datos de Livewire
+                document.getElementById('hidden_patient_id').value = data.patientId;
+                document.getElementById('hidden_description').value = data.description;
+
+                // Hacemos el submit por POST a la ruta que ya funciona
+                document.getElementById('post-redirect-form').submit();
             });
         });
     </script>
