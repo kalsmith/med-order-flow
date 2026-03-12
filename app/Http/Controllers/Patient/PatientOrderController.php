@@ -75,11 +75,11 @@ public function store(Request $request)
         $order = DB::transaction(function () use ($request) {
 
             $patient = Patient::findOrFail($request->patient_id);
-            Log::info("2. Paciente encontrado:", ['id' => $patient->id, 'nombre' => $patient->full_name]);
+            //Log::info("2. Paciente encontrado:", ['id' => $patient->id, 'nombre' => $patient->full_name]);
 
             // DETERMINAR FLUJO
             if ($request->type === 'custom') {
-                Log::info("3. Entrando a FLUJO CUSTOM.");
+                //Log::info("3. Entrando a FLUJO CUSTOM.");
 
                 $examId = null;
                 $amount = 9990;
@@ -87,9 +87,9 @@ public function store(Request $request)
                 $description = $request->custom_description;
                 $doctor = null; // En custom, queda libre para el pool
 
-                Log::info("4. Parámetros Custom listos. Doctor asignado: NULL (Pool abierto).");
+                //Log::info("4. Parámetros Custom listos. Doctor asignado: NULL (Pool abierto).");
             } else {
-                Log::info("3. Entrando a FLUJO ESTÁNDAR.");
+                //Log::info("3. Entrando a FLUJO ESTÁNDAR.");
 
                 $exam = ExamType::findOrFail($request->exam_type_id);
                 $examId = $exam->id;
@@ -97,20 +97,20 @@ public function store(Request $request)
                 $orderType = 'standard';
                 $description = null;
 
-                Log::info("4. Buscando doctor por especialidad...", ['specialty_id' => $exam->specialty_id]);
+                //Log::info("4. Buscando doctor por especialidad...", ['specialty_id' => $exam->specialty_id]);
                 $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
 
                 if (!$doctor) {
-                    Log::error("ERROR: No se encontró doctor para la especialidad.");
+                    //Log::error("ERROR: No se encontró doctor para la especialidad.");
                     throw new \Exception('No hay médicos disponibles para esta especialidad.');
                 }
-                Log::info("5. Doctor asignado por rotación:", ['id' => $doctor->id]);
+                //Log::info("5. Doctor asignado por rotación:", ['id' => $doctor->id]);
             }
 
             // 3. CREAR LA ORDEN
-            Log::info("6. Intentando crear registro en MedicalOrder...");
+            //Log::info("6. Intentando crear registro en MedicalOrder...");
             $newOrder = MedicalOrder::create([
-                'id'                => (string) \Illuminate\Support\Str::uuid(),
+                'id'                => (string) Str::uuid(),
                 'patient_id'        => $patient->id,
                 'doctor_id'         => $doctor ? $doctor->id : null, // IMPORTANTE: Permitir null
                 'exam_type_id'      => $examId,
@@ -118,23 +118,23 @@ public function store(Request $request)
                 'status'            => 'pending',
                 'type'              => $orderType,
                 'amount'            => $amount,
-                'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
+                'verification_code' => strtoupper(Str::random(8)),
             ]);
 
-            Log::info("7. ORDEN CREADA EXITOSAMENTE:", ['order_id' => $newOrder->id]);
+            //Log::info("7. ORDEN CREADA EXITOSAMENTE:", ['order_id' => $newOrder->id]);
 
             // 4. ACTUALIZAR TURNO (Solo si hay doctor)
             if ($doctor) {
-                Log::info("8. Actualizando turno del doctor.");
+                //Log::info("8. Actualizando turno del doctor.");
                 $doctor->update(['last_assigned_at' => now()]);
             } else {
-                Log::info("8. Sin doctor que actualizar (es flujo custom).");
+                //Log::info("8. Sin doctor que actualizar (es flujo custom).");
             }
 
             return $newOrder;
         });
 
-        Log::info("=== FIN PROCESO EXITOSO - REDIRIGIENDO AL PAGO ===");
+        //Log::info("=== FIN PROCESO EXITOSO - REDIRIGIENDO AL PAGO ===");
         return redirect()->route('checkout.process', ['order' => $order->id]);
 
     } catch (\Exception $e) {
