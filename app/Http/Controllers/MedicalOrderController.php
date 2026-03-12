@@ -7,6 +7,7 @@ use App\Models\ExamType;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MedicalOrderController extends Controller
@@ -94,7 +95,7 @@ class MedicalOrderController extends Controller
         }
 
         // Usamos una transacción de BD para asegurar que firma y pago se vinculen sí o sí
-        \DB::transaction(function () use ($order, $doctor) {
+        DB::transaction(function () use ($order, $doctor) {
             // 1. Marcar como firmada
             $order->update([
                 'doctor_id' => $doctor->id,
