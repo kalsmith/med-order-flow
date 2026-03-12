@@ -91,10 +91,9 @@ class CustomOrderFlow extends Component
         }
     }
 
-
 public function submitRequest()
 {
-    Log::info("En SubmitRequest");
+    Log::info("1. Entró a SubmitRequest");
 
     $this->validate([
         'selected_patient_id' => 'required',
@@ -122,7 +121,9 @@ public function submitRequest()
             ]);
         });
 
-        // El PHP le dice a la vista: "La orden está lista, envíala al pago"
+        Log::info("2. Orden creada con éxito: " . $order->id);
+
+        // Forzamos el dispatch de Livewire 3
         $this->dispatch('trigger-payment-submit');
 
     } catch (\Exception $e) {
@@ -130,7 +131,6 @@ public function submitRequest()
         $this->addError('description', 'No pudimos procesar la solicitud.');
     }
 }
-
 
 
     public function render()
