@@ -68,7 +68,7 @@ class FlowService
         }
     }
 
-    /**
+   /**
      * Procesa el Webhook (Server-to-Server)
      */
     public function handleWebhook(string $token)
@@ -89,6 +89,13 @@ class FlowService
                     return false;
                 }
 
+                // --- ACTUALIZACIÓN CRÍTICA ---
+                // Marcamos la transacción como autorizada para que el proceso de rechazo pueda encontrarla.
+                $gatewayTrx->update([
+                    'status' => 'authorized', // O 'completed' según tu convención
+                    'raw_response' => json_encode($status)
+                ]);
+
                 // Cargamos orden con doctor y paciente.user para el correo del reembolso
                 $order = MedicalOrder::with(['doctor', 'patient.user'])->find($gatewayTrx->payable_id);
                 Log::info("WEBHOOK: Procesando Orden ID: {$order->id} | Tipo: {$order->type}");
@@ -108,7 +115,10 @@ class FlowService
                         Log::error("WEBHOOK: Falló la firma");
                         $order->update(['status' => 'refund_pending']);
 
-                        // Invocamos reembolso pasando el flowOrder (ID de Flow) para asegurar el match
+                        /**
+                         * Invocamos reembolso pasando el flowOrder (ID de Flow)
+                         * El gatewayTrx ahora tiene status 'authorized', así que el log de auditoría cuadrará.
+                         */
                         $this->requestRefund($order, $gatewayTrx, $status->flowOrder);
 
                         return false;
@@ -119,6 +129,7 @@ class FlowService
                 Log::info("WEBHOOK: Entrando a flujo CUSTOM");
                 $order->finalizePayment();
                 $this->registerTransaction($gatewayTrx, $order, $token, $status);
+
                 return true;
             });
         }
