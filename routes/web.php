@@ -63,6 +63,7 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
 | 3. PANEL DE GESTIÓN (STAFF)
 |--------------------------------------------------------------------------
 */
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -73,18 +74,15 @@ Route::middleware([
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
 // 1. RUTAS ESPECÍFICAS DEL DOCTOR
-    // Usamos el middleware 'role:doctor' para proteger estas acciones
-    Route::middleware(['role:doctor'])->group(function () {
-        Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
+Route::middleware(['role:doctor'])->group(function () {
+    Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
 
-        // Flujo de firma - Asegúrate de que el parámetro sea {order}
-        Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
-        Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
-        Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
-        Route::post('/ordenes/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
-
-        // Eliminé la ruta duplicada 'firmar-orden-medica' para evitar conflictos de nombre
-    });
+    // Cambiamos {order} por {medical_order} para evitar conflictos con el resource de abajo
+    Route::get('/ordenes/{medical_order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
+    Route::post('/ordenes/{medical_order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
+    Route::post('/ordenes/{medical_order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
+    Route::post('/ordenes/{medical_order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
+});
 
     // 2. ADMINISTRACIÓN
     Route::middleware(['role:admin|director_tecnico'])->group(function () {

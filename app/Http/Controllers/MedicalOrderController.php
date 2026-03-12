@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MedicalOrder;
 use App\Models\ExamType;
+use App\Models\GatewayTransaction;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -141,58 +142,76 @@ class MedicalOrderController extends Controller
     /**
      * Nuevo método: Rechazar orden (especialmente útil para Custom Orders)
      */
-public function rejectOrder(Request $request, MedicalOrder $order, FlowService $flowService)
+    public function rejectOrder(Request $request, $orderId, FlowService $flowService)
 {
-    $request->validate([
-        'rejection_reason' => 'required|string|max:500'
+    // LOG 1: Entrada inicial (Incluso antes de inyectar el modelo)
+    Log::channel('single')->info('--- INICIO PROCESO RECHAZO ---', [
+        'user_id' => auth()->id(),
+        'roles' => auth()->user()->getRoleNames(),
+        'order_id_recibido' => $orderId,
+        'ip' => $request->ip()
     ]);
 
-    $doctor = Auth::user()->doctor;
-
-    // 1. Verificación de propiedad (ya la tienes)
-    if ($order->doctor_id !== $doctor->id) {
-        return redirect()->route('admin.orders.index')->with('error', 'No tienes permiso sobre esta orden.');
-    }
-
     try {
+        // Buscamos la orden manualmente para evitar fallos de Binding silenciosos
+        $order = MedicalOrder::findOrFail($orderId);
+
+        $doctor = auth()->user()->doctor;
+
+        // LOG 2: Validación de Identidad
+        Log::info('Validando doctor y propiedad:', [
+            'doctor_id_en_orden' => $order->doctor_id,
+            'doctor_id_autenticado' => $doctor->id ?? 'NO ES DOCTOR'
+        ]);
+
+        if (!$doctor || $order->doctor_id !== $doctor->id) {
+            Log::warning('RECHAZO 403 MANUAL: El médico no es dueño de la orden');
+            return abort(403, 'No tienes permiso sobre esta orden.');
+        }
+
+        $request->validate(['rejection_reason' => 'required|string|max:500']);
+
         return DB::transaction(function () use ($request, $order, $flowService, $doctor) {
 
-            // 2. Actualizar estado local
+            // LOG 3: Actualización local
             $order->update([
                 'status' => 'rejected',
                 'rejection_reason' => $request->rejection_reason,
                 'claimed_at' => null
             ]);
+            Log::info('Estado de orden actualizado a REJECTED');
 
-            // 3. Buscar la transacción de Flow original
+            // LOG 4: Búsqueda de Dinero
             $gatewayTrx = GatewayTransaction::where('payable_id', $order->id)
-                ->where('status', 'authorized') // Solo reembolsamos lo pagado
+                ->where('status', 'authorized')
                 ->first();
 
             if ($gatewayTrx) {
-                // 4. Iniciar Reembolso en Flow
-                // Intentamos obtener el flowTrxId del metadata si lo guardaste, sino usa el buy_order
-                $flowTrxId = $gatewayTrx->token; // O donde guardes el ID de Flow
+                Log::info('Transacción Flow encontrada:', ['buy_order' => $gatewayTrx->buy_order]);
 
-                $refundResult = $flowService->requestRefund($order, $gatewayTrx, $flowTrxId);
+                $refundResult = $flowService->requestRefund($order, $gatewayTrx, $gatewayTrx->token);
 
                 if ($refundResult) {
-                    Log::info("Reembolso iniciado para Orden {$order->id}");
-                    return redirect()->route('admin.orders.index')
-                        ->with('info', 'Orden rechazada. Se ha solicitado el reembolso automático al paciente.');
+                    Log::info('FLOW: Reembolso solicitado con éxito');
+                    return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado.');
                 }
+                Log::error('FLOW: El servicio de reembolso devolvió FALSE');
+            } else {
+                Log::warning('REEMBOLSO: No se encontró transacción autorizada para esta orden.');
             }
 
-            return redirect()->route('admin.orders.index')
-                ->with('warning', 'Orden rechazada, pero el reembolso automático falló. Por favor, contacte a soporte.');
+            return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada (Reembolso manual requerido).');
         });
 
     } catch (\Exception $e) {
-        Log::error("Error en proceso de rechazo: " . $e->getMessage());
-        return redirect()->back()->with('error', 'Ocurrió un error al procesar el rechazo.');
+        Log::error("CRASH EN RECHAZO: " . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return redirect()->back()->with('error', 'Error interno: ' . $e->getMessage());
     }
 }
-
 
 
 
