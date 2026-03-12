@@ -78,43 +78,59 @@ class DoctorController extends Controller
     }
 
     // Cambiamos el TypeHint aquí también
-    public function update(Request $request, Doctor $medico)
-    {
-        $doctor = $medico;
+public function update(Request $request, Doctor $medico)
+{
+    $doctor = $medico;
 
-        $request->validate([
-            'name'        => 'required|string|max:255',
-            'email'       => ['required', 'email', Rule::unique('users')->ignore($doctor->user_id)],
-            'rut'         => ['required', Rule::unique('doctors')->ignore($doctor->id)],
-            'specialties' => 'required|array|min:1',
-            'is_active'   => 'required|boolean',
-            'signature'   => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-        ]);
+    $request->validate([
+        'name'        => 'required|string|max:255',
+        'email'       => ['required', 'email', Rule::unique('users')->ignore($doctor->user_id)],
+        'rut'         => ['required', Rule::unique('doctors')->ignore($doctor->id)],
+        'specialties' => 'required|array|min:1',
+        'is_active'   => 'required|boolean',
+        'signature'   => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+        // Validamos el password solo si el campo no está vacío
+        'password'    => 'nullable|string|min:8|confirmed',
+    ]);
 
-        try {
-            DB::transaction(function () use ($request, $doctor) {
-                $doctor->user->update([
-                    'name'  => $request->name,
-                    'email' => $request->email,
-                ]);
+    try {
+        DB::transaction(function () use ($request, $doctor) {
+            // 1. Actualizar datos básicos del usuario
+            $userData = [
+                'name'  => $request->name,
+                'email' => $request->email,
+            ];
 
-                if ($request->hasFile('signature')) {
-                    if ($doctor->signature_path) {
-                        Storage::disk('public')->delete($doctor->signature_path);
-                    }
-                    $doctor->signature_path = $request->file('signature')->store('signatures', 'public');
+            // 2. Si se ingresó una contraseña, la hasheamos y la sumamos al update
+            if ($request->filled('password')) {
+                $userData['password'] = Hash::make($request->password);
+            }
+
+            $doctor->user->update($userData);
+
+            // 3. Manejo de la firma digital
+            if ($request->hasFile('signature')) {
+                if ($doctor->signature_path) {
+                    Storage::disk('public')->delete($doctor->signature_path);
                 }
+                // Guardamos el nuevo archivo
+                $path = $request->file('signature')->store('signatures', 'public');
+                $doctor->signature_path = $path;
+            }
 
-                $doctor->fill($request->only(['rut', 'rnpi_number', 'is_active']));
-                $doctor->save();
-                $doctor->specialties()->sync($request->specialties);
-            });
+            // 4. Actualizar datos específicos del doctor
+            $doctor->fill($request->only(['rut', 'rnpi_number', 'is_active']));
+            $doctor->save();
 
-            return redirect()->route("{$this->routePrefix}.index")
-                ->with('status', 'Perfil actualizado correctamente.');
+            // 5. Sincronizar especialidades
+            $doctor->specialties()->sync($request->specialties);
+        });
 
-        } catch (\Exception $e) {
-            return back()->withInput()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
-        }
+        return redirect()->route("{$this->routePrefix}.index")
+            ->with('status', 'Perfil del médico actualizado correctamente.');
+
+    } catch (\Exception $e) {
+        return back()->withInput()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
     }
+}
 }

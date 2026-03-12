@@ -24,15 +24,9 @@
         @endif
 
         <div class="card shadow-sm border-0 overflow-hidden">
-            {{-- Indicador visual de estado --}}
             <div class="bg-primary py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                {{--
-                   CORRECCIÓN FUNDAMENTAL:
-                   Se pasa $doctor directamente. Laravel Resource usa el nombre del parámetro 'medico'
-                   basado en el nombre del recurso definido en las rutas (medicos -> medico).
-                --}}
                 <form id="doctor-form" action="{{ route('admin.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
@@ -51,7 +45,7 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
                                 <input type="text" name="name" class="form-control border-start-0 ps-0 @error('name') is-invalid @enderror"
-                                       value="{{ old('name', $doctor->user->name) }}" required placeholder="Ej: Dr. Juan Pérez">
+                                       value="{{ old('name', $doctor->user->name) }}" required>
                             </div>
                         </div>
 
@@ -69,7 +63,36 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-text text-muted"></i></span>
                                 <input type="text" name="rut" class="form-control border-start-0 ps-0 @error('rut') is-invalid @enderror"
-                                       value="{{ old('rut', $doctor->rut) }}" placeholder="12.345.678-k">
+                                       value="{{ old('rut', $doctor->rut) }}">
+                            </div>
+                        </div>
+
+                        {{-- SECCIÓN NUEVA: Seguridad (Password) --}}
+                        <div class="col-12 mt-5">
+                            <h6 class="text-primary text-uppercase fw-bold small mb-3">
+                                <i class="bi bi-shield-lock me-2"></i>Seguridad y Acceso
+                            </h6>
+                            <hr class="mt-0 opacity-10">
+                            <div class="alert alert-light border small text-muted">
+                                <i class="bi bi-info-circle me-1"></i> Deje los campos de contraseña en blanco si no desea realizar cambios.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Nueva Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-muted"></i></span>
+                                <input type="password" name="password" class="form-control border-start-0 ps-0 @error('password') is-invalid @enderror"
+                                       placeholder="Mínimo 8 caracteres">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Confirmar Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key-fill text-muted"></i></span>
+                                <input type="password" name="password_confirmation" class="form-control border-start-0 ps-0"
+                                       placeholder="Repita la contraseña">
                             </div>
                         </div>
 
@@ -84,7 +107,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">N° Registro RNPI</label>
                             <input type="text" name="rnpi_number" class="form-control @error('rnpi_number') is-invalid @enderror"
-                                   value="{{ old('rnpi_number', $doctor->rnpi_number) }}" placeholder="Opcional">
+                                   value="{{ old('rnpi_number', $doctor->rnpi_number) }}">
                         </div>
 
                         <div class="col-md-6">
@@ -111,9 +134,6 @@
                                     </div>
                                 @endforeach
                             </div>
-                            @error('specialties')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
                         </div>
 
                         {{-- Sección: Firma Digital --}}
@@ -121,28 +141,12 @@
                             <label class="form-label fw-bold small text-muted">Firma Digital (Sello)</label>
                             <div class="d-flex flex-column flex-md-row align-items-center gap-4 p-3 border rounded">
                                 <div class="text-center bg-white p-2 border rounded" style="min-width: 150px;">
-                                    <small class="text-muted d-block mb-2">Vista Previa Actual</small>
-                                    @if($doctor->signature_path)
-                                        <img id="signature-preview"
-                                             src="{{ asset('storage/' . $doctor->signature_path) }}"
-                                             alt="Firma"
-                                             class="img-fluid"
-                                             style="max-height: 80px; object-fit: contain;">
-                                    @else
-                                        <img id="signature-preview"
-                                             src="https://via.placeholder.com/150x80?text=Sin+Firma"
-                                             alt="Firma"
-                                             class="img-fluid"
-                                             style="max-height: 80px; object-fit: contain;">
-                                    @endif
+                                    <img id="signature-preview"
+                                         src="{{ $doctor->signature_path ? asset('storage/' . $doctor->signature_path) : 'https://via.placeholder.com/150x80?text=Sin+Firma' }}"
+                                         class="img-fluid" style="max-height: 80px; object-fit: contain;">
                                 </div>
                                 <div class="flex-grow-1">
-                                    <input type="file" name="signature" id="signature-input"
-                                           class="form-control form-control-sm @error('signature') is-invalid @enderror"
-                                           accept="image/png, image/jpeg">
-                                    <p class="text-muted mb-0 mt-2" style="font-size: 0.75rem;">
-                                        <i class="bi bi-info-circle me-1"></i> Se recomienda formato PNG transparente. Máximo 2MB.
-                                    </p>
+                                    <input type="file" name="signature" id="signature-input" class="form-control form-control-sm" accept="image/png, image/jpeg">
                                 </div>
                             </div>
                         </div>
@@ -166,7 +170,6 @@
 </div>
 
 <script>
-    // Previsualización de imagen inmediata al seleccionar archivo
     document.getElementById('signature-input').onchange = function (evt) {
         const [file] = this.files;
         if (file) {
@@ -174,12 +177,9 @@
         }
     }
 
-    // Confirmación para desactivar rápidamente
     function confirmDeactivation() {
-        if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo? Esto se aplicará inmediatamente al guardar.')) {
+        if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo?')) {
             document.getElementById('is_active_select').value = "0";
-            // Opcional: podrías hacer el submit automático aquí
-            // document.getElementById('doctor-form').submit();
         }
     }
 </script>
