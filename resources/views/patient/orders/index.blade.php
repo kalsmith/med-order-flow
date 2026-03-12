@@ -19,6 +19,8 @@
         .btn-action { border-radius: 12px; font-weight: 600; }
         .empty-state { padding: 4rem 2rem; text-align: center; }
         .patient-tag { font-size: 0.75rem; background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+        /* Estilo para SweetAlert personalizado */
+        .swal2-popup-custom { border-radius: 20px !important; }
     </style>
 </head>
 <body>
@@ -61,101 +63,90 @@
         @else
             <div class="row g-4">
                 @foreach($orders as $order)
-                {{-- ... dentro del @foreach($orders as $order) ... --}}
+                <div class="col-12">
+                    <div class="card card-order border-0 shadow-sm overflow-hidden">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-5 mb-3 mb-md-0">
+                                    <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+                                        <span class="badge bg-light text-primary border" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
+                                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
+                                        <span class="patient-tag"><i class="bi bi-person me-1"></i>{{ $order->patient->full_name ?? 'Titular' }}</span>
+                                    </div>
 
-<div class="col-12">
-    <div class="card card-order border-0 shadow-sm overflow-hidden">
-        <div class="card-body p-4">
-            <div class="row align-items-center">
-                <div class="col-md-5 mb-3 mb-md-0">
-                    <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
-                        <span class="badge bg-light text-primary border" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
-                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
-                        <span class="patient-tag"><i class="bi bi-person me-1"></i>{{ $order->patient->full_name ?? 'Titular' }}</span>
-                    </div>
+                                    <h5 class="fw-bold mb-1 text-dark">
+                                        {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
+                                    </h5>
 
-                    <h5 class="fw-bold mb-1 text-dark">
-                        {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
-                    </h5>
+                                    @if($order->status === 'refund_pending')
+                                        <div class="mt-3 p-3 bg-info-subtle border-start border-4 border-info rounded-end">
+                                            <div class="d-flex">
+                                                <i class="bi bi-info-circle-fill text-info me-2 fs-5"></i>
+                                                <div>
+                                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Proceso de devolución iniciado</strong>
+                                                    <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
+                                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong>.
+                                                        Debe completar sus datos en el enlace de Flow.
+                                                        <span class="text-dark fw-bold small d-block mt-1">Depende de la pasarela de pagos.</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
 
-                    {{-- AVISO ESPECÍFICO DE REEMBOLSO (Solo si el dinero está en camino externamente) --}}
-                    @if($order->status === 'refund_pending')
-                        <div class="mt-3 p-3 bg-info-subtle border-start border-4 border-info rounded-end">
-                            <div class="d-flex">
-                                <i class="bi bi-info-circle-fill text-info me-2 fs-5"></i>
-                                <div>
-                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Proceso de devolución iniciado</strong>
-                                    <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
-                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong> enviado por Flow.
-                                        Debe completar sus datos bancarios para recibir el dinero.
-                                        <span class="text-dark fw-bold small d-block mt-1">El trámite depende de la pasarela de pagos.</span>
-                                    </span>
+                                <div class="col-md-3 text-md-center mb-3 mb-md-0">
+                                    <div class="mb-1">
+                                        @switch($order->status)
+                                            @case('pending')
+                                                <span class="badge badge-status bg-warning-subtle text-warning border border-warning-subtle">Pendiente de Pago</span>
+                                                @break
+                                            @case('paid')
+                                                <span class="badge badge-status bg-info-subtle text-info border border-info-subtle">En Revisión</span>
+                                                @break
+                                            @case('signed')
+                                                <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
+                                                @break
+                                            @case('refund_pending')
+                                                <span class="badge badge-status bg-primary-subtle text-primary border border-primary-subtle">Reembolso Enviado</span>
+                                                @break
+                                            @case('rejected')
+                                                <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Orden Rechazada</span>
+                                                @break
+                                            @default
+                                                <span class="badge badge-status bg-secondary-subtle text-secondary border border-secondary-subtle">{{ ucfirst($order->status) }}</span>
+                                        @endswitch
+                                    </div>
+                                    <div class="fw-bold text-dark fs-5">$ {{ number_format($order->amount, 0, ',', '.') }}</div>
+                                </div>
+
+                                <div class="col-md-4 text-md-end">
+                                    <div class="d-flex gap-2 justify-content-md-end">
+                                        @if($order->status === 'pending')
+                                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
+                                                <i class="bi bi-credit-card me-2"></i> Pagar
+                                            </a>
+                                        @elseif($order->status === 'signed')
+                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm">
+                                                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar
+                                            </a>
+                                        @endif
+
+                                        {{-- Usamos data-attributes para evitar conflictos de JS --}}
+                                        @if($order->rejection_reason)
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-action px-3 btn-show-reason"
+                                                    data-reason="{{ $order->rejection_reason }}"
+                                                    data-id="{{ substr($order->id, 0, 8) }}">
+                                                <i class="bi bi-chat-left-text me-1"></i> Motivo
+                                            </button>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    @endif
-                </div>
-
-                <div class="col-md-3 text-md-center mb-3 mb-md-0">
-                    <div class="mb-1">
-                        @switch($order->status)
-                            @case('pending')
-                                <span class="badge badge-status bg-warning-subtle text-warning border border-warning-subtle">Pendiente de Pago</span>
-                                @break
-                            @case('paid')
-                                <span class="badge badge-status bg-info-subtle text-info border border-info-subtle">En Revisión</span>
-                                @break
-                            @case('signed')
-                                <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
-                                @break
-                            @case('refund_pending')
-                                <span class="badge badge-status bg-primary-subtle text-primary border border-primary-subtle">Reembolso Enviado</span>
-                                @break
-                            @case('rejected')
-                                <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Orden Rechazada</span>
-                                @break
-                            @default
-                                <span class="badge badge-status bg-secondary-subtle text-secondary border border-secondary-subtle">{{ ucfirst($order->status) }}</span>
-                        @endswitch
-                    </div>
-                    <div class="fw-bold text-dark fs-5">$ {{ number_format($order->amount, 0, ',', '.') }}</div>
-                </div>
-
-                <div class="col-md-4 text-md-end">
-                    <div class="d-flex gap-2 justify-content-md-end">
-                        @if($order->status === 'pending')
-                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
-                                <i class="bi bi-credit-card me-2"></i> Pagar
-                            </a>
-                        @elseif($order->status === 'signed')
-                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm">
-                                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar
-                            </a>
-                        @endif
-
-                        {{-- Botón Motivo: Siempre disponible si hay una razón registrada --}}
-                        @if($order->rejection_reason)
-                            <button class="btn btn-outline-secondary btn-action px-3"
-                                    onclick="Swal.fire({
-                                        title: 'Detalle de la Orden',
-                                        text: '{{ $order->rejection_reason }}',
-                                        icon: 'info',
-                                        confirmButtonColor: '#0d6efd',
-                                        confirmButtonText: 'Entendido'
-                                    })"
-                                    title="Ver motivo">
-                                <i class="bi bi-chat-left-text me-1"></i> Motivo
-                            </button>
-                        @endif
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
                 @endforeach
             </div>
 
@@ -165,4 +156,32 @@
         @endif
     </div>
 
-    <script src="
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Manejador único para todos los botones de motivo
+            const reasonButtons = document.querySelectorAll('.btn-show-reason');
+
+            reasonButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const reason = this.getAttribute('data-reason');
+                    const orderId = this.getAttribute('data-id');
+
+                    Swal.fire({
+                        title: 'Información de la Orden #' + orderId,
+                        text: reason,
+                        icon: 'info',
+                        confirmButtonColor: '#0d6efd',
+                        confirmButtonText: 'Entendido',
+                        customClass: {
+                            popup: 'swal2-popup-custom'
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
