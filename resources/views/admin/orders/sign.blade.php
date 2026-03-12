@@ -3,8 +3,8 @@
 @section('header', 'Firma de Orden Médica')
 
 @section('header-actions')
-    {{-- Formulario para liberar la orden --}}
-    <form action="{{ route('admin.orders.release', $order->id) }}" method="POST" class="d-inline">
+    {{-- Formulario para liberar la orden: Parámetro actualizado a medical_order --}}
+    <form action="{{ route('admin.orders.release', ['medical_order' => $order->id]) }}" method="POST">
         @csrf
         <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm">
             <i class="bi bi-unlock me-1"></i> Liberar y Volver
@@ -140,8 +140,8 @@
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        {{-- Botón de Firma --}}
-                        <form action="{{ route('admin.orders.sign.process', ['order' => $order->id]) }}"
+                        {{-- Botón de Firma: Parámetro actualizado a medical_order --}}
+                        <form action="{{ route('admin.orders.sign.process', ['medical_order' => $order->id]) }}"
                               method="POST"
                               id="signature-form"
                               class="d-inline">
@@ -171,7 +171,8 @@
                 <h5 class="modal-title fw-bold">Rechazar Requerimiento</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('admin.orders.reject', $order->id) }}" method="POST">
+            {{-- Formulario de rechazo: Parámetro actualizado a medical_order --}}
+            <form action="{{ route('admin.orders.reject', ['medical_order' => $order->id]) }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <p class="text-muted">Explique por qué rechaza esta orden (se enviará al paciente).</p>
@@ -187,7 +188,6 @@
 </div>
 
 <style>
-    .text-purple { color: #7e22ce; }
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
     .border-dashed { border-style: dashed !important; }
