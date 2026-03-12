@@ -3,7 +3,6 @@
 @section('header', 'Cuerpo Médico')
 
 @section('header-actions')
-    {{-- Ajuste: admin.admin.doctors.create --}}
     <a href="{{ route('admin.doctors.create') }}" class="btn btn-primary">
         <i class="bi bi-person-plus-fill me-2"></i>Nuevo Doctor
     </a>
@@ -78,8 +77,8 @@
                     </td>
                     <td class="text-end">
                         <div class="btn-group">
-                            {{-- Ajuste: admin.admin.doctors.edit con el parámetro 'doctor' --}}
-                            <a href="{{ route('admin.doctors.edit', ['doctor' => $doctor->id]) }}" class="btn btn-sm btn-outline-primary" title="Editar perfil">
+                            {{-- Corregido: Se usa el objeto $doctor directamente para que Laravel detecte el parámetro 'medico' --}}
+                            <a href="{{ route('admin.doctors.edit', $doctor) }}" class="btn btn-sm btn-outline-primary" title="Editar perfil">
                                 <i class="bi bi-pencil"></i>
                             </a>
                         </div>
