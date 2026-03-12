@@ -3,23 +3,27 @@
 @section('header', 'Firma de Orden Médica')
 
 @section('header-actions')
-    {{-- Formulario para liberar la orden: Parámetro actualizado a medical_order --}}
-    <form action="{{ route('admin.orders.release', ['medical_order' => $order->id]) }}" method="POST">
-        @csrf
-        <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm">
-            <i class="bi bi-unlock me-1"></i> Liberar y Volver
-        </button>
-    </form>
+    <div class="d-flex gap-2">
+        {{-- Botón para liberar la orden y volver al panel --}}
+        <form action="{{ route('admin.orders.release', ['medical_order' => $order->id]) }}" method="POST">
+            @csrf
+            <input type="hidden" name="redirect_to" value="index">
+            <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm">
+                <i class="bi bi-unlock me-1"></i> Liberar y Volver
+            </button>
+        </form>
+    </div>
 @endsection
 
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
 
-        {{-- Alerta de tiempo restante --}}
+        {{-- Alerta de tiempo restante (Corregida con ceil) --}}
         @php
             $expiresAt = $order->claimed_at ? $order->claimed_at->addMinutes(20) : now()->addMinutes(20);
             $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
+            $displayMinutes = ceil($minutesLeft);
         @endphp
 
         <div class="alert bg-white border-start border-4 border-warning shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
@@ -27,7 +31,7 @@
                 <i class="bi bi-hourglass-split text-warning me-1"></i> Sesión de firma activa
             </small>
             <span class="badge bg-warning text-dark fw-bold">
-                Reserva expira en {{ $minutesLeft }} min
+                Reserva expira en {{ $displayMinutes }} min
             </span>
         </div>
 
@@ -122,7 +126,7 @@
 
             <div class="card-footer bg-white p-4 border-top">
                 <div class="row align-items-center">
-                    <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
+                    <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
                         <div class="d-inline-block border p-2 bg-light rounded text-center" style="min-width: 180px;">
                             <label class="d-block small text-muted mb-1">Sello a Estampar</label>
                             @php
@@ -134,13 +138,20 @@
                         </div>
                     </div>
 
-                    <div class="col-md-8 text-md-end text-center">
+                    <div class="col-md-9 text-md-end text-center">
+                        {{-- Opción de Derivación (Solo para flujo Custom) --}}
+                        @if(!$order->exam_type_id)
+                            <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
+                                <i class="bi bi-person-gear me-1"></i> Derivar a Especialidad
+                            </button>
+                        @endif
+
                         {{-- Botón de Rechazo --}}
                         <button type="button" class="btn btn-outline-danger px-3 me-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        {{-- Botón de Firma: Parámetro actualizado a medical_order --}}
+                        {{-- Botón de Firma --}}
                         <form action="{{ route('admin.orders.sign.process', ['medical_order' => $order->id]) }}"
                               method="POST"
                               id="signature-form"
@@ -171,7 +182,6 @@
                 <h5 class="modal-title fw-bold">Rechazar Requerimiento</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            {{-- Formulario de rechazo: Parámetro actualizado a medical_order --}}
             <form action="{{ route('admin.orders.reject', ['medical_order' => $order->id]) }}" method="POST">
                 @csrf
                 <div class="modal-body">
@@ -186,6 +196,39 @@
         </div>
     </div>
 </div>
+
+{{-- MODAL DE DERIVACIÓN (Solo para Custom) --}}
+@if(!$order->exam_type_id)
+<div class="modal fade" id="derivateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">Derivar Solicitud</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('admin.orders.derivate', ['medical_order' => $order->id]) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="small text-muted">Si esta solicitud personalizada no corresponde a tu área, selecciona la especialidad correcta para que otro profesional pueda atenderla.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Asignar a Área:</label>
+                        <select name="specialty_id" class="form-select" required>
+                            <option value="">-- Seleccionar área --</option>
+                            @foreach(\App\Models\Specialty::all() as $spec)
+                                <option value="{{ $spec->id }}">{{ $spec->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Confirmar Derivación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 <style>
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }

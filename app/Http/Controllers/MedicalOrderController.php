@@ -166,7 +166,7 @@ public function rejectOrder(Request $request, $medical_order, FlowService $flowS
                 ->first();
 
             if ($gatewayTrx) {
-                Log::info("Iniciando solicitud de reembolso para GatewayTrx: {$gatewayTrx->buy_order}");
+                //Log::info("Iniciando solicitud de reembolso para GatewayTrx: {$gatewayTrx->buy_order}");
 
                 /**
                  * BALA DE PLATA:
@@ -185,12 +185,12 @@ public function rejectOrder(Request $request, $medical_order, FlowService $flowS
                 if ($refundResult) {
                     return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado exitosamente.');
                 } else {
-                    Log::error("El servicio de Flow devolvió error al intentar reembolsar la orden {$order->id}");
+                    //Log::error("El servicio de Flow devolvió error al intentar reembolsar la orden {$order->id}");
                     return redirect()->route('admin.doctor.panel')->with('error', 'Orden rechazada, pero hubo un error en el reembolso. Contacte a soporte.');
                 }
             }
 
-            Log::warning("Rechazo sin reembolso: No se encontró transacción para la orden {$order->id}");
+           // Log::warning("Rechazo sin reembolso: No se encontró transacción para la orden {$order->id}");
             return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada sin reembolso (no se encontró pago previo).');
         });
 
@@ -201,26 +201,58 @@ public function rejectOrder(Request $request, $medical_order, FlowService $flowS
 }
 
 
+public function derivateOrder(Request $request, MedicalOrder $medical_order)
+{
+    $request->validate([
+        'specialty_id' => 'required|exists:specialties,id'
+    ]);
+
+    $order = $medical_order;
+    $myDoctorId = auth()->user()->doctor->id ?? null;
+
+    // Solo el médico que tiene "tomada" la orden puede derivarla
+    if ($order->doctor_id == $myDoctorId) {
+        $order->update([
+            'doctor_id' => null,
+            'claimed_at' => null,
+            // Aquí podrías tener un campo 'target_specialty_id' en tu tabla orders
+            // O si usas el exam_type_id para filtrar, podrías dejarlo nulo
+            // y manejar un flag de "abierto a todos".
+            // Por ahora, lo liberamos para que cualquier médico lo vea.
+        ]);
+
+        return redirect()->route('admin.doctor.panel')->with('info', 'Orden derivada exitosamente.');
+    }
+
+    return redirect()->back()->with('error', 'No tienes permiso para realizar esta acción.');
+}
+
 
     /**
      * Libera la orden.
      * Cambiado $order por $medical_order.
      */
-    public function releaseOrder(MedicalOrder $medical_order)
-    {
-        $order = $medical_order;
-        $myDoctorId = auth()->user()->doctor->id ?? null;
+public function releaseOrder(Request $request, MedicalOrder $medical_order)
+{
+    $order = $medical_order;
+    $myDoctorId = auth()->user()->doctor->id ?? null;
 
-        if ($order->doctor_id == $myDoctorId) {
-            $order->doctor_id = null;
-            $order->claimed_at = null;
-            $order->save();
+    if ($order->doctor_id == $myDoctorId) {
+        $order->update([
+            'doctor_id' => null,
+            'claimed_at' => null
+        ]);
 
-            return redirect()->route('admin.doctor.panel')->with('success', 'La orden ha sido liberada.');
+        // Si viene del botón superior, quizás quiere ir al listado general
+        if($request->redirect_to === 'index') {
+            return redirect()->route('admin.orders.index')->with('success', 'Orden liberada.');
         }
 
-        return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permiso.');
+        return redirect()->route('admin.doctor.panel')->with('success', 'La orden ha sido liberada.');
     }
+
+    return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permiso.');
+}
 
     public function create()
     {
