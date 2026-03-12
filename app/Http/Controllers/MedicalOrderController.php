@@ -13,19 +13,21 @@ use Illuminate\Support\Facades\Log;
 class MedicalOrderController extends Controller
 {
     /**
-     * Listado de órdenes: Inteligente según el Rol.
+     * Listado de órdenes: Inteligente según el Rol con liberación de bloqueos.
      */
     public function index()
     {
         $user = Auth::user();
 
-        // 1. Si es doctor, liberamos órdenes que quedaron en el "limbo" (abiertas pero no firmadas)
-        if ($user->hasRole('doctor')) {
-            MedicalOrder::where('status', 'pending')
-                ->whereNotNull('doctor_id')
-                ->where('updated_at', '<', now()->subMinutes(20))
-                ->update(['doctor_id' => null]);
-        }
+        // 1. Garbage Collector: Liberamos órdenes cuyo "claimed_at" expiró (20 minutos)
+        // Esto permite que otros doctores vean órdenes que alguien tomó pero no terminó.
+        MedicalOrder::where('status', 'pending')
+            ->whereNotNull('claimed_at')
+            ->where('claimed_at', '<', now()->subMinutes(20))
+            ->update([
+                'doctor_id' => null,
+                'claimed_at' => null
+            ]);
 
         $query = MedicalOrder::with(['patient' => function($q) {
             $q->withTrashed();
@@ -35,9 +37,9 @@ class MedicalOrderController extends Controller
             $doctor = $user->doctor;
 
             $query->where(function($q) use ($doctor) {
-                // Ver lo que es mío
+                // Ver órdenes ya asignadas a mí
                 $q->where('doctor_id', $doctor->id)
-                // O ver lo pendiente de mi especialidad
+                // O ver pendientes de mi especialidad que no estén tomadas por otros
                 ->orWhere(function($sq) use ($doctor) {
                     $sq->whereNull('doctor_id')
                        ->where('status', 'pending')
@@ -59,7 +61,7 @@ class MedicalOrderController extends Controller
     }
 
     /**
-     * Muestra el formulario de firma y BLOQUEA la orden para el médico actual.
+     * Muestra el formulario de firma y MARCA la orden como reclamada (claimed_at).
      */
     public function showSignForm(MedicalOrder $order)
     {
@@ -67,43 +69,48 @@ class MedicalOrderController extends Controller
         $user = Auth::user();
         $doctor = $user->doctor;
 
-        // LÓGICA DE BLOQUEO:
-        // Si no tiene doctor, este médico la toma para que nadie más la vea en el index
-        if (!$order->doctor_id) {
-            $order->update(['doctor_id' => $doctor->id]);
-            Log::info("Médico ID: {$doctor->id} ha bloqueado la orden {$order->id} para revisión.");
-        }
-        // Si ya tiene doctor y no soy yo, prohibir acceso
-        elseif ($order->doctor_id !== $doctor->id) {
+        // VALIDACIÓN DE BLOQUEO ACTIVO
+        // Si la orden ya tiene doctor Y un reclamado reciente, y no soy yo: Bloquear.
+        if ($order->doctor_id && $order->doctor_id !== $doctor->id && $order->claimed_at > now()->subMinutes(20)) {
             return redirect()->route('admin.orders.index')
-                             ->with('error', 'Esta orden ya está siendo revisada por otro profesional.');
+                             ->with('error', 'Esta orden está siendo revisada por otro profesional.');
         }
+
+        // MARCAR COMO TOMADA: Actualizamos doctor_id y la marca de tiempo del reclamo
+        $order->update([
+            'doctor_id' => $doctor->id,
+            'claimed_at' => now()
+        ]);
+
+        Log::info("Médico ID: {$doctor->id} ha tomado la orden {$order->id} para revisión.");
 
         $doctor->load('specialty');
         return view('admin.orders.sign', compact('order'));
     }
 
     /**
-     * Procesa la firma digital y vincula la transacción financiera.
+     * Procesa la firma digital definitiva y el cobro.
      */
     public function processSignature(Request $request, MedicalOrder $order)
     {
         $doctor = Auth::user()->doctor;
 
-        if ($order->doctor_id && $order->doctor_id !== $doctor->id) {
-            abort(403, 'Esta orden ya fue tomada por otro profesional.');
+        // Seguridad: Verificar que sigue siendo el dueño del reclamo
+        if ($order->doctor_id !== $doctor->id) {
+            return redirect()->route('admin.orders.index')
+                             ->with('error', 'El tiempo de reserva de esta orden expiró y fue tomada por otro profesional.');
         }
 
-        // Usamos una transacción de BD para asegurar que firma y pago se vinculen sí o sí
         DB::transaction(function () use ($order, $doctor) {
-            // 1. Marcar como firmada
+            // 1. Actualizar Orden a Firmada
             $order->update([
-                'doctor_id' => $doctor->id,
                 'status'    => 'signed',
                 'signed_at' => now(),
+                // Mantenemos el doctor_id que ya se asignó en showSignForm
             ]);
 
-            // 2. RECLAMAR TRANSACCIÓN: Buscamos la transacción del webhook que quedó con receiver_id null
+            // 2. Vincular Transacción al Médico
+            // Buscamos el pago realizado por el paciente para esta orden específica
             Transaction::where('reference_id', $order->id)
                 ->whereNull('receiver_id')
                 ->update([
@@ -111,32 +118,37 @@ class MedicalOrderController extends Controller
                 ]);
         });
 
-        // Aquí dispararías el Job del PDF si fuera necesario
-        Log::info("Orden {$order->id} firmada y transacción asignada al médico {$doctor->id}");
+        Log::info("Orden {$order->id} firmada exitosamente por Dr. {$doctor->id}");
 
-        return redirect()->route('admin.orders.index') // O admin.doctor.panel si lo prefieres
-                        ->with('success', 'Orden firmada digitalmente con éxito y pago asignado.');
+        return redirect()->route('admin.orders.index')
+                        ->with('success', 'Orden firmada digitalmente. El pago ha sido abonado a tu cuenta.');
     }
 
     /**
-     * (Opcional) Permite al médico liberar una orden si decide no firmarla.
+     * Permite al médico liberar la orden manualmente si decide no firmarla.
      */
     public function releaseOrder(MedicalOrder $order)
     {
         $doctor = Auth::user()->doctor;
 
-        if ($order->doctor_id === $doctor->id && $order->status !== 'signed') {
-            $order->update(['doctor_id' => null]);
-            return redirect()->route('admin.orders.index')->with('info', 'Has liberado la orden para otros profesionales.');
+        if ($order->doctor_id === $doctor->id && $order->status === 'pending') {
+            $order->update([
+                'doctor_id' => null,
+                'claimed_at' => null
+            ]);
+            return redirect()->route('admin.orders.index')->with('info', 'Has liberado la orden.');
         }
 
         return redirect()->route('admin.orders.index');
     }
 
+    /**
+     * Emisión manual de órdenes por parte del médico.
+     */
     public function create()
     {
         $doctor = Auth::user()->doctor;
-        if (!$doctor) return redirect()->back()->with('error', 'No tienes un perfil de doctor asociado.');
+        if (!$doctor) return redirect()->back()->with('error', 'Perfil médico no encontrado.');
 
         $exams = ExamType::where('specialty_id', $doctor->specialty_id)
             ->orWhereHas('specialty', fn($q) => $q->where('name', 'LIKE', '%General%'))
@@ -162,9 +174,10 @@ class MedicalOrderController extends Controller
             'exam_type_id' => $request->exam_type_id,
             'amount' => $request->amount,
             'status' => 'pending',
+            'claimed_at' => now(), // Al crearla él mismo, ya queda "tomada"
             'verification_code' => MedicalOrder::generateUniqueVerificationCode(),
         ]);
 
-        return redirect()->route('admin.orders.index')->with('success', 'Orden médica generada correctamente.');
+        return redirect()->route('admin.orders.index')->with('success', 'Orden médica generada y asignada correctamente.');
     }
 }
