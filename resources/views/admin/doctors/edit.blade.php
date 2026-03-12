@@ -28,9 +28,12 @@
             <div class="bg-primary py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                {{-- CORRECCIÓN: Se usa el nombre del parámetro 'medico' que espera el Resource --}}
-                    {{-- <form id="doctor-form" action="{{ route('admin.doctors.update', ['medico' => $doctor->id]) }}" method="POST" enctype="multipart/form-data"> --}}
-                    <form id="doctor-form" action="{{ route('admin.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data">
+                {{--
+                   CORRECCIÓN FUNDAMENTAL:
+                   Se pasa $doctor directamente. Laravel Resource usa el nombre del parámetro 'medico'
+                   basado en el nombre del recurso definido en las rutas (medicos -> medico).
+                --}}
+                <form id="doctor-form" action="{{ route('admin.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -97,7 +100,7 @@
                             <div class="row p-3 border rounded bg-light mx-0">
                                 @foreach($specialties as $specialty)
                                     <div class="col-md-4 col-6 mb-2">
-                                        <div class="form-check form-check-inline">
+                                        <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="specialties[]"
                                                    value="{{ $specialty->id }}" id="spec_{{ $specialty->id }}"
                                                    {{ (is_array(old('specialties')) && in_array($specialty->id, old('specialties'))) || $doctor->specialties->contains($specialty->id) ? 'checked' : '' }}>
@@ -116,14 +119,22 @@
                         {{-- Sección: Firma Digital --}}
                         <div class="col-md-12 mt-4">
                             <label class="form-label fw-bold small text-muted">Firma Digital (Sello)</label>
-                            <div class="d-flex align-items-center gap-4 p-3 border rounded">
+                            <div class="d-flex flex-column flex-md-row align-items-center gap-4 p-3 border rounded">
                                 <div class="text-center bg-white p-2 border rounded" style="min-width: 150px;">
                                     <small class="text-muted d-block mb-2">Vista Previa Actual</small>
-                                    <img id="signature-preview"
-                                         src="{{ $doctor->signature_path ? Storage::url($doctor->signature_path) : 'https://via.placeholder.com/150x80?text=Sin+Firma' }}"
-                                         alt="Firma"
-                                         class="img-fluid"
-                                         style="max-height: 80px; object-fit: contain;">
+                                    @if($doctor->signature_path)
+                                        <img id="signature-preview"
+                                             src="{{ asset('storage/' . $doctor->signature_path) }}"
+                                             alt="Firma"
+                                             class="img-fluid"
+                                             style="max-height: 80px; object-fit: contain;">
+                                    @else
+                                        <img id="signature-preview"
+                                             src="https://via.placeholder.com/150x80?text=Sin+Firma"
+                                             alt="Firma"
+                                             class="img-fluid"
+                                             style="max-height: 80px; object-fit: contain;">
+                                    @endif
                                 </div>
                                 <div class="flex-grow-1">
                                     <input type="file" name="signature" id="signature-input"
@@ -138,8 +149,8 @@
 
                         {{-- Botones de Acción --}}
                         <div class="col-12 mt-5 pt-3 border-top">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <button type="button" class="btn btn-link text-danger text-decoration-none small" onclick="confirmDeactivation()">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <button type="button" class="btn btn-link text-danger text-decoration-none small p-0" onclick="confirmDeactivation()">
                                     <i class="bi bi-slash-circle me-1"></i> Desactivar Médico
                                 </button>
                                 <button type="submit" class="btn btn-primary px-5 shadow">
@@ -155,7 +166,7 @@
 </div>
 
 <script>
-    // Previsualización de imagen
+    // Previsualización de imagen inmediata al seleccionar archivo
     document.getElementById('signature-input').onchange = function (evt) {
         const [file] = this.files;
         if (file) {
@@ -163,11 +174,12 @@
         }
     }
 
-    // Lógica para el botón de desactivación rápida
+    // Confirmación para desactivar rápidamente
     function confirmDeactivation() {
-        if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo?')) {
+        if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo? Esto se aplicará inmediatamente al guardar.')) {
             document.getElementById('is_active_select').value = "0";
-            document.getElementById('doctor-form').submit();
+            // Opcional: podrías hacer el submit automático aquí
+            // document.getElementById('doctor-form').submit();
         }
     }
 </script>

@@ -22,8 +22,8 @@
             <div class="bg-success py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                {{-- Ajuste de ruta: admin.admin.doctors.store --}}
-                <form action="{{ route('admin.admin.doctors.store') }}" method="POST" enctype="multipart/form-data">
+                {{-- CORRECCIÓN: Ruta unificada admin.doctors.store --}}
+                <form action="{{ route('admin.doctors.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <div class="row g-4">
@@ -60,8 +60,8 @@
                                 <input type="email" name="email" class="form-control border-start-0 ps-0 @error('email') is-invalid @enderror"
                                        value="{{ old('email') }}" required placeholder="correo@institucion.cl">
                             </div>
-                            <small class="text-muted" style="font-size: 0.75rem;">
-                                * Se utilizará para el inicio de sesión. La contraseña inicial será el RUT sin puntos ni guion.
+                            <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle me-1"></i> Se utilizará para el inicio de sesión. La contraseña inicial será el RUT sin puntos ni guion.
                             </small>
                         </div>
 
@@ -75,13 +75,16 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">N° Registro SIS (RNPI)</label>
-                            <input type="text" name="rnpi_number" class="form-control @error('rnpi_number') is-invalid @enderror"
-                                   value="{{ old('rnpi_number') }}" placeholder="Ej: 123456">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash text-muted"></i></span>
+                                <input type="text" name="rnpi_number" class="form-control border-start-0 ps-0 @error('rnpi_number') is-invalid @enderror"
+                                       value="{{ old('rnpi_number') }}" placeholder="Ej: 123456">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Firma Digital (Sello)</label>
-                            <input type="file" name="signature" class="form-control @error('signature') is-invalid @enderror" accept="image/*">
+                            <input type="file" name="signature" class="form-control @error('signature') is-invalid @enderror" accept="image/png, image/jpeg">
                         </div>
 
                         <div class="col-md-12">
@@ -108,8 +111,8 @@
                         {{-- Footer de acciones --}}
                         <div class="col-12 mt-5 pt-3 border-top">
                             <div class="d-flex justify-content-between align-items-center">
-                                <a href="{{ route('admin.admin.doctors.index') }}" class="btn btn-link text-muted text-decoration-none small">
-                                    Cancelar y volver
+                                <a href="{{ route('admin.doctors.index') }}" class="btn btn-link text-muted text-decoration-none small">
+                                    <i class="bi bi-x-circle me-1"></i> Cancelar y volver
                                 </a>
                                 <button type="submit" class="btn btn-success px-5 shadow">
                                     <i class="bi bi-check-circle me-2"></i>Guardar Profesional

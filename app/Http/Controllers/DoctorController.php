@@ -13,14 +13,10 @@ use Illuminate\Validation\Rule;
 
 class DoctorController extends Controller
 {
-    /**
-     * Nombre base de las rutas para evitar repeticiones.
-     */
     protected $routePrefix = 'admin.doctors';
 
     public function index()
     {
-        // Usamos paginate en lugar de get para mejorar el rendimiento si la lista crece
         $doctors = Doctor::with(['user', 'specialties'])->latest()->paginate(10);
         return view('admin.doctors.index', compact('doctors'));
     }
@@ -37,15 +33,12 @@ class DoctorController extends Controller
             'name'        => 'required|string|max:255',
             'email'       => 'required|email|unique:users,email',
             'rut'         => 'required|string|unique:doctors,rut',
-            'rnpi_number' => 'nullable|string|max:50',
             'specialties' => 'required|array|min:1',
-            'specialties.*' => 'exists:specialties,id',
-            'signature'   => 'nullable|image|mimes:png,jpg,jpeg|max:2048', // Subimos a 2MB
+            'signature'   => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
         ]);
 
         try {
             return DB::transaction(function () use ($request) {
-                // 1. Crear Usuario. Password por defecto es el RUT sin puntos ni guion
                 $user = User::create([
                     'name'     => $request->name,
                     'email'    => $request->email,
@@ -54,17 +47,14 @@ class DoctorController extends Controller
 
                 $user->assignRole('doctor');
 
-                // 2. Procesar Firma
                 $path = $request->hasFile('signature')
                     ? $request->file('signature')->store('signatures', 'public')
                     : null;
 
-                // 3. Crear Perfil de Doctor
                 $doctor = Doctor::create([
                     'user_id'        => $user->id,
                     'rut'            => $request->rut,
                     'rnpi_number'    => $request->rnpi_number,
-                    'address'        => $request->address,
                     'signature_path' => $path,
                     'is_active'      => true,
                 ]);
@@ -74,20 +64,24 @@ class DoctorController extends Controller
                 return redirect()->route("{$this->routePrefix}.index")
                     ->with('status', 'Doctor registrado exitosamente.');
             });
-
         } catch (\Exception $e) {
-            return back()->withInput()->withErrors(['error' => 'No se pudo crear el registro: ' . $e->getMessage()]);
+            return back()->withInput()->withErrors(['error' => 'Error: ' . $e->getMessage()]);
         }
     }
 
-    public function edit(Doctor $doctor)
+    // Cambiamos el TypeHint para que coincida con el parámetro del Resource {medico}
+    public function edit(Doctor $medico)
     {
+        $doctor = $medico; // Para no romper tu vista actual que usa $doctor
         $specialties = Specialty::orderBy('name')->get();
         return view('admin.doctors.edit', compact('doctor', 'specialties'));
     }
 
-    public function update(Request $request, Doctor $doctor)
+    // Cambiamos el TypeHint aquí también
+    public function update(Request $request, Doctor $medico)
     {
+        $doctor = $medico;
+
         $request->validate([
             'name'        => 'required|string|max:255',
             'email'       => ['required', 'email', Rule::unique('users')->ignore($doctor->user_id)],
@@ -98,35 +92,28 @@ class DoctorController extends Controller
         ]);
 
         try {
-            DB::beginTransaction();
+            DB::transaction(function () use ($request, $doctor) {
+                $doctor->user->update([
+                    'name'  => $request->name,
+                    'email' => $request->email,
+                ]);
 
-            // Actualizar Usuario
-            $doctor->user->update([
-                'name'  => $request->name,
-                'email' => $request->email,
-            ]);
-
-            // Manejo de Firma (Solo si se sube una nueva)
-            if ($request->hasFile('signature')) {
-                if ($doctor->signature_path) {
-                    Storage::disk('public')->delete($doctor->signature_path);
+                if ($request->hasFile('signature')) {
+                    if ($doctor->signature_path) {
+                        Storage::disk('public')->delete($doctor->signature_path);
+                    }
+                    $doctor->signature_path = $request->file('signature')->store('signatures', 'public');
                 }
-                $doctor->signature_path = $request->file('signature')->store('signatures', 'public');
-            }
 
-            // Actualizar datos del médico
-            $doctor->fill($request->only(['rut', 'rnpi_number', 'address', 'is_active']));
-            $doctor->save();
+                $doctor->fill($request->only(['rut', 'rnpi_number', 'is_active']));
+                $doctor->save();
+                $doctor->specialties()->sync($request->specialties);
+            });
 
-            // Sincronizar especialidades
-            $doctor->specialties()->sync($request->specialties);
-
-            DB::commit();
             return redirect()->route("{$this->routePrefix}.index")
-                ->with('status', 'Perfil del médico actualizado correctamente.');
+                ->with('status', 'Perfil actualizado correctamente.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return back()->withInput()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
         }
     }
