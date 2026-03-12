@@ -91,6 +91,7 @@ class CustomOrderFlow extends Component
         }
     }
 
+
 public function submitRequest()
 {
     $this->validate([
@@ -119,14 +120,16 @@ public function submitRequest()
             ]);
         });
 
-        // EN LUGAR DE REDIRECT, LANZAMOS EVENTO
-        $this->dispatch('order-created', orderId: $order->id);
+        // El PHP le dice a la vista: "La orden está lista, envíala al pago"
+        $this->dispatch('trigger-payment-submit');
 
     } catch (\Exception $e) {
         Log::error("Error en CustomOrderFlow: " . $e->getMessage());
         $this->addError('description', 'No pudimos procesar la solicitud.');
     }
 }
+
+
 
     public function render()
     {

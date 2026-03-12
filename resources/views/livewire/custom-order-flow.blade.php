@@ -117,11 +117,11 @@
                 </span>
             </button>
 
-            {{-- FORMULARIO OCULTO PARA EL ENVÍO REAL (Evita el 405) --}}
-            <form id="post-redirect-form" action="{{ route('orders.store.public') }}" method="POST" style="display: none;">
+            {{-- FORMULARIO OCULTO PARA EL ENVÍO REAL (Controlado por PHP) --}}
+            <form id="redirect-form" action="{{ route('orders.store.public') }}" method="POST" style="display: none;">
                 @csrf
-                <input type="hidden" name="patient_id" id="hidden_patient_id">
-                <input type="hidden" name="custom_description" id="hidden_description">
+                <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
+                <input type="hidden" name="custom_description" value="{{ $description }}">
                 <input type="hidden" name="type" value="custom">
             </form>
         </div>
@@ -129,15 +129,9 @@
 
     <script>
         document.addEventListener('livewire:init', () => {
-            Livewire.on('order-created', (event) => {
-                const data = Array.isArray(event) ? event[0] : (event.detail ? event.detail : event);
-
-                // Llenamos el formulario oculto con los datos de Livewire
-                document.getElementById('hidden_patient_id').value = data.patientId;
-                document.getElementById('hidden_description').value = data.description;
-
-                // Hacemos el submit por POST a la ruta que ya funciona
-                document.getElementById('post-redirect-form').submit();
+            // El script ahora es "tonto": solo escucha la orden del PHP y hace submit
+            Livewire.on('order-created', () => {
+                document.getElementById('redirect-form').submit();
             });
         });
     </script>
