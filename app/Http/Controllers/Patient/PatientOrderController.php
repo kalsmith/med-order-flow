@@ -135,15 +135,16 @@ public function store(Request $request)
      */
 public function index()
 {
-    $patient = auth()->user()->patients()->where('relationship', 'self')->first();
+    // 1. Obtenemos los IDs de TODOS los pacientes asociados a este usuario
+    $patientIds = auth()->user()->patients()->pluck('id');
 
-    if (!$patient) {
-        return redirect()->route('home')->with('error', 'Perfil de paciente no encontrado.');
+    if ($patientIds->isEmpty()) {
+        return redirect()->route('home')->with('error', 'No se encontraron perfiles de paciente.');
     }
 
-    // Corregido: Cargamos examType y su relación specialty anidada
-    $orders = MedicalOrder::where('patient_id', $patient->id)
-        ->with(['examType.specialty'])
+    // 2. Buscamos órdenes donde el patient_id esté en esa lista de IDs
+    $orders = MedicalOrder::whereIn('patient_id', $patientIds)
+        ->with(['examType.specialty', 'patient']) // Cargamos 'patient' para saber de quién es la orden
         ->orderBy('created_at', 'desc')
         ->paginate(10);
 
