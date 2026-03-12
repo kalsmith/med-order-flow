@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class Doctor extends Model
@@ -85,19 +86,36 @@ class Doctor extends Model
         return $this->user ? $this->user->name : 'Sin Nombre';
     }
 
-    public static function getNextAvailableForSpecialty($specialtyId)
-    {
-        return self::where('is_active', true)
-            ->whereHas('specialties', function($q) use ($specialtyId) {
-                $q->where('specialties.id', $specialtyId);
-            })
-            // 1. Priorizamos a los que NUNCA han recibido una orden (NULLs primero)
-            ->orderByRaw('last_assigned_at IS NULL DESC')
-            // 2. Luego por fecha (el más antiguo primero)
-            ->orderBy('last_assigned_at', 'asc')
-            // 3. DESEMPATE FINAL: Por ID (el más bajo primero)
-            // Esto asegura que si dos son NULL, el ID 1 vaya antes que el ID 2
-            ->orderBy('id', 'asc')
-            ->first();
+public static function getNextAvailableForSpecialty($specialtyId)
+{
+    // 1. Ver cuántos doctores tienen esta especialidad en total
+    $candidates = self::where('is_active', true)
+        ->whereHas('specialties', function($q) use ($specialtyId) {
+            $q->where('specialties.id', $specialtyId);
+        })->get();
+
+    Log::info("ROTACIÓN: Buscando para Especialidad ID: {$specialtyId}");
+    Log::info("ROTACIÓN: Doctores candidatos encontrados: " . $candidates->pluck('id')->join(', '));
+
+    foreach ($candidates as $c) {
+        Log::info("ROTACIÓN: Doctor ID: {$c->id} | last_assigned_at: " . ($c->last_assigned_at ?? 'NULL'));
     }
+
+    $winner = self::where('is_active', true)
+        ->whereHas('specialties', function($q) use ($specialtyId) {
+            $q->where('specialties.id', $specialtyId);
+        })
+        ->orderByRaw('last_assigned_at IS NULL DESC')
+        ->orderBy('last_assigned_at', 'asc')
+        ->orderBy('id', 'asc')
+        ->first();
+
+    if ($winner) {
+        \Log::info("ROTACIÓN: >>> GANADOR SELECCIONADO: ID {$winner->id}");
+    } else {
+        \Log::error("ROTACIÓN: !!! NO SE ENCONTRÓ NINGÚN DOCTOR DISPONIBLE");
+    }
+
+    return $winner;
+}
 }
