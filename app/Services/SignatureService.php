@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 class SignatureService
 {
-    protected $forceFailure = true;
+    protected $forceFailure = false;
 
     public function sign(MedicalOrder $order)
     {
