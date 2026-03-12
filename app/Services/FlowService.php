@@ -72,56 +72,56 @@ class FlowService
     /**
      * Procesa el Webhook (Server-to-Server)
      */
-
 public function handleWebhook(string $token)
-    {
-        $status = $this->getPaymentStatus($token);
+{
+    Log::info("WEBHOOK: Recibido token " . $token);
+    $status = $this->getPaymentStatus($token);
 
-        // Status 2 = Pagado con éxito en Flow
-        if ($status && (int)$status->status === 2) {
-            return DB::transaction(function () use ($status, $token) {
-                $gatewayTrx = GatewayTransaction::where('buy_order', $status->commerceOrder)
-                    ->where('status', 'pending')
-                    ->first();
+    if ($status && (int)$status->status === 2) {
+        Log::info("WEBHOOK: Pago confirmado por Flow para la orden: " . $status->commerceOrder);
 
-                if (!$gatewayTrx) return false;
+        return DB::transaction(function () use ($status, $token) {
+            $gatewayTrx = GatewayTransaction::where('buy_order', $status->commerceOrder)
+                ->where('status', 'pending')
+                ->first();
 
-                $gatewayTrx->update([
-                    'status' => 'authorized',
-                    'raw_response' => (array)$status
-                ]);
+            if (!$gatewayTrx) {
+                Log::warning("WEBHOOK: No se encontró GatewayTransaction pendiente para " . $status->commerceOrder);
+                return false;
+            }
 
-                // Cargamos la orden con su doctor para tener el user_id a mano
-                $order = MedicalOrder::with('doctor')->find($gatewayTrx->payable_id);
+            $order = MedicalOrder::with('doctor')->find($gatewayTrx->payable_id);
+            Log::info("WEBHOOK: Procesando Orden ID: {$order->id} | Tipo: {$order->type}");
 
-                if (!$order) return false;
+            // --- FLUJO STANDARD ---
+            if ($order->type === 'standard') {
+                Log::info("WEBHOOK: Entrando a flujo STANDARD");
+                $signatureService = app(\App\Services\SignatureService::class);
+                $signatureResult = $signatureService->sign($order);
 
-                // --- FLUJO STANDARD (Auto-firma) ---
-                if ($order->type === 'standard') {
-                    $signatureService = app(\App\Services\SignatureService::class);
-                    $signatureResult = $signatureService->sign($order);
-
-                    if ($signatureResult->success) {
-                        $order->finalizePayment(); // Pasa a 'signed' o 'completed'
-                        $this->registerTransaction($gatewayTrx, $order, $token, $status);
-                        return true;
-                    } else {
-                        // Si falla la firma, preparamos reembolso
-                        $order->update(['status' => 'refund_pending']);
-                        $this->requestRefund($order, $gatewayTrx);
-                        return false;
-                    }
+                if ($signatureResult && $signatureResult->success) {
+                    Log::info("WEBHOOK: Firma exitosa, finalizando...");
+                    $order->finalizePayment();
+                    $this->registerTransaction($gatewayTrx, $order, $token, $status);
+                    return true;
+                } else {
+                    Log::error("WEBHOOK: Falló la firma");
+                    $order->update(['status' => 'refund_pending']);
+                    return false;
                 }
+            }
 
-                // --- FLUJO CUSTOM (Espera revisión médica) ---
-                $order->finalizePayment(); // Pasa a 'paid'
-                $this->registerTransaction($gatewayTrx, $order, $token, $status);
-                return true;
-            });
-        }
-        return false;
+            // --- FLUJO CUSTOM ---
+            Log::info("WEBHOOK: Entrando a flujo CUSTOM");
+            $order->finalizePayment();
+            $this->registerTransaction($gatewayTrx, $order, $token, $status);
+            return true;
+        });
     }
 
+    Log::error("WEBHOOK: El status de Flow no fue exitoso (2). Status: " . json_encode($status));
+    return false;
+}
 
 
     private function registerTransaction($gatewayTrx, $order, $token, $status) {
