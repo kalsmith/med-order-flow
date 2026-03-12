@@ -19,6 +19,7 @@ class FlowController extends Controller
     // Webhook: Recibe la confirmación silenciosa de Flow
     public function confirmation(Request $request)
     {
+        Log::info("¡WEBHOOK DETECTADO! Datos recibidos: ", $request->all());
         $token = $request->input('token');
         try {
             $this->flowService->handleWebhook($token);
