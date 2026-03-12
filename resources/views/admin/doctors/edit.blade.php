@@ -29,7 +29,7 @@
 
             <div class="card-body p-4 p-md-5">
                 {{-- CORRECCIÓN: Se pasa el objeto $doctor directamente para que Laravel use el parámetro 'medico' --}}
-                <form action="{{ route('admin.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.doctors.update', ['medico' => $doctor->id]) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
