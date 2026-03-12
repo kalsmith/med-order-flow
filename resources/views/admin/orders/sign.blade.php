@@ -3,7 +3,7 @@
 @section('header', 'Firma de Orden Médica')
 
 @section('header-actions')
-    {{-- Formulario para liberar la orden explícitamente al salir --}}
+    {{-- Formulario para liberar la orden --}}
     <form action="{{ route('admin.orders.release', $order->id) }}" method="POST" class="d-inline">
         @csrf
         <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm">
@@ -16,7 +16,7 @@
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
 
-        {{-- Alerta de tiempo restante de la "Toma" --}}
+        {{-- Alerta de tiempo restante --}}
         @php
             $expiresAt = $order->claimed_at ? $order->claimed_at->addMinutes(20) : now()->addMinutes(20);
             $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
@@ -75,7 +75,7 @@
                         <hr class="opacity-10 my-0">
                     </div>
 
-                    {{-- Detalle del Requerimiento --}}
+                    {{-- Detalle --}}
                     <div class="col-12">
                         <label class="text-muted small text-uppercase fw-bold">Detalle del Examen / Requerimiento</label>
                         <div class="mt-2 p-3 bg-light rounded border">
@@ -94,7 +94,6 @@
                         </div>
                     </div>
 
-                    {{-- Info sobre la firma --}}
                     <div class="col-12 mt-4">
                         <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-0">
                             <i class="bi bi-info-circle-fill fs-4 me-3"></i>
@@ -109,7 +108,6 @@
 
             <div class="card-footer bg-white p-4 border-top">
                 <div class="row align-items-center">
-                    {{-- Visualización de Firma --}}
                     <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
                         <div class="d-inline-block border p-2 bg-light rounded text-center" style="min-width: 180px;">
                             <label class="d-block small text-muted mb-1">Sello a Estampar</label>
@@ -119,14 +117,14 @@
                         </div>
                     </div>
 
-                    {{-- Botones de Acción --}}
                     <div class="col-md-8 text-md-end text-center">
-                        {{-- Botón de Rechazo (Dispara Modal) --}}
-                        <button type="button" class="btn btn-outline-danger px-3 me-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        {{-- Botón de Rechazo --}}
+                        <button type="button" class="btn btn-outline-danger px-3 me-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        <form action="{{ route('admin.orders.sign.process', $order->id) }}" method="POST">
+                        {{-- Botón de Firma --}}
+                        <form action="{{ route('admin.orders.sign.process', $order->id) }}" method="POST" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-success btn-lg px-4 shadow">
                                 <i class="bi bi-vector-pen me-2"></i> Confirmar y Firmar
@@ -137,32 +135,27 @@
             </div>
         </div>
 
-        {{-- Advertencia legal --}}
         <div class="text-center px-4">
             <p class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">
-                Este sistema cumple con los estándares de la Ley N° 20.584 y el Reglamento sobre Ficha Clínica Electrónica.
-                La firma digital tiene validez legal y el proceso queda registrado con trazabilidad completa (IP {{ request()->ip() }}).
+                Este sistema cumple con los estándares de la Ley N° 20.584. IP: {{ request()->ip() }}
             </p>
         </div>
     </div>
 </div>
 
 {{-- MODAL DE RECHAZO --}}
-<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title fw-bold" id="rejectModalLabel">Rechazar Requerimiento</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-target="#rejectModal" data-bs-toggle="modal" aria-label="Close"></button>
+                <h5 class="modal-title fw-bold">Rechazar Requerimiento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="{{ route('admin.orders.reject', $order->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <p class="text-muted">Explique brevemente por qué no es posible emitir esta orden. Esta información será revisada por administración.</p>
-                    <div class="form-group">
-                        <label class="fw-bold mb-2">Motivo del Rechazo:</label>
-                        <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Ej: No corresponde a mi especialidad, requiere evaluación presencial, etc." required></textarea>
-                    </div>
+                    <p class="text-muted">Explique por qué rechaza esta orden.</p>
+                    <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Motivo..." required></textarea>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -177,6 +170,5 @@
     .text-purple { color: #7e22ce; }
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
-    .border-warning { border-left-color: #ffc107 !important; }
 </style>
 @endsection
