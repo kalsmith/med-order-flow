@@ -32,7 +32,6 @@ class FlowService
         $endpoint = $this->urlBase . '/payment/create';
         $buyOrder = "MED-" . strtoupper(bin2hex(random_bytes(4)));
 
-        // Registro de la transacción técnica
         $gatewayTrx = GatewayTransaction::create([
             'user_id' => auth()->id(),
             'gateway' => 'flow',
@@ -72,74 +71,75 @@ class FlowService
     /**
      * Procesa el Webhook (Server-to-Server)
      */
-public function handleWebhook(string $token)
-{
-    Log::info("WEBHOOK: Recibido token " . $token);
-    $status = $this->getPaymentStatus($token);
+    public function handleWebhook(string $token)
+    {
+        Log::info("WEBHOOK: Recibido token " . $token);
+        $status = $this->getPaymentStatus($token);
 
-    if ($status && (int)$status->status === 2) {
-        Log::info("WEBHOOK: Pago confirmado por Flow para la orden: " . $status->commerceOrder);
+        if ($status && (int)$status->status === 2) {
+            Log::info("WEBHOOK: Pago confirmado por Flow para la orden: " . $status->commerceOrder);
 
-        return DB::transaction(function () use ($status, $token) {
-            $gatewayTrx = GatewayTransaction::where('buy_order', $status->commerceOrder)
-                ->where('status', 'pending')
-                ->first();
+            return DB::transaction(function () use ($status, $token) {
+                $gatewayTrx = GatewayTransaction::where('buy_order', $status->commerceOrder)
+                    ->where('status', 'pending')
+                    ->first();
 
-            if (!$gatewayTrx) {
-                Log::warning("WEBHOOK: No se encontró GatewayTransaction pendiente para " . $status->commerceOrder);
-                return false;
-            }
-
-            $order = MedicalOrder::with('doctor')->find($gatewayTrx->payable_id);
-            Log::info("WEBHOOK: Procesando Orden ID: {$order->id} | Tipo: {$order->type}");
-
-            // --- FLUJO STANDARD ---
-            if ($order->type === 'standard') {
-                Log::info("WEBHOOK: Entrando a flujo STANDARD");
-                $signatureService = app(\App\Services\SignatureService::class);
-                $signatureResult = $signatureService->sign($order);
-
-                if ($signatureResult && $signatureResult->success) {
-                    Log::info("WEBHOOK: Firma exitosa, finalizando...");
-                    $order->finalizePayment();
-                    $this->registerTransaction($gatewayTrx, $order, $token, $status);
-                    return true;
-                } else {
-                    Log::error("WEBHOOK: Falló la firma");
-                    $order->update(['status' => 'refund_pending']);
-                    // 2. LLAMADA CRUCIAL: Aquí es donde invocamos a Flow para devolver el dinero
-                    $this->requestRefund($order, $gatewayTrx);
-
-
+                if (!$gatewayTrx) {
+                    Log::warning("WEBHOOK: No se encontró GatewayTransaction pendiente para " . $status->commerceOrder);
                     return false;
                 }
-            }
 
-            // --- FLUJO CUSTOM ---
-            Log::info("WEBHOOK: Entrando a flujo CUSTOM");
-            $order->finalizePayment();
-            $this->registerTransaction($gatewayTrx, $order, $token, $status);
-            return true;
-        });
+                // Cargamos orden con doctor y paciente.user para el correo del reembolso
+                $order = MedicalOrder::with(['doctor', 'patient.user'])->find($gatewayTrx->payable_id);
+                Log::info("WEBHOOK: Procesando Orden ID: {$order->id} | Tipo: {$order->type}");
+
+                // --- FLUJO STANDARD ---
+                if ($order->type === 'standard') {
+                    Log::info("WEBHOOK: Entrando a flujo STANDARD");
+                    $signatureService = app(\App\Services\SignatureService::class);
+                    $signatureResult = $signatureService->sign($order);
+
+                    if ($signatureResult && $signatureResult->success) {
+                        Log::info("WEBHOOK: Firma exitosa, finalizando...");
+                        $order->finalizePayment();
+                        $this->registerTransaction($gatewayTrx, $order, $token, $status);
+                        return true;
+                    } else {
+                        Log::error("WEBHOOK: Falló la firma");
+                        $order->update(['status' => 'refund_pending']);
+
+                        // Invocamos reembolso pasando el flowOrder (ID de Flow) para asegurar el match
+                        $this->requestRefund($order, $gatewayTrx, $status->flowOrder);
+
+                        return false;
+                    }
+                }
+
+                // --- FLUJO CUSTOM ---
+                Log::info("WEBHOOK: Entrando a flujo CUSTOM");
+                $order->finalizePayment();
+                $this->registerTransaction($gatewayTrx, $order, $token, $status);
+                return true;
+            });
+        }
+
+        Log::error("WEBHOOK: El status de Flow no fue exitoso (2). Status: " . json_encode($status));
+        return false;
     }
 
-    Log::error("WEBHOOK: El status de Flow no fue exitoso (2). Status: " . json_encode($status));
-    return false;
-}
-
-
+    /**
+     * Registra la transacción contable interna
+     */
     private function registerTransaction($gatewayTrx, $order, $token, $status) {
-        // Obtenemos el ID de usuario del doctor, no el ID de la tabla doctors
         $receiverId = $order->doctor ? $order->doctor->user_id : null;
 
         if (!$receiverId) {
             Log::error("No se pudo registrar transacción: El doctor asignado a la orden {$order->id} no tiene un user_id vinculado.");
-            // Opcional: podrías lanzar una excepción aquí para hacer rollback del webhook
         }
 
         Transaction::create([
             'sender_id'      => $gatewayTrx->user_id,
-            'receiver_id'    => $receiverId, // Corregido: Ahora usa el ID de la tabla users
+            'receiver_id'    => $receiverId,
             'reference_id'   => $order->id,
             'reference_code' => $gatewayTrx->buy_order,
             'amount'         => $gatewayTrx->amount,
@@ -153,6 +153,9 @@ public function handleWebhook(string $token)
         ]);
     }
 
+    /**
+     * Obtiene el estado del pago desde Flow
+     */
     public function getPaymentStatus(string $token)
     {
         $params = ['apiKey' => $this->apiKey, 'token' => $token];
@@ -161,6 +164,9 @@ public function handleWebhook(string $token)
         return $response->successful() ? $response->object() : null;
     }
 
+    /**
+     * Genera la firma HMAC para Flow
+     */
     protected function makeSignature(array $params): string
     {
         ksort($params);
@@ -171,74 +177,65 @@ public function handleWebhook(string $token)
         return hash_hmac('sha256', $toSign, $this->secretKey);
     }
 
-
     /**
- * Solicita un reembolso a Flow si la firma falla
- */
+     * Solicita un reembolso a Flow
+     */
+    public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTrx, $flowTrxId = null)
+    {
+        // URL Hardcoded para Sandbox según solicitud
+        $endpoint = 'https://sandbox.flow.cl/api/refund/create';
+        $refundOrder = "REF-" . strtoupper(bin2hex(random_bytes(4)));
 
-    /**
- * Solicita un reembolso a Flow si la firma falla
- */
-/**
- * Solicita un reembolso a Flow si la firma falla (URL Hardcoded Sandbox)
- */
-public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTrx)
-{
-    // URL Hardcoded para pruebas en Sandbox
-    $endpoint = 'https://sandbox.flow.cl/api/refund/create';
+        $params = [
+            'apiKey'               => $this->apiKey,
+            'refundCommerceOrder'  => $refundOrder,
+            'receiverEmail'        => $order->patient->user->email,
+            'amount'               => (int)$order->amount,
+            'urlCallBack'          => route('flow.refund.webhook'),
+        ];
 
-    $refundOrder = "REF-" . strtoupper(bin2hex(random_bytes(4)));
-
-    // IMPORTANTE: Asegúrate de que el commerceTrxId sea exactamente el que Flow recibió originalmente
-    $params = [
-        'apiKey'               => $this->apiKey,
-        'refundCommerceOrder'  => $refundOrder,
-        'receiverEmail'        => $order->patient->user->email,
-        'amount'               => (int)$order->amount,
-        'urlCallBack'          => route('flow.refund.webhook'),
-        'commerceTrxId'        => $gatewayTrx->buy_order,
-    ];
-
-    // Generar la firma con estos parámetros
-    $params['s'] = $this->makeSignature($params);
-
-    try {
-        Log::warning("SOLICITANDO REEMBOLSO (HARDCODED URL): Orden {$order->id}");
-
-        $response = Http::asForm()->post($endpoint, $params);
-
-        if ($response->successful()) {
-            $res = $response->object();
-
-            $order->update([
-                'flow_refund_id' => $res->token,
-                'status' => 'refunded', // O el estado que prefieras para indicar que ya se tramitó
-                'internal_notes' => $order->internal_notes . "\n[Reembolso Flow Creado: {$res->flowRefundOrder} el " . now() . "]"
-            ]);
-
-            Log::info("REEMBOLSO FLOW CREADO EXITOSAMENTE", [
-                'token' => $res->token,
-                'flowOrder' => $res->flowRefundOrder
-            ]);
-
-            return true;
+        // Usamos el ID interno de Flow si está disponible (Bala de plata)
+        if ($flowTrxId) {
+            $params['flowTrxId'] = $flowTrxId;
+        } else {
+            $params['commerceTrxId'] = $gatewayTrx->buy_order;
         }
 
-        // Logueamos el error detallado para ver por qué Flow dice que no encuentra el pago
-        Log::error("ERROR API FLOW REEMBOLSO", [
-            'status' => $response->status(),
-            'body' => $response->json(),
-            'sent_params' => collect($params)->except('apiKey')->toArray() // Ver los IDs enviados
-        ]);
+        $params['s'] = $this->makeSignature($params);
 
-        return false;
+        try {
+            Log::warning("SOLICITANDO REEMBOLSO FLOW: Orden {$order->id} | FlowID: {$flowTrxId}");
 
-    } catch (\Exception $e) {
-        Log::error("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
-        return false;
+            $response = Http::asForm()->post($endpoint, $params);
+
+            if ($response->successful()) {
+                $res = $response->object();
+
+                $order->update([
+                    'flow_refund_id' => $res->token,
+                    'status' => 'refunded',
+                    'internal_notes' => $order->internal_notes . "\n[Reembolso Flow Creado: {$res->flowRefundOrder} el " . now() . "]"
+                ]);
+
+                Log::info("REEMBOLSO FLOW CREADO EXITOSAMENTE", [
+                    'token' => $res->token,
+                    'flowOrder' => $res->flowRefundOrder
+                ]);
+
+                return true;
+            }
+
+            Log::error("ERROR API FLOW REEMBOLSO", [
+                'status' => $response->status(),
+                'body' => $response->json(),
+                'flowTrxId_usado' => $flowTrxId
+            ]);
+
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
+            return false;
+        }
     }
-}
-
-
-
 }
