@@ -86,12 +86,18 @@ class Doctor extends Model
     }
 
     public static function getNextAvailableForSpecialty($specialtyId)
-{
-    return self::active()
-        ->whereHas('specialties', function($q) use ($specialtyId) {
-            $q->where('specialties.id', $specialtyId);
-        })
-        ->orderBy('last_assigned_at', 'asc') // El que lleva más tiempo esperando
-        ->first();
-}
+    {
+        return self::where('is_active', true)
+            ->whereHas('specialties', function($q) use ($specialtyId) {
+                $q->where('specialties.id', $specialtyId);
+            })
+            // 1. Priorizamos a los que NUNCA han recibido una orden (NULLs primero)
+            ->orderByRaw('last_assigned_at IS NULL DESC')
+            // 2. Luego por fecha (el más antiguo primero)
+            ->orderBy('last_assigned_at', 'asc')
+            // 3. DESEMPATE FINAL: Por ID (el más bajo primero)
+            // Esto asegura que si dos son NULL, el ID 1 vaya antes que el ID 2
+            ->orderBy('id', 'asc')
+            ->first();
+    }
 }
