@@ -30,6 +30,15 @@ public function handle(Request $request, $type, $id = null)
         return view('front.flow.confirm-pack', compact('exam_type', 'patient'));
     }
 
+    // NUEVO: Si es un Examen Individual
+    if ($type === 'exam' && $id) {
+        $exam_type = ExamType::findOrFail($id);
+        // Aquí puedes usar la misma vista de confirmación de pack
+        // o una específica llamada 'confirm-exam'
+        return view('front.flow.confirm-exam', compact('exam_type', 'patient'));
+    }
+
+
     if ($type === 'personalizada') {
         return view('front.flow.custom-request', compact('patient'));
     }
