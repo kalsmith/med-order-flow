@@ -94,6 +94,8 @@ class CustomOrderFlow extends Component
 
 public function submitRequest()
 {
+    Log::info("En SubmitRequest");
+
     $this->validate([
         'selected_patient_id' => 'required',
         'description' => 'required|min:10',

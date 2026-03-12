@@ -94,45 +94,52 @@
         </div>
     @endif
 
-    {{-- Formulario de Orden Custom --}}
-    @if($selected_patient_id && !$showAddFamily)
-        <div class="text-start mt-4 animate__animated animate__fadeIn">
-            <div class="d-flex align-items-center mb-2">
-                <label class="fw-bold small text-uppercase text-muted mb-0">Detalle de tu requerimiento</label>
-                <hr class="flex-grow-1 ms-3 opacity-10">
-            </div>
+{{-- ... Todo el selector de pacientes y formulario familiar igual ... --}}
 
-            <textarea wire:model="description"
-                      class="form-control mb-3 @error('description') is-invalid @enderror"
-                      rows="5"
-                      style="border-radius: 15px; resize: none;"
-                      placeholder="Escribe aquí los exámenes que necesitas o describe tus síntomas..."></textarea>
-            @error('description') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
-
-            {{-- BOTÓN DE ENVÍO --}}
-            <button wire:click="submitRequest" wire:loading.attr="disabled" class="btn btn-primary btn-send w-100 shadow-sm py-3 fw-bold rounded-pill">
-                <span wire:loading.remove>Continuar al Pago <i class="bi bi-credit-card ms-2"></i></span>
-                <span wire:loading>
-                    <span class="spinner-border spinner-border-sm me-2"></span>Procesando...
-                </span>
-            </button>
-
-            {{-- FORMULARIO OCULTO PARA EL ENVÍO REAL (Controlado por PHP) --}}
-            <form id="redirect-form" action="{{ route('orders.store.public') }}" method="POST" style="display: none;">
-                @csrf
-                <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
-                <input type="hidden" name="custom_description" value="{{ $description }}">
-                <input type="hidden" name="type" value="custom">
-            </form>
+@if($selected_patient_id && !$showAddFamily)
+    <div class="text-start mt-4 animate__animated animate__fadeIn">
+        {{-- Label y TextArea --}}
+        <div class="d-flex align-items-center mb-2">
+            <label class="fw-bold small text-uppercase text-muted mb-0">Detalle de tu requerimiento</label>
+            <hr class="flex-grow-1 ms-3 opacity-10">
         </div>
-    @endif
 
-    <script>
-        document.addEventListener('livewire:init', () => {
-            // El script ahora es "tonto": solo escucha la orden del PHP y hace submit
-            Livewire.on('order-created', () => {
+        <textarea wire:model="description"
+                  class="form-control mb-3 @error('description') is-invalid @enderror"
+                  rows="5"
+                  style="border-radius: 15px; resize: none;"
+                  placeholder="Escribe aquí los exámenes que necesitas..."></textarea>
+        @error('description') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
+
+        {{-- BOTÓN DE ENVÍO --}}
+        <button wire:click="submitRequest"
+                wire:loading.attr="disabled"
+                class="btn btn-primary btn-send w-100 shadow-sm py-3 fw-bold rounded-pill">
+            <span wire:loading.remove>Continuar al Pago <i class="bi bi-credit-card ms-2"></i></span>
+            <span wire:loading>
+                <span class="spinner-border spinner-border-sm me-2"></span>Procesando...
+            </span>
+        </button>
+
+        {{-- FORMULARIO OCULTO --}}
+        {{-- Usamos wire:model para que el valor sea reactivo y no se quede vacío --}}
+        <form id="redirect-form" action="{{ route('orders.store.public') }}" method="POST" style="display: none;">
+            @csrf
+            <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
+            <input type="hidden" name="type" value="custom">
+            {{-- Importante: Usar el valor actual de la propiedad --}}
+            <textarea name="custom_description">{{ $description }}</textarea>
+        </form>
+    </div>
+@endif
+
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('trigger-submit', () => {
+            // Un pequeño retraso para asegurar que Livewire terminó de sincronizar el último caracter
+            setTimeout(() => {
                 document.getElementById('redirect-form').submit();
-            });
+            }, 150);
         });
-    </script>
-</div>
+    });
+</script>
