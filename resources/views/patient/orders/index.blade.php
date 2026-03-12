@@ -61,84 +61,79 @@
         @else
             <div class="row g-4">
                 @foreach($orders as $order)
-                <div class="col-12">
-                    <div class="card card-order border-0 shadow-sm overflow-hidden">
-                        <div class="card-body p-4">
-                            <div class="row align-items-center">
-                                <div class="col-md-5 mb-3 mb-md-0">
-                                    <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
-                                        <span class="badge bg-light text-primary border" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
-                                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
-                                        {{-- Nuevo: Etiqueta del Paciente --}}
-                                        <span class="patient-tag"><i class="bi bi-person me-1"></i>{{ $order->patient->full_name ?? 'Titular' }}</span>
-                                    </div>
+                {{-- ... dentro del @foreach($orders as $order) ... --}}
 
-                                    <h5 class="fw-bold mb-1 text-dark">
-                                        @if($order->type === 'custom')
-                                            Solicitud Especial
-                                        @else
-                                            {{ $order->examType->name ?? 'Examen General' }}
-                                        @endif
-                                    </h5>
+<div class="col-12">
+    <div class="card card-order border-0 shadow-sm overflow-hidden">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-5 mb-3 mb-md-0">
+                    {{-- ... (Cabecera de la orden igual) ... --}}
 
-                                    <p class="text-muted small mb-0">
-                                        <i class="bi bi-hospital me-1"></i>
-                                        @if($order->type === 'custom')
-                                            Revisión por Especialista
-                                        @else
-                                            {{ $order->examType->specialty->name ?? 'Especialidad Médica' }}
-                                        @endif
-                                    </p>
-                                </div>
+                    <h5 class="fw-bold mb-1 text-dark">
+                        {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
+                    </h5>
 
-                                <div class="col-md-3 text-md-center mb-3 mb-md-0">
-                                    <div class="mb-1">
-                                        @switch($order->status)
-                                            @case('pending')
-                                                <span class="badge badge-status bg-warning-subtle text-warning border border-warning-subtle">Pendiente de Pago</span>
-                                                @break
-                                            @case('paid')
-                                                <span class="badge badge-status bg-info-subtle text-info border border-info-subtle">En Revisión</span>
-                                                @break
-                                            @case('signed')
-                                                <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
-                                                @break
-                                            @case('cancelled')
-                                                <span class="badge badge-status bg-secondary-subtle text-secondary border border-secondary-subtle">Anulada</span>
-                                                @break
-                                            @default
-                                                <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">{{ ucfirst($order->status) }}</span>
-                                        @endswitch
-                                    </div>
-                                    <div class="fw-bold text-dark fs-5">$ {{ number_format($order->amount, 0, ',', '.') }}</div>
-                                </div>
-
-                                <div class="col-md-4 text-md-end">
-                                    <div class="d-flex gap-2 justify-content-md-end">
-                                        @if($order->status === 'pending')
-                                            {{-- ACTUALIZADO: Cambiado checkout.index por checkout.process --}}
-                                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
-                                                <i class="bi bi-credit-card me-2"></i> Pagar
-                                            </a>
-                                        @elseif($order->status === 'signed')
-                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm">
-                                                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar
-                                            </a>
-                                        @endif
-
-                                        @if($order->status === 'rejected' && $order->rejection_reason)
-                                            <button class="btn btn-outline-danger btn-action"
-                                                onclick="alert('Motivo de rechazo: {{ $order->rejection_reason }}')"
-                                                title="Ver motivo">
-                                                <i class="bi bi-info-circle"></i>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
+                    {{-- AVISO DE REEMBOLSO SI CORRESPONDE --}}
+                    @if(in_array($order->status, ['rejected', 'refund_pending']))
+                        <div class="mt-2 p-2 bg-light border-start border-4 border-info rounded-end" style="font-size: 0.8rem;">
+                            <i class="bi bi-info-circle-fill text-info me-1"></i>
+                            <strong>Nota sobre reembolso:</strong> El tiempo de devolución depende de la pasarela de pagos. Por favor, revise su correo electrónico para más detalles.
                         </div>
+                    @endif
+                </div>
+
+                <div class="col-md-3 text-md-center mb-3 mb-md-0">
+                    <div class="mb-1">
+                        @switch($order->status)
+                            @case('pending')
+                                <span class="badge badge-status bg-warning-subtle text-warning border border-warning-subtle">Pendiente de Pago</span>
+                                @break
+                            @case('paid')
+                                <span class="badge badge-status bg-info-subtle text-info border border-info-subtle">En Revisión</span>
+                                @break
+                            @case('signed')
+                                <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
+                                @break
+                            @case('refund_pending')
+                                <span class="badge badge-status bg-primary-subtle text-primary border border-primary-subtle">Reembolso en Trámite</span>
+                                @break
+                            @case('rejected')
+                                <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Orden Rechazada</span>
+                                @break
+                            @default
+                                <span class="badge badge-status bg-secondary-subtle text-secondary border border-secondary-subtle">{{ ucfirst($order->status) }}</span>
+                        @endswitch
+                    </div>
+                    <div class="fw-bold text-dark fs-5">$ {{ number_format($order->amount, 0, ',', '.') }}</div>
+                </div>
+
+                <div class="col-md-4 text-md-end">
+                    <div class="d-flex gap-2 justify-content-md-end">
+                        @if($order->status === 'pending')
+                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
+                                <i class="bi bi-credit-card me-2"></i> Pagar
+                            </a>
+                        @elseif($order->status === 'signed')
+                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm">
+                                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar
+                            </a>
+                        @endif
+
+                        {{-- Botón de Info para Rechazo --}}
+                        @if($order->status === 'rejected' && $order->rejection_reason)
+                            <button class="btn btn-outline-danger btn-action"
+                                    onclick="Swal.fire('Motivo del Rechazo', '{{ $order->rejection_reason }}', 'info')"
+                                    title="Ver motivo">
+                                <i class="bi bi-chat-left-text"></i> Motivo
+                            </button>
+                        @endif
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
                 @endforeach
             </div>
 
