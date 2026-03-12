@@ -62,23 +62,35 @@
             <div class="row g-4">
                 @foreach($orders as $order)
                 {{-- ... dentro del @foreach($orders as $order) ... --}}
-
 <div class="col-12">
     <div class="card card-order border-0 shadow-sm overflow-hidden">
         <div class="card-body p-4">
             <div class="row align-items-center">
                 <div class="col-md-5 mb-3 mb-md-0">
-                    {{-- ... (Cabecera de la orden igual) ... --}}
+                    <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+                        <span class="badge bg-light text-primary border" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
+                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
+                        <span class="patient-tag"><i class="bi bi-person me-1"></i>{{ $order->patient->full_name ?? 'Titular' }}</span>
+                    </div>
 
                     <h5 class="fw-bold mb-1 text-dark">
                         {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
                     </h5>
 
-                    {{-- AVISO DE REEMBOLSO SI CORRESPONDE --}}
+                    {{-- AVISO DE ACCIÓN DEL USUARIO PARA REEMBOLSO --}}
                     @if(in_array($order->status, ['rejected', 'refund_pending']))
-                        <div class="mt-2 p-2 bg-light border-start border-4 border-info rounded-end" style="font-size: 0.8rem;">
-                            <i class="bi bi-info-circle-fill text-info me-1"></i>
-                            <strong>Nota sobre reembolso:</strong> El tiempo de devolución depende de la pasarela de pagos. Por favor, revise su correo electrónico para más detalles.
+                        <div class="mt-3 p-3 bg-warning-subtle border-start border-4 border-warning rounded-end">
+                            <div class="d-flex">
+                                <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-5"></i>
+                                <div>
+                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Acción requerida para su devolución</strong>
+                                    <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
+                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong> enviado por Flow.
+                                        Debe completar los datos bancarios en ese correo para recibir su dinero.
+                                        <span class="text-dark fw-bold">El proceso ya depende exclusivamente de la pasarela de pagos.</span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     @endif
                 </div>
@@ -96,8 +108,6 @@
                                 <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
                                 @break
                             @case('refund_pending')
-                                <span class="badge badge-status bg-primary-subtle text-primary border border-primary-subtle">Reembolso en Trámite</span>
-                                @break
                             @case('rejected')
                                 <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Orden Rechazada</span>
                                 @break
@@ -120,10 +130,14 @@
                             </a>
                         @endif
 
-                        {{-- Botón de Info para Rechazo --}}
-                        @if($order->status === 'rejected' && $order->rejection_reason)
-                            <button class="btn btn-outline-danger btn-action"
-                                    onclick="Swal.fire('Motivo del Rechazo', '{{ $order->rejection_reason }}', 'info')"
+                        @if($order->rejection_reason)
+                            <button class="btn btn-outline-danger btn-action px-3"
+                                    onclick="Swal.fire({
+                                        title: 'Información del Rechazo',
+                                        text: '{{ $order->rejection_reason }}',
+                                        icon: 'info',
+                                        confirmButtonText: 'Entendido'
+                                    })"
                                     title="Ver motivo">
                                 <i class="bi bi-chat-left-text"></i> Motivo
                             </button>
@@ -134,6 +148,7 @@
         </div>
     </div>
 </div>
+
                 @endforeach
             </div>
 
