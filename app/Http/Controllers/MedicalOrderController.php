@@ -153,17 +153,15 @@ class MedicalOrderController extends Controller
      */
     public function releaseOrder(MedicalOrder $order)
     {
-        $doctor = Auth::user()->doctor;
-
-        if ($order->doctor_id === $doctor->id && in_array($order->status, ['pending', 'paid'])) {
+        // Solo liberamos si el doctor es el mismo que la tiene tomada
+        if ($order->doctor_id === auth()->user()->doctor->id) {
             $order->update([
                 'doctor_id' => null,
                 'claimed_at' => null
             ]);
-            return redirect()->route('admin.orders.index')->with('info', 'Has liberado la orden.');
         }
 
-        return redirect()->route('admin.orders.index');
+        return redirect()->route('admin.doctor.panel')->with('success', 'Orden liberada.');
     }
 
     // ... create y store se mantienen igual ...

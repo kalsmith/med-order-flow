@@ -72,16 +72,16 @@ Route::middleware([
 
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
-    // Rutas Doctor
-    Route::middleware(['role:doctor'])->group(function () {
-        Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
-        Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
-        Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
-        Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectCustomOrder'])->name('orders.reject');
+// Rutas Doctor
+Route::middleware(['role:doctor'])->group(function () {
+    Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
+    Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
+    Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
 
-        Route::post('/ordenes/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
-    });
-
+    // ESTAS DOS deben estar aquí para que el doctor pueda ejecutarlas:
+    Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
+    Route::post('/ordenes/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
+});
     // Administración
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
