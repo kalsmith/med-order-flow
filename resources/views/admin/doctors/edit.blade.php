@@ -3,7 +3,7 @@
 @section('header', 'Editar Perfil del Médico')
 
 @section('header-actions')
-    <a href="{{ route('admin.admin.doctors.index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
+    <a href="{{ route('admin.doctors.index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
         <i class="bi bi-arrow-left me-1"></i> Volver al listado
     </a>
 @endsection
@@ -28,7 +28,7 @@
             <div class="bg-primary py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                <form action="{{ route('admin.admin.doctors.update', ['doctor' => $doctor->id]) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.doctors.update', ['doctor' => $doctor->id]) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
