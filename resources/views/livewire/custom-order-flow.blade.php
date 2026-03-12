@@ -92,59 +92,42 @@
         </div>
     @endif
 
-    {{-- Formulario de Orden Custom con Envío Nativo --}}
- @if($selected_patient_id && !$showAddFamily)
+    {{-- Formulario de Pago (Estructura que SI funciona) --}}
+    @if($selected_patient_id && !$showAddFamily)
         <div class="text-start mt-4 animate__animated animate__fadeIn">
             <label class="fw-bold small text-uppercase text-muted mb-2">Detalle de tu requerimiento</label>
 
-            {{-- Vinculamos con lazy para que no refresque todo el rato, solo cuando pierde el foco --}}
-            <textarea wire:model.lazy="description"
-                      id="main_description"
+            <textarea wire:model.live="description"
                       class="form-control mb-3 @error('description') is-invalid @enderror"
                       rows="5"
                       style="border-radius: 15px; background-color: #f8fafc;"
                       placeholder="Escribe aquí los exámenes que necesitas..."></textarea>
             @error('description') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
 
-            {{-- FORMULARIO TOTALMENTE NATIVO --}}
-            <form action="{{ route('orders.store.public') }}" method="POST" id="form-pago-final">
+            <div class="bg-light p-3 rounded-4 mb-4 border border-white shadow-sm">
+                <div class="d-flex justify-content-between mb-1 small">
+                    <span class="text-muted">Valor Servicio:</span>
+                    <span class="fw-bold text-primary">$9.990</span>
+                </div>
+            </div>
+
+            <form action="{{ route('orders.store.public') }}" method="POST">
                 @csrf
                 <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
                 <input type="hidden" name="type" value="custom">
-                {{-- Input donde copiaremos la descripción antes de enviar --}}
-                <input type="hidden" name="custom_description" id="hidden_description_input">
+                <input type="hidden" name="custom_description" value="{{ $description }}">
 
-                <button type="button"
-                        onclick="enviarFormularioDePago()"
-                        id="btn-continuar-pago"
-                        class="btn btn-primary w-100 shadow-sm py-3 fw-bold rounded-pill">
+                <button type="submit"
+                        @if(strlen($description) < 10) disabled @endif
+                        class="btn btn-primary btn-lg w-100 fw-bold py-3 shadow"
+                        style="border-radius: 18px;">
                     Continuar al Pago <i class="bi bi-credit-card ms-2"></i>
                 </button>
             </form>
+
+            @if(strlen($description) < 10)
+                <p class="text-center text-muted small mt-2">Describe los exámenes para continuar</p>
+            @endif
         </div>
     @endif
 </div>
-
-<script>
-    function enviarFormularioDePago() {
-        const btn = document.getElementById('btn-continuar-pago');
-        const desc = document.getElementById('main_description').value;
-
-        if (desc.length < 10) {
-            alert('Por favor, describe mejor tu requerimiento (mínimo 10 caracteres).');
-            return;
-        }
-
-        // 1. Deshabilitamos botón para evitar doble clic
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
-
-        // 2. Sincronizamos el valor del textarea al input oculto
-        document.getElementById('hidden_description_input').value = desc;
-
-        console.log('Enviando formulario nativo...');
-
-        // 3. Submit de toda la vida. Esto mata la instancia de Livewire y fuerza el POST.
-        document.getElementById('form-pago-final').submit();
-    }
-</script>
