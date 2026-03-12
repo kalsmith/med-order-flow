@@ -58,6 +58,9 @@ public function store(Request $request)
 {
     Log::info("=== INICIO PROCESO DE ORDEN ===", ['payload' => $request->all()]);
 
+    if (!$request->has('type')) {
+        $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
+    }
     // 1. Validación
     try {
         $request->validate([
