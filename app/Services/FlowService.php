@@ -190,7 +190,7 @@ public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTr
     $params['s'] = $this->makeSignature($params);
 
     try {
-        Log::warning("SOLICITANDO REEMBOLSO: Orden {$order->id} por fallo en firma.");
+        Log::info("SOLICITANDO REEMBOLSO: Orden {$order->id} por fallo en firma.");
 
         $response = Http::asForm()->post($endpoint, $params);
 
@@ -206,11 +206,11 @@ public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTr
             return true;
         }
 
-        Log::error("ERROR API FLOW REEMBOLSO: " . $response->body());
+        Log::info("ERROR API FLOW REEMBOLSO: " . $response->body());
         return false;
 
     } catch (\Exception $e) {
-        Log::error("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
+        Log::info("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
         return false;
     }
 }
