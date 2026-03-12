@@ -126,7 +126,7 @@
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        <form action="{{ route('admin.orders.process.signature', $order->id) }}" method="POST" class="d-inline">
+                        <form action="{{ route('admin.orders.sign.process', $order->id) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-success btn-lg px-4 shadow">
                                 <i class="bi bi-vector-pen me-2"></i> Confirmar y Firmar
