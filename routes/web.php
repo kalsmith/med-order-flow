@@ -78,6 +78,8 @@ Route::middleware([
         Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
         Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
         Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectCustomOrder'])->name('orders.reject');
+
+        Route::post('/ordenes/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
     });
 
     // Administración

@@ -49,18 +49,19 @@
                     @php
                         $myDoctorId = auth()->user()->doctor->id ?? null;
 
-                        // Lógica de bloqueo mejorada: Considera estados 'pending' (manuales) y 'paid' (flujo normal)
+                        // Un tercero la tiene tomada y el tiempo no ha expirado
                         $isClaimedByOther = $order->doctor_id &&
                                             $order->doctor_id !== $myDoctorId &&
                                             in_array($order->status, ['pending', 'paid']) &&
                                             $order->claimed_at &&
                                             $order->claimed_at > now()->subMinutes(20);
 
+                        // Yo la tengo tomada
                         $isClaimedByMe = $order->doctor_id &&
                                          $order->doctor_id === $myDoctorId &&
                                          in_array($order->status, ['pending', 'paid']);
                     @endphp
-                    <tr>
+                    <tr class="{{ $isClaimedByMe ? 'table-info-subtle' : '' }}">
                         <td class="ps-4">
                             <div>
                                 <div class="fw-bold text-dark mb-0">
@@ -147,6 +148,7 @@
                                                 <i class="bi bi-lock-fill"></i> Ocupada
                                             </button>
                                         @else
+                                            {{-- Ruta actualizada a admin.orders.sign.form según tu archivo web.php --}}
                                             <a href="{{ route('admin.orders.sign.form', $order->id) }}"
                                                class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3">
                                                 <i class="bi {{ $isClaimedByMe ? 'bi-arrow-right-circle' : 'bi-vector-pen' }} me-1"></i>
@@ -192,5 +194,6 @@
     .text-purple { color: #7e22ce; }
     .btn-white { background-color: #fff; }
     .badge.bg-info-subtle { background-color: #e0f2fe !important; color: #0369a1 !important; border-color: #bae6fd !important; }
+    .table-info-subtle { background-color: rgba(0, 255, 255, 0.05); }
 </style>
 @endsection
