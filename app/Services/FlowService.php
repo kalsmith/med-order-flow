@@ -166,4 +166,54 @@ public function handleWebhook(string $token)
         }
         return hash_hmac('sha256', $toSign, $this->secretKey);
     }
+
+
+    /**
+ * Solicita un reembolso a Flow si la firma falla
+ */
+public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTrx)
+{
+    $endpoint = $this->urlBase . '/refund/create';
+
+    // Generamos un ID de reembolso único para nuestra BD
+    $refundId = "REF-" . strtoupper(bin2hex(random_bytes(4)));
+
+    $params = [
+        'apiKey'         => $this->apiKey,
+        'amount'         => (int)$order->amount,
+        'commerceTrxId'  => $gatewayTrx->buy_order, // La orden original de Flow
+        'externalRefundId' => $refundId,
+        'receiverEmail'  => $order->patient->user->email,
+        'urlCallBack'    => route('flow.refund.webhook'), // Ruta para confirmar el reembolso
+    ];
+
+    $params['s'] = $this->makeSignature($params);
+
+    try {
+        Log::warning("SOLICITANDO REEMBOLSO: Orden {$order->id} por fallo en firma.");
+
+        $response = Http::asForm()->post($endpoint, $params);
+
+        if ($response->successful()) {
+            $res = $response->object();
+            // Guardamos el ID de reembolso de Flow en la orden
+            $order->update([
+                'flow_refund_id' => $res->token, // O el ID que retorne Flow
+                'internal_notes' => ($order->internal_notes . "\n[Reembolso solicitado el " . now() . "]")
+            ]);
+
+            Log::info("REEMBOLSO TRAMITADO: Token de Flow: " . $res->token);
+            return true;
+        }
+
+        Log::error("ERROR API FLOW REEMBOLSO: " . $response->body());
+        return false;
+
+    } catch (\Exception $e) {
+        Log::error("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
+        return false;
+    }
+}
+
+
 }
