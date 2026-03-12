@@ -173,64 +173,73 @@ public function completeProfileForm()
     /**
      * Crea la orden en la BD y salta a Flow.
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'exam_type_id'       => 'required_without:custom_description|exists:exam_types,id',
-            'custom_description' => 'required_without:exam_type_id|string',
-            'patient_id'         => 'nullable|exists:patients,id' // Validamos que el ID exista si viene
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'exam_type_id'       => 'required_without:custom_description|exists:exam_types,id',
+        'custom_description' => 'required_without:exam_type_id|string',
+        'patient_id'         => 'nullable|exists:patients,id'
+    ]);
 
-        $doctor = Doctor::where('is_active', true)->first();
-        if (!$doctor) {
-            return back()->with('error', 'Lo sentimos, no hay médicos disponibles en este momento.');
-        }
+    try {
+        $order = DB::transaction(function () use ($request) {
+            $amount = 9990;
+            $examId = null;
+            $type   = 'custom';
+            $assignedDoctorId = null;
 
-        try {
-            $order = DB::transaction(function () use ($request, $doctor) {
-                $amount = 9990;
-                $examId = null;
-                $type   = 'custom';
+            // 1. Determinar Tipo y Especialidad
+            if ($request->filled('exam_type_id')) {
+                $exam   = ExamType::findOrFail($request->exam_type_id);
+                $amount = $exam->base_price;
+                $examId = $exam->id;
+                $type   = 'standard';
 
-                if ($request->filled('exam_type_id')) {
-                    $exam   = ExamType::findOrFail($request->exam_type_id);
-                    $amount = $exam->base_price;
-                    $examId = $exam->id;
-                    $type   = 'standard';
+                // --- MOTOR DE ROTACIÓN (Round Robin) ---
+                // Buscamos al médico "más antiguo" para esta especialidad
+                $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+
+                if (!$doctor) {
+                    throw new \Exception('Lo sentimos, no hay médicos disponibles para esta especialidad en este momento.');
                 }
 
-                /**
-                 * LÓGICA DE PACIENTE:
-                 * Si viene un patient_id, verificamos que sea del usuario.
-                 * Si no viene, usamos el perfil 'self' por defecto.
-                 */
-                if ($request->filled('patient_id')) {
-                    $patient = Auth::user()->patients()->findOrFail($request->patient_id);
-                } else {
-                    $patient = Auth::user()->patients()->where('relationship', 'self')->firstOrFail();
-                }
+                $assignedDoctorId = $doctor->id;
 
-                return MedicalOrder::create([
-                    'id'                 => (string) Str::uuid(),
-                    'patient_id'         => $patient->id,
-                    'doctor_id'          => $doctor->id,
-                    'exam_type_id'       => $examId,
-                    'custom_description' => $request->custom_description,
-                    'status'             => 'pending',
-                    'type'               => $type,
-                    'amount'             => $amount,
-                    'verification_code'  => strtoupper(Str::random(8)),
-                ]);
-            });
+                // Actualizamos su timestamp para que pase al final de la cola
+                $doctor->update(['last_assigned_at' => now()]);
+            }
 
-            session()->forget(['pending_custom_exam', 'pending_exam_id']);
-            return $this->processFlowPayment($order);
+            // 2. Lógica de Paciente
+            if ($request->filled('patient_id')) {
+                $patient = Auth::user()->patients()->findOrFail($request->patient_id);
+            } else {
+                $patient = Auth::user()->patients()->where('relationship', 'self')->firstOrFail();
+            }
 
-        } catch (\Exception $e) {
-            Log::error("Error al crear orden: " . $e->getMessage());
-            return back()->with('error', 'No pudimos procesar tu orden: ' . $e->getMessage());
-        }
+            // 3. Crear la Orden
+            // Nota: Si es 'custom', $assignedDoctorId sigue siendo null (nace libre para la bolsa)
+            return MedicalOrder::create([
+                'id'                 => (string) Str::uuid(),
+                'patient_id'         => $patient->id,
+                'doctor_id'          => $assignedDoctorId,
+                'exam_type_id'       => $examId,
+                'custom_description' => $request->custom_description,
+                'status'             => 'pending',
+                'type'               => $type,
+                'amount'             => $amount,
+                'verification_code'  => strtoupper(Str::random(8)),
+            ]);
+        });
+
+        session()->forget(['pending_custom_exam', 'pending_exam_id']);
+        return $this->processFlowPayment($order);
+
+    } catch (\Exception $e) {
+        Log::error("Error al crear orden: " . $e->getMessage());
+        return back()->with('error', $e->getMessage());
     }
+}
+
 
 
 

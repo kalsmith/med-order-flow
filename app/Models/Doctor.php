@@ -21,13 +21,12 @@ class Doctor extends Model
         'address',
         'signature_path',
         'is_active',
+        'last_assigned_at', // <-- Nuevo campo para el motor de rotación
     ];
 
-    /**
-     * Casting de tipos para asegurar que is_active sea booleano.
-     */
     protected $casts = [
         'is_active' => 'boolean',
+        'last_assigned_at' => 'datetime', // <-- Importante para comparaciones precisas
     ];
 
     // --- RELACIONES ---
@@ -85,4 +84,14 @@ class Doctor extends Model
     {
         return $this->user ? $this->user->name : 'Sin Nombre';
     }
+
+    public static function getNextAvailableForSpecialty($specialtyId)
+{
+    return self::active()
+        ->whereHas('specialties', function($q) use ($specialtyId) {
+            $q->where('specialties.id', $specialtyId);
+        })
+        ->orderBy('last_assigned_at', 'asc') // El que lleva más tiempo esperando
+        ->first();
+}
 }
