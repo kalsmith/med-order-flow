@@ -88,35 +88,43 @@ class Doctor extends Model
 
 public static function getNextAvailableForSpecialty($specialtyId)
 {
-    dd("EL MOTOR ESTÁ VIVO. Buscando especialidad: " . $specialtyId);
-    // 1. Ver cuántos doctores tienen esta especialidad en total
-    $candidates = self::where('is_active', true)
-        ->whereHas('specialties', function($q) use ($specialtyId) {
-            $q->where('specialties.id', $specialtyId);
-        })->get();
+    Log::info("--- INICIO DE ROTACIÓN ---");
+    Log::info("Buscando para Especialidad ID: {$specialtyId}");
 
-    Log::info("ROTACIÓN: Buscando para Especialidad ID: {$specialtyId}");
-    Log::info("ROTACIÓN: Doctores candidatos encontrados: " . $candidates->pluck('id')->join(', '));
+    // 1. Obtenemos la consulta base (Query Builder) para no repetir código
+    $query = self::where('is_active', true)
+        ->whereHas('specialties', function($q) use ($specialtyId) {
+            // Aseguramos que busque en la tabla pivote correctamente
+            $q->where('specialties.id', $specialtyId);
+        });
+
+    // 2. LOGS DE DIAGNÓSTICO (Solo para desarrollo, puedes comentarlos después)
+    $candidates = (clone $query)->get();
+    Log::info("Candidatos totales encontrados: " . $candidates->count());
 
     foreach ($candidates as $c) {
-        Log::info("ROTACIÓN: Doctor ID: {$c->id} | last_assigned_at: " . ($c->last_assigned_at ?? 'NULL'));
+        Log::info("ID: {$c->id} | last_assigned_at: " . ($c->last_assigned_at ?? 'NUNCA (NULL)'));
     }
 
-    $winner = self::where('is_active', true)
-        ->whereHas('specialties', function($q) use ($specialtyId) {
-            $q->where('specialties.id', $specialtyId);
-        })
+    // 3. EJECUCIÓN DEL MOTOR (Round Robin + Prioridad de Nuevos)
+    $winner = $query
+        // Prioridad 1: Los que tienen NULL (Doctores nuevos o que nunca han recibido nada)
         ->orderByRaw('last_assigned_at IS NULL DESC')
+        // Prioridad 2: De los que ya han recibido, el que atendió hace más tiempo (el más antiguo)
         ->orderBy('last_assigned_at', 'asc')
+        // Prioridad 3: Desempate por ID (El que se registró primero)
         ->orderBy('id', 'asc')
         ->first();
 
     if ($winner) {
-        \Log::info("ROTACIÓN: >>> GANADOR SELECCIONADO: ID {$winner->id}");
+        Log::info(">>> GANADOR SELECCIONADO: ID {$winner->id} (RUT: {$winner->rut})");
     } else {
-        \Log::error("ROTACIÓN: !!! NO SE ENCONTRÓ NINGÚN DOCTOR DISPONIBLE");
+        Log::error("!!! ERROR: No hay doctores activos vinculados a la especialidad {$specialtyId}");
     }
+
+    Log::info("--- FIN DE ROTACIÓN ---");
 
     return $winner;
 }
+
 }

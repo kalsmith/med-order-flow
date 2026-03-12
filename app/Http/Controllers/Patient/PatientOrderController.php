@@ -65,20 +65,20 @@ public function store(Request $request)
     ]);
 
     try {
-        $order = \DB::transaction(function () use ($request) {
-            $exam = \App\Models\ExamType::findOrFail($request->exam_type_id);
-            $patient = \App\Models\Patient::findOrFail($request->patient_id);
+        $order =  DB::transaction(function () use ($request) {
+            $exam = ExamType::findOrFail($request->exam_type_id);
+            $patient = Patient::findOrFail($request->patient_id);
 
             // 2. EJECUTAR MOTOR DE ROTACIÓN
             // Usamos la función que ya escribimos en el Modelo Doctor
-            $doctor = \App\Models\Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+            $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
 
             if (!$doctor) {
                 throw new \Exception('No hay médicos disponibles para esta especialidad en este momento.');
             }
 
             // 3. CREAR LA ORDEN ASIGNANDO AL DOCTOR GANADOR
-            $newOrder = \App\Models\MedicalOrder::create([
+            $newOrder = MedicalOrder::create([
                 'id'                => (string) \Illuminate\Support\Str::uuid(),
                 'patient_id'        => $patient->id,
                 'doctor_id'         => $doctor->id, // Aquí queda guardado el Doctor 1 o 2 según toque
