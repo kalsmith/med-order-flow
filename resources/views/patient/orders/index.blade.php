@@ -62,7 +62,9 @@
             <div class="row g-4">
                 @foreach($orders as $order)
                 {{-- ... dentro del @foreach($orders as $order) ... --}}
-<div class="col-12">
+
+
+                <div class="col-12">
     <div class="card card-order border-0 shadow-sm overflow-hidden">
         <div class="card-body p-4">
             <div class="row align-items-center">
@@ -77,17 +79,17 @@
                         {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
                     </h5>
 
-                    {{-- AVISO DE ACCIÓN DEL USUARIO PARA REEMBOLSO --}}
-                    @if(in_array($order->status, ['rejected', 'refund_pending']))
-                        <div class="mt-3 p-3 bg-warning-subtle border-start border-4 border-warning rounded-end">
+                    {{-- AVISO EXCLUSIVO PARA REEMBOLSOS EN CURSO --}}
+                    @if($order->status === 'refund_pending')
+                        <div class="mt-3 p-3 bg-info-subtle border-start border-4 border-info rounded-end">
                             <div class="d-flex">
-                                <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-5"></i>
+                                <i class="bi bi-info-circle-fill text-info me-2 fs-5"></i>
                                 <div>
-                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Acción requerida para su devolución</strong>
+                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Proceso de devolución iniciado</strong>
                                     <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
-                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong> enviado por Flow.
-                                        Debe completar los datos bancarios en ese correo para recibir su dinero.
-                                        <span class="text-dark fw-bold">El proceso ya depende exclusivamente de la pasarela de pagos.</span>
+                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong> de Flow.
+                                        Debe completar sus datos bancarios en el link recibido para recibir el dinero.
+                                        <span class="text-dark fw-bold">El trámite depende exclusivamente de la pasarela de pagos.</span>
                                     </span>
                                 </div>
                             </div>
@@ -108,6 +110,8 @@
                                 <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
                                 @break
                             @case('refund_pending')
+                                <span class="badge badge-status bg-primary-subtle text-primary border border-primary-subtle">Reembolso Enviado</span>
+                                @break
                             @case('rejected')
                                 <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Orden Rechazada</span>
                                 @break
@@ -133,7 +137,7 @@
                         @if($order->rejection_reason)
                             <button class="btn btn-outline-danger btn-action px-3"
                                     onclick="Swal.fire({
-                                        title: 'Información del Rechazo',
+                                        title: 'Información de la Orden',
                                         text: '{{ $order->rejection_reason }}',
                                         icon: 'info',
                                         confirmButtonText: 'Entendido'
@@ -148,6 +152,8 @@
         </div>
     </div>
 </div>
+
+
 
                 @endforeach
             </div>
