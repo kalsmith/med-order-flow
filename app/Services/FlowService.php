@@ -72,7 +72,8 @@ class FlowService
     /**
      * Procesa el Webhook (Server-to-Server)
      */
-    public function handleWebhook(string $token)
+
+public function handleWebhook(string $token)
     {
         $status = $this->getPaymentStatus($token);
 
@@ -90,7 +91,9 @@ class FlowService
                     'raw_response' => (array)$status
                 ]);
 
-                $order = $gatewayTrx->payable;
+                // Cargamos la orden con su doctor para tener el user_id a mano
+                $order = MedicalOrder::with('doctor')->find($gatewayTrx->payable_id);
+
                 if (!$order) return false;
 
                 // --- FLUJO STANDARD (Auto-firma) ---
@@ -119,10 +122,20 @@ class FlowService
         return false;
     }
 
+
+
     private function registerTransaction($gatewayTrx, $order, $token, $status) {
+        // Obtenemos el ID de usuario del doctor, no el ID de la tabla doctors
+        $receiverId = $order->doctor ? $order->doctor->user_id : null;
+
+        if (!$receiverId) {
+            Log::error("No se pudo registrar transacción: El doctor asignado a la orden {$order->id} no tiene un user_id vinculado.");
+            // Opcional: podrías lanzar una excepción aquí para hacer rollback del webhook
+        }
+
         Transaction::create([
             'sender_id'      => $gatewayTrx->user_id,
-            'receiver_id'    => $order->doctor_id,
+            'receiver_id'    => $receiverId, // Corregido: Ahora usa el ID de la tabla users
             'reference_id'   => $order->id,
             'reference_code' => $gatewayTrx->buy_order,
             'amount'         => $gatewayTrx->amount,
