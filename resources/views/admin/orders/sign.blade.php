@@ -75,30 +75,45 @@
                         <hr class="opacity-10 my-0">
                     </div>
 
-                    {{-- Detalle --}}
+                    {{-- Detalle del Requerimiento --}}
                     <div class="col-12">
-                        <label class="text-muted small text-uppercase fw-bold">Detalle del Examen / Requerimiento</label>
-                        <div class="mt-2 p-3 bg-light rounded border">
+                        <label class="text-muted small text-uppercase fw-bold">Motivo de Consulta (Usuario)</label>
+                        <div class="mt-2 p-3 bg-light rounded border border-dashed">
                             @if($order->examType)
                                 <h6 class="fw-bold text-dark mb-1">{{ $order->examType->name }}</h6>
                                 <p class="mb-0 text-muted small">{{ $order->examType->description }}</p>
                             @else
                                 <div class="d-flex align-items-start">
-                                    <i class="bi bi-stars text-purple me-2 mt-1"></i>
-                                    <div>
-                                        <h6 class="fw-bold text-dark mb-1">Solicitud Especial (Custom)</h6>
-                                        <p class="mb-0 text-dark" style="white-space: pre-line;">{{ $order->custom_description }}</p>
-                                    </div>
+                                    <i class="bi bi-chat-quote text-secondary me-2 mt-1"></i>
+                                    <p class="mb-0 text-dark fst-italic">"{{ $order->custom_description }}"</p>
                                 </div>
                             @endif
                         </div>
                     </div>
 
-                    <div class="col-12 mt-4">
-                        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-0">
-                            <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                    {{-- Input de Contexto Clínico --}}
+                    <div class="col-12">
+                        <div class="form-group">
+                            <label class="text-primary fw-bold mb-2 small text-uppercase">
+                                <i class="bi bi-pencil-square me-1"></i> Indicación Médica Profesional
+                            </label>
+                            <textarea name="clinical_context"
+                                      form="signature-form"
+                                      class="form-control border-primary shadow-sm"
+                                      rows="4"
+                                      placeholder="Redacte aquí el diagnóstico y los exámenes solicitados (esto aparecerá en el PDF final)..."
+                                      required>{{ old('clinical_context', $order->clinical_context) }}</textarea>
+                            <div class="form-text small text-muted">
+                                <i class="bi bi-info-circle me-1"></i> Basado en los síntomas del paciente, defina la orden técnica.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-0 mt-2">
+                            <i class="bi bi-shield-check fs-4 me-3"></i>
                             <div class="small">
-                                Al confirmar, se estampará tu <strong>firma digital y registro RNPI</strong> en el documento.
+                                Al confirmar, se guardará la indicación médica y se estampará tu <strong>firma digital con registro RNPI</strong>.
                             </div>
                         </div>
                     </div>
@@ -125,8 +140,11 @@
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        {{-- Botón de Firma Definitivo --}}
-                        <form action="{{ route('admin.orders.sign.process', ['order' => $order->id]) }}" method="POST" class="d-inline">
+                        {{-- Botón de Firma --}}
+                        <form action="{{ route('admin.orders.sign.process', ['order' => $order->id]) }}"
+                              method="POST"
+                              id="signature-form"
+                              class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-success btn-lg px-4 shadow">
                                 <i class="bi bi-vector-pen me-2"></i> Confirmar y Firmar
@@ -156,8 +174,8 @@
             <form action="{{ route('admin.orders.reject', $order->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <p class="text-muted">Explique por qué rechaza esta orden.</p>
-                    <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Motivo..." required></textarea>
+                    <p class="text-muted">Explique por qué rechaza esta orden (se enviará al paciente).</p>
+                    <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Motivo del rechazo..." required></textarea>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -172,5 +190,6 @@
     .text-purple { color: #7e22ce; }
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
+    .border-dashed { border-style: dashed !important; }
 </style>
 @endsection

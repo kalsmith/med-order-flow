@@ -97,49 +97,37 @@ class MedicalOrderController extends Controller
     /**
      * Procesa la firma digital definitiva y el cobro.
      */
-public function processSignature(Request $request, MedicalOrder $order)
+    public function processSignature(Request $request, MedicalOrder $order)
 {
-    Log::info("DEBUG FIRMA: Iniciando proceso para Orden " . $order->id);
-    Log::info("DEBUG FIRMA: Usuario Autenticado ID: " . auth()->id());
+    // Validamos que venga el contexto clínico
+    $request->validate([
+        'clinical_context' => 'required|string|min:10'
+    ]);
 
     $doctor = Auth::user()->doctor;
 
-    if (!$doctor) {
-        Log::error("DEBUG FIRMA: El usuario no tiene perfil de doctor asignado.");
-        abort(403, 'No tienes un perfil médico asociado.');
-    }
-
-    Log::info("DEBUG FIRMA: Doctor ID: " . $doctor->id . " intentando firmar Orden que pertenece a Doctor ID: " . $order->doctor_id);
-
-    // Si los IDs son UUIDs, el !== puede fallar si uno es objeto y otro string. Forzamos string.
     if (strval($order->doctor_id) !== strval($doctor->id)) {
-        Log::warning("DEBUG FIRMA: Intento de firma no autorizado o sesión expirada.");
-        return redirect()->route('admin.orders.index')
-                         ->with('error', 'La orden ya no está bajo tu revisión.');
+        return redirect()->route('admin.orders.index')->with('error', 'Sesión expirada.');
     }
 
     try {
-        DB::transaction(function () use ($order, $doctor) {
+        DB::transaction(function () use ($order, $doctor, $request) {
             $order->update([
-                'status'    => 'signed',
-                'signed_at' => now(),
+                'status'           => 'signed',
+                'signed_at'        => now(),
+                'clinical_context' => $request->clinical_context, // Guardamos lo que el doctor redactó
             ]);
 
             Transaction::where('reference_id', $order->id)
-                ->update([
-                    'receiver_id' => $doctor->user_id
-                ]);
+                ->update(['receiver_id' => $doctor->user_id]);
         });
 
-        Log::info("DEBUG FIRMA: Éxito total.");
-        return redirect()->route('admin.doctor.panel')->with('success', 'Firmado correctamente.');
+        return redirect()->route('admin.doctor.panel')->with('success', 'Orden generada y firmada exitosamente.');
 
     } catch (\Exception $e) {
-        Log::error("DEBUG FIRMA: Error en DB: " . $e->getMessage());
-        return redirect()->back()->with('error', 'Error interno al procesar la firma.');
+        return redirect()->back()->with('error', 'Error al procesar la firma.');
     }
 }
-
 
 
 
