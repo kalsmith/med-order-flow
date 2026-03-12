@@ -88,6 +88,7 @@ class Doctor extends Model
 
 public static function getNextAvailableForSpecialty($specialtyId)
 {
+    dd("EL MOTOR ESTÁ VIVO. Buscando especialidad: " . $specialtyId);
     // 1. Ver cuántos doctores tienen esta especialidad en total
     $candidates = self::where('is_active', true)
         ->whereHas('specialties', function($q) use ($specialtyId) {
