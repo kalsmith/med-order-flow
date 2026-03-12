@@ -81,9 +81,8 @@ public function store(Request $request)
 
                 // Como es custom, no tenemos specialty_id.
                 // Buscamos al médico activo con el turno más antiguo (rotación general).
-                $doctor = Doctor::where('is_active', true)
-                                ->orderBy('last_assigned_at', 'asc')
-                                ->first();
+                $doctor = null;
+
             } else {
 
                 // --- FLUJO ESTÁNDAR (Tu código original intacto) ---
