@@ -82,6 +82,7 @@ Route::middleware(['role:doctor'])->group(function () {
     Route::post('/ordenes/{medical_order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
     Route::post('/ordenes/{medical_order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
     Route::post('/ordenes/{medical_order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
+    Route::post('/ordenes/{medical_order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('orders.derivate');
 });
 
     // 2. ADMINISTRACIÓN
