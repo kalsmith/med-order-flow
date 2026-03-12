@@ -11,21 +11,41 @@ class MedicalOrdersTable extends Component
 {
     use WithPagination;
 
+    public $tab = 'available'; // Tab por defecto
+
     protected $paginationTheme = 'bootstrap';
+
+    // Resetear página al cambiar de pestaña
+    public function setTab($tab)
+    {
+        $this->tab = $tab;
+        $this->resetPage();
+    }
 
     public function render()
     {
-        // Misma lógica de filtrado que tenías en el controlador
-        $query = MedicalOrder::with(['patient', 'examType', 'doctor.user'])
-            ->latest();
+        $user = Auth::user();
+        $myDoctorId = $user->doctor->id ?? null;
 
-        if (Auth::user()->hasRole('doctor')) {
-            // Doctores ven lo disponible para firmar o lo que ya firmaron
-            $query->whereIn('status', ['paid', 'signed', 'pending']);
+        $query = MedicalOrder::with(['patient', 'examType', 'doctor.user']);
+
+        if ($this->tab === 'available') {
+            // Órdenes pagadas que NADIE ha firmado aún
+            // Y que no estén bloqueadas por otro médico (o bloqueadas por mí)
+            $query->where('status', 'paid')
+                  ->where(function($q) use ($myDoctorId) {
+                      $q->whereNull('doctor_id') // Nadie la ha tomado
+                        ->orWhere('doctor_id', $myDoctorId) // O la tengo yo
+                        ->orWhere('claimed_at', '<', now()->subMinutes(20)); // O el bloqueo expiró
+                  });
+        } else {
+            // Mis Firmadas: Solo las que YO firmé
+            $query->where('status', 'signed')
+                  ->where('doctor_id', $myDoctorId);
         }
 
         return view('livewire.medical-orders-table', [
-            'orders' => $query->paginate(10)
+            'orders' => $query->latest()->paginate(10)
         ]);
     }
 }
