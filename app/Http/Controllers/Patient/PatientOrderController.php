@@ -58,6 +58,7 @@ class PatientOrderController extends Controller
 
 public function store(Request $request)
 {
+    dd($request->all());
     // 1. Validación de entrada
     $request->validate([
         'exam_type_id' => 'required|exists:exam_types,id',
