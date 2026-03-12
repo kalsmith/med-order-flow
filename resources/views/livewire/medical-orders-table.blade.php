@@ -1,29 +1,29 @@
-<div wire:poll.10s class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
-    <div class="card-header bg-white pt-3 pb-0 border-bottom-0">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+<div wire:poll.10s class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
+    <div class="card-header bg-white pt-4 pb-0 border-bottom-0">
+        <div class="d-flex justify-content-between align-items-center mb-3 px-2">
             <h5 class="mb-0 text-dark fw-bold">
                 <i class="bi bi-clipboard2-pulse text-primary me-2"></i>
                 Gestión de Órdenes
             </h5>
             <div class="text-muted small">
                 <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle fw-medium">
-                    <i class="bi bi-dot fs-4"></i> En vivo
+                    <i class="bi bi-dot fs-6"></i> En vivo
                 </span>
             </div>
         </div>
 
-        {{-- Pestañas --}}
-        <ul class="nav nav-tabs border-bottom-0">
+        {{-- Solo dos pestañas --}}
+        <ul class="nav nav-tabs border-bottom-0 px-2">
             <li class="nav-item">
                 <button wire:click="setTab('available')"
                     class="nav-link {{ $tab === 'available' ? 'active fw-bold border-bottom border-primary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
-                    Disponibles para Firma
+                    Pendientes de Firma
                 </button>
             </li>
             <li class="nav-item">
                 <button wire:click="setTab('signed')"
                     class="nav-link {{ $tab === 'signed' ? 'active fw-bold border-bottom border-primary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
-                    Mis Órdenes Firmadas
+                    Historial de Firmas
                 </button>
             </li>
         </ul>
@@ -32,13 +32,13 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
+                <thead class="bg-light-subtle">
                     <tr>
-                        <th class="ps-4 py-3 text-uppercase small fw-bold text-muted">Paciente</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted">Examen</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted">Fecha</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted">Estado</th>
-                        <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted">Acciones</th>
+                        <th class="ps-4 py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Paciente</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Examen</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Fecha</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Estado</th>
+                        <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,62 +51,57 @@
                         <tr>
                             <td class="ps-4">
                                 <div class="fw-bold text-dark">{{ $order->patient->full_name }}</div>
-                                <small class="text-muted">{{ $order->patient->rut }}</small>
+                                <div class="text-muted small">{{ $order->patient->rut }}</div>
                             </td>
                             <td>
-                                @if($order->examType)
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2">
-                                        {{ $order->examType->name }}
-                                    </span>
-                                @else
-                                    {{-- Corregido: Morado con alto contraste --}}
+                                @if($order->type === 'custom')
                                     <span class="badge border" style="background-color: #f3e8ff; color: #6b21a8; border-color: #d8b4fe;">
                                         <i class="bi bi-stars me-1"></i> Especial
+                                    </span>
+                                @else
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium">
+                                        {{ $order->examType->name ?? 'Estándar' }}
                                     </span>
                                 @endif
                             </td>
                             <td>
-                                <div class="small fw-medium">{{ $order->created_at->format('d/m/Y') }}</div>
-                                <div class="text-muted small">{{ $order->created_at->format('H:i') }} hrs</div>
+                                <div class="fw-medium text-dark" style="font-size: 0.85rem;">{{ $order->created_at->format('d/m/Y') }}</div>
+                                <div class="text-muted small" style="font-size: 0.75rem;">{{ $order->created_at->format('H:i') }} hrs</div>
                             </td>
                             <td>
-                                @if($tab === 'available')
-                                    @if($isClaimedByOther)
-                                        <span class="badge bg-light text-muted border border-secondary-subtle">
-                                            <i class="bi bi-person-fill-lock me-1"></i> Siendo revisada
-                                        </span>
-                                    @else
-                                        <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                            Lista para firmar
-                                        </span>
-                                    @endif
+                                @if($order->status === 'signed')
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium">
+                                        <i class="bi bi-patch-check-fill me-1"></i> Firmado
+                                    </span>
+                                @elseif($isClaimedByOther)
+                                    <span class="badge bg-light text-muted border border-secondary-subtle fw-normal">
+                                        <i class="bi bi-person-fill-lock me-1"></i> En revisión
+                                    </span>
                                 @else
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        <i class="bi bi-patch-check-fill me-1"></i> Firmada
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle fw-medium">
+                                        Pendiente
                                     </span>
                                 @endif
                             </td>
                             <td class="text-end pe-4">
-                                @if($tab === 'available')
+                                @if($order->status !== 'signed')
                                     @if($isClaimedByOther)
-                                        <button class="btn btn-sm btn-light border" disabled title="Otro médico está trabajando en esto">
-                                            <i class="bi bi-lock-fill"></i>
-                                        </button>
+                                        <button class="btn btn-sm btn-light border" disabled><i class="bi bi-lock-fill"></i></button>
                                     @else
                                         <a href="{{ route('admin.orders.sign.form', $order->id) }}"
-                                           class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3 shadow-sm rounded-pill fw-bold">
+                                           class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3 rounded-pill shadow-sm fw-bold">
                                             <i class="bi {{ $isClaimedByMe ? 'bi-play-fill' : 'bi-vector-pen' }} me-1"></i>
                                             {{ $isClaimedByMe ? 'Continuar' : 'Firmar' }}
                                         </a>
                                     @endif
                                 @else
-                                    {{-- Acciones para firmadas: Evitamos el 403 redirigiendo a la ruta que el doctor sí posee --}}
+                                    {{-- El ojo ahora apunta a la ruta de firma que NO da 403 --}}
                                     <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
                                         <a href="{{ route('admin.orders.sign.form', $order->id) }}" class="btn btn-sm btn-white border border-end-0" title="Ver Detalles">
                                             <i class="bi bi-eye text-primary"></i>
                                         </a>
-                                        <a href="#" class="btn btn-sm btn-white border text-danger" title="Descargar PDF">
-                                            <i class="bi bi-file-pdf"></i>
+                                        <a href="#" class="btn btn-sm btn-white border" title="PDF">
+                                            <i class="bi bi-file-pdf text-danger"></i>
                                         </a>
                                     </div>
                                 @endif
@@ -115,10 +110,8 @@
                     @empty
                         <tr>
                             <td colspan="5" class="text-center py-5 bg-light-subtle">
-                                <div class="text-muted py-3">
-                                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
-                                    {{ $tab === 'available' ? 'No hay órdenes pendientes de firma.' : 'Aún no has firmado ninguna orden.' }}
-                                </div>
+                                <i class="bi bi-inbox fs-1 text-muted d-block mb-3 opacity-50"></i>
+                                <h6 class="text-muted fw-normal">No hay registros en esta sección.</h6>
                             </td>
                         </tr>
                     @endforelse
@@ -126,7 +119,7 @@
             </table>
         </div>
     </div>
-    <div class="card-footer bg-white border-top-0 py-3">
+    <div class="card-footer bg-white border-top-0 py-3 d-flex justify-content-center">
         {{ $orders->links() }}
     </div>
 </div>
@@ -134,4 +127,5 @@
 <style>
     .btn-white { background-color: #fff; color: #374151; }
     .btn-white:hover { background-color: #f9fafb; }
+    .nav-tabs .nav-link.active { color: #0d6efd !important; }
 </style>

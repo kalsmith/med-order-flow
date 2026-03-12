@@ -22,33 +22,25 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
-public function render()
-{
-    $user = Auth::user();
-    $myDoctorId = $user->doctor->id ?? null;
+    public function render()
+    {
+        $user = Auth::user();
+        $myDoctorId = $user->doctor->id ?? null;
 
-    $query = MedicalOrder::with(['patient', 'examType', 'doctor.user']);
+        $query = MedicalOrder::with(['patient', 'examType', 'doctor.user']);
 
-    if ($this->tab === 'available') {
-        // 1. POR FIRMAR: Solo Custom que están pagadas y esperando
-        $query->where('type', 'custom')
-              ->where('status', 'paid');
+        if ($this->tab === 'available') {
+            // Pestaña 1: Todo lo que el doctor puede firmar (pagado y tipo custom)
+            $query->where('type', 'custom')
+                ->where('status', 'paid');
+        } else {
+            // Pestaña 2: Todo lo que ya firmó (independiente de si fue manual o automático)
+            $query->where('status', 'signed')
+                ->where('doctor_id', $myDoctorId);
+        }
 
-    } elseif ($this->tab === 'auto_signed') {
-        // 2. FIRMA AUTOMÁTICA: Son Standard, ya están firmadas y asignadas a él
-        $query->where('type', 'standard')
-              ->where('status', 'signed')
-              ->where('doctor_id', $myDoctorId);
-
-    } else {
-        // 3. MIS FIRMADAS: Solo las Custom que él firmó manualmente
-        $query->where('type', 'custom')
-              ->where('status', 'signed')
-              ->where('doctor_id', $myDoctorId);
+        return view('livewire.medical-orders-table', [
+            'orders' => $query->latest()->paginate(10)
+        ]);
     }
-
-    return view('livewire.medical-orders-table', [
-        'orders' => $query->latest()->paginate(10)
-    ]);
-}
 }
