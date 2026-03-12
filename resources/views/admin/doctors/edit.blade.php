@@ -28,7 +28,8 @@
             <div class="bg-primary py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                <form action="{{ route('admin.doctors.update', ['doctor' => $doctor->id]) }}" method="POST" enctype="multipart/form-data">
+                {{-- CORRECCIÓN: Se pasa el objeto $doctor directamente para que Laravel use el parámetro 'medico' --}}
+                <form action="{{ route('admin.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
