@@ -93,10 +93,12 @@
     @endif
 
     {{-- Formulario de Pago (Estructura que SI funciona) --}}
+{{-- Formulario de Orden Custom --}}
     @if($selected_patient_id && !$showAddFamily)
         <div class="text-start mt-4 animate__animated animate__fadeIn">
             <label class="fw-bold small text-uppercase text-muted mb-2">Detalle de tu requerimiento</label>
 
+            {{-- Importante: wire:model.live para que la variable $description se actualice en el componente --}}
             <textarea wire:model.live="description"
                       class="form-control mb-3 @error('description') is-invalid @enderror"
                       rows="5"
@@ -111,8 +113,10 @@
                 </div>
             </div>
 
+            {{-- FORMULARIO POST PURO - IGUAL AL QUE FUNCIONA --}}
             <form action="{{ route('orders.store.public') }}" method="POST">
                 @csrf
+                {{-- Los inputs hidden capturan los valores actuales de las variables de Livewire --}}
                 <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
                 <input type="hidden" name="type" value="custom">
                 <input type="hidden" name="custom_description" value="{{ $description }}">
@@ -126,8 +130,7 @@
             </form>
 
             @if(strlen($description) < 10)
-                <p class="text-center text-muted small mt-2">Describe los exámenes para continuar</p>
+                <p class="text-center text-muted small mt-2">Mínimo 10 caracteres para continuar</p>
             @endif
         </div>
     @endif
-</div>
