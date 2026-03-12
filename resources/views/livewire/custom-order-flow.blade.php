@@ -1,4 +1,4 @@
-<div>
+<div class="p-1">
     {{-- Selector de Paciente --}}
     <div class="mb-4 text-start">
         <h6 class="fw-bold mb-3">
@@ -9,7 +9,7 @@
                 <div class="col-6 col-md-4" wire:key="p-{{ $p->id }}">
                     <div wire:click="selectPatient({{ $p->id }})"
                          class="patient-card p-3 text-center transition-all h-100 {{ $selected_patient_id == $p->id ? 'active shadow-sm border-primary' : '' }}"
-                         style="cursor: pointer; border: 2px solid transparent; border-radius: 15px; background: #fff;">
+                         style="cursor: pointer; border: 2px solid transparent; border-radius: 15px; background: #fff; border: {{ $selected_patient_id == $p->id ? '2px solid #0d6efd' : '2px solid #f1f5f9' }};">
 
                         <img src="https://ui-avatars.com/api/?name={{ urlencode($p->full_name) }}&background={{ $selected_patient_id == $p->id ? '0D6EFD' : 'E2E8F0' }}&color={{ $selected_patient_id == $p->id ? 'fff' : '64748B' }}&rounded=true"
                              width="40" class="mb-2 shadow-sm">
@@ -84,9 +84,7 @@
                     <div class="col-12 mt-4">
                         <button wire:click="saveFamily" wire:loading.attr="disabled" class="btn btn-primary w-100 fw-bold rounded-pill py-2">
                             <span wire:loading.remove>Guardar y Seleccionar</span>
-                            <span wire:loading>
-                                <span class="spinner-border spinner-border-sm me-2"></span>Guardando...
-                            </span>
+                            <span wire:loading>Guardando...</span>
                         </button>
                     </div>
                 </div>
@@ -94,52 +92,51 @@
         </div>
     @endif
 
-{{-- ... Todo el selector de pacientes y formulario familiar igual ... --}}
+    {{-- Formulario de Orden Custom con Envío Nativo --}}
+    @if($selected_patient_id && !$showAddFamily)
+        <div class="text-start mt-4 animate__animated animate__fadeIn">
+            <div class="d-flex align-items-center mb-2">
+                <label class="fw-bold small text-uppercase text-muted mb-0">Detalle de tu requerimiento</label>
+                <hr class="flex-grow-1 ms-3 opacity-10">
+            </div>
 
-@if($selected_patient_id && !$showAddFamily)
-    <div class="text-start mt-4 animate__animated animate__fadeIn">
-        {{-- Label y TextArea --}}
-        <div class="d-flex align-items-center mb-2">
-            <label class="fw-bold small text-uppercase text-muted mb-0">Detalle de tu requerimiento</label>
-            <hr class="flex-grow-1 ms-3 opacity-10">
+            <textarea wire:model.live="description"
+                      class="form-control mb-3 @error('description') is-invalid @enderror"
+                      rows="5"
+                      style="border-radius: 15px; resize: none; background-color: #f8fafc;"
+                      placeholder="Escribe aquí los exámenes que necesitas o describe tus síntomas..."></textarea>
+            @error('description') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
+
+            {{-- RESUMEN DE PAGO ESTILO CARD --}}
+            <div class="bg-light p-3 rounded-4 mb-4 border border-white shadow-sm">
+                <div class="d-flex justify-content-between mb-1 small">
+                    <span class="text-muted">Concepto:</span>
+                    <span class="fw-bold">Emisión de Orden Médica</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1 small">
+                    <span class="text-muted">Monto a pagar:</span>
+                    <span class="fw-bold text-primary">$9.990</span>
+                </div>
+            </div>
+
+            {{-- FORMULARIO POST REAL --}}
+            <form action="{{ route('orders.store.public') }}" method="POST">
+                @csrf
+                <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
+                <input type="hidden" name="type" value="custom">
+                {{-- Livewire sincroniza este valor en tiempo real --}}
+                <input type="hidden" name="custom_description" value="{{ $description }}">
+
+                <button type="submit"
+                        class="btn btn-primary w-100 shadow-sm py-3 fw-bold rounded-pill"
+                        @if(strlen($description) < 10) disabled @endif>
+                    Continuar al Pago <i class="bi bi-credit-card ms-2"></i>
+                </button>
+            </form>
+
+            @if(strlen($description) < 10)
+                <p class="text-center text-muted small mt-2">Describe tu requerimiento (mín. 10 caracteres)</p>
+            @endif
         </div>
-
-        <textarea wire:model="description"
-                  class="form-control mb-3 @error('description') is-invalid @enderror"
-                  rows="5"
-                  style="border-radius: 15px; resize: none;"
-                  placeholder="Escribe aquí los exámenes que necesitas..."></textarea>
-        @error('description') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
-
-        {{-- BOTÓN DE ENVÍO --}}
-        <button wire:click="submitRequest"
-                wire:loading.attr="disabled"
-                class="btn btn-primary btn-send w-100 shadow-sm py-3 fw-bold rounded-pill">
-            <span wire:loading.remove>Continuar al Pago <i class="bi bi-credit-card ms-2"></i></span>
-            <span wire:loading>
-                <span class="spinner-border spinner-border-sm me-2"></span>Procesando...
-            </span>
-        </button>
-
-        {{-- FORMULARIO OCULTO --}}
-        {{-- Usamos wire:model para que el valor sea reactivo y no se quede vacío --}}
-        <form id="redirect-form" action="{{ route('orders.store.public') }}" method="POST" style="display: none;">
-            @csrf
-            <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
-            <input type="hidden" name="type" value="custom">
-            {{-- Importante: Usar el valor actual de la propiedad --}}
-            <textarea name="custom_description">{{ $description }}</textarea>
-        </form>
-    </div>
-@endif
-
-<script>
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('trigger-submit', () => {
-            // Un pequeño retraso para asegurar que Livewire terminó de sincronizar el último caracter
-            setTimeout(() => {
-                document.getElementById('redirect-form').submit();
-            }, 150);
-        });
-    });
-</script>
+    @endif
+</div>
