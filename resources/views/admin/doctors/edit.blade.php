@@ -29,7 +29,8 @@
 
             <div class="card-body p-4 p-md-5">
                 {{-- CORRECCIÓN: Se usa el nombre del parámetro 'medico' que espera el Resource --}}
-                <form id="doctor-form" action="{{ route('admin.doctors.update', ['medico' => $doctor->id]) }}" method="POST" enctype="multipart/form-data">
+                    {{-- <form id="doctor-form" action="{{ route('admin.doctors.update', ['medico' => $doctor->id]) }}" method="POST" enctype="multipart/form-data"> --}}
+                    <form id="doctor-form" action="{{ route('admin.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
