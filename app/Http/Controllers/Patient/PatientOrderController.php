@@ -7,6 +7,7 @@ use App\Models\ExamType;
 use App\Models\MedicalOrder;
 use App\Models\Doctor;
 use App\Models\Patient;
+use App\Services\OrderPdfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -172,23 +173,29 @@ public function index()
     return view('patient.orders.index', compact('orders'));
 }
 
-    public function download($orderId)
-    {
-        $order = MedicalOrder::findOrFail($orderId);
+public function download($orderId, OrderPdfService $pdfService)
+{
+    // 1. Cargar la orden con las relaciones necesarias para evitar queries extras
+    $order = MedicalOrder::with(['patient.user', 'doctor.user'])->findOrFail($orderId);
 
-        // 1. Validar propiedad (Ya lo tienes)
-        if ((int)auth()->id() !== (int)$order->patient->user->id) {
-            abort(403);
-        }
-
-        // 2. Validar que esté firmada (Flujo Standard completado o Custom ya revisado)
-        if ($order->status !== 'signed') {
-            return back()->with('error', 'La orden aún no ha sido firmada por el médico.');
-        }
-
-        // 3. Generar/Retornar PDF (Aquí llamarías a tu lógica de PDF con la firma)
-        return "Descargando Orden Médica #{$order->id} (Documento Firmado)";
+    // 2. Validar propiedad
+    if ((int)auth()->id() !== (int)$order->patient->user->id) {
+        abort(403);
     }
+
+    // 3. Validar que esté firmada (Estado 'signed') [cite: 2, 28]
+    if ($order->status !== 'signed') {
+        return back()->with('error', 'La orden aún no ha sido firmada por el médico.');
+    }
+
+    // 4. Generar el PDF usando el servicio
+    $pdf = $pdfService->generate($order);
+
+    // 5. Formatear nombre de archivo profesional (ej: Orden_Benjamin_de_la_Fuente.pdf)
+    $fileName = 'Orden_' . Str::slug($order->patient->full_name, '_') . '.pdf';
+
+    return $pdf->download($fileName);
+}
 
     public function showSuccess(MedicalOrder $order = null)
 {
