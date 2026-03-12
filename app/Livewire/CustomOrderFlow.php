@@ -91,9 +91,11 @@ class CustomOrderFlow extends Component
         }
     }
 
-public function submitRequest()
+
+    public function submitRequest()
 {
-    Log::info("1. Entró a SubmitRequest");
+    Log::info("=== INICIO PROCESO DE PAGO ===");
+    Log::info("1. Validando datos del paciente ID: " . $this->selected_patient_id);
 
     $this->validate([
         'selected_patient_id' => 'required',
@@ -102,6 +104,7 @@ public function submitRequest()
 
     $doctor = Doctor::where('is_active', true)->first();
     if (!$doctor) {
+        Log::info("X. Fallo: No hay doctores activos.");
         $this->addError('description', 'Lo sentimos, no hay médicos disponibles.');
         return;
     }
@@ -121,13 +124,16 @@ public function submitRequest()
             ]);
         });
 
-        Log::info("2. Orden creada con éxito: " . $order->id);
+        Log::info("2. Orden guardada en DB: " . $order->id);
+        Log::info("3. Disparando evento 'trigger-payment-submit' hacia el navegador...");
 
-        // Forzamos el dispatch de Livewire 3
+        // Usamos la sintaxis completa de Livewire 3
         $this->dispatch('trigger-payment-submit');
 
+        Log::info("4. Evento disparado. Fin de lógica PHP.");
+
     } catch (\Exception $e) {
-        Log::info("Error en CustomOrderFlow: " . $e->getMessage());
+        Log::info("ERROR CRÍTICO: " . $e->getMessage());
         $this->addError('description', 'No pudimos procesar la solicitud.');
     }
 }
