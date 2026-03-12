@@ -93,6 +93,7 @@ class FlowService
                 // Marcamos la transacción como autorizada para que el proceso de rechazo pueda encontrarla.
                 $gatewayTrx->update([
                     'status' => 'authorized', // O 'completed' según tu convención
+                    'flow_order_id' => $status->flowOrder, // Guardamos el 6114966
                     'raw_response' => json_encode($status)
                 ]);
 

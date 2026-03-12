@@ -130,67 +130,77 @@ class MedicalOrderController extends Controller
 
 
 public function rejectOrder(Request $request, $medical_order, FlowService $flowService)
-    {
-        Log::info('--- INICIO PROCESO RECHAZO ---', [
-            'user_id' => auth()->id(),
-            'order_id' => $medical_order
-        ]);
+{
+    Log::info('--- INICIO PROCESO RECHAZO MANUAL ---', [
+        'user_id' => auth()->id(),
+        'order_id' => $medical_order
+    ]);
 
-        try {
-            $order = MedicalOrder::findOrFail($medical_order);
-            $user = auth()->user();
-            $doctor = $user->doctor;
+    try {
+        $order = MedicalOrder::findOrFail($medical_order);
+        $user = auth()->user();
+        $doctor = $user->doctor;
 
-            // Validación de permisos con log de depuración incorporado
-            if (!$doctor || strval($order->doctor_id) !== strval($doctor->id)) {
-                Log::error("CRASH RECHAZO: No tienes permiso.", [
-                    'order_doc' => $order->doctor_id,
-                    'auth_doc' => $doctor->id ?? 'null'
-                ]);
-                return abort(403, 'No tienes permiso sobre esta orden.');
-            }
+        // Validación de permisos
+        if (!$doctor || strval($order->doctor_id) !== strval($doctor->id)) {
+            Log::error("CRASH RECHAZO: No tienes permiso.", [
+                'order_doc' => $order->doctor_id,
+                'auth_doc' => $doctor->id ?? 'null'
+            ]);
+            return abort(403, 'No tienes permiso sobre esta orden.');
+        }
 
-            $request->validate(['rejection_reason' => 'required|string|max:500']);
+        $request->validate(['rejection_reason' => 'required|string|max:500']);
 
-            return DB::transaction(function () use ($request, $order, $flowService) {
-                // 1. Actualizamos el estado de la orden localmente
-                $order->update([
-                    'status' => 'rejected',
-                    'rejection_reason' => $request->rejection_reason,
-                    'claimed_at' => null,
-                ]);
+        return DB::transaction(function () use ($request, $order, $flowService) {
+            // 1. Actualizamos el estado de la orden localmente
+            $order->update([
+                'status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason,
+                'claimed_at' => null,
+            ]);
 
-                // 2. Buscamos la transacción de Flow asociada (Debe estar pagada/completada)
-                $gatewayTrx = GatewayTransaction::where('payable_id', $order->id)
-                    ->whereIn('status', ['authorized', 'completed'])
-                    ->first();
+            // 2. Buscamos la transacción (Asegúrate que el Webhook ya la pasó a 'authorized')
+            $gatewayTrx = GatewayTransaction::where('payable_id', $order->id)
+                ->whereIn('status', ['authorized', 'completed'])
+                ->first();
 
-                if ($gatewayTrx) {
-                    Log::info("Iniciando solicitud de reembolso para GatewayTrx: {$gatewayTrx->buy_order}");
+            if ($gatewayTrx) {
+                Log::info("Iniciando solicitud de reembolso para GatewayTrx: {$gatewayTrx->buy_order}");
 
-                    /**
-                     * Llamada al servicio de Flow.
-                     * Enviamos el token de la transacción original como flowTrxId.
-                     */
-                    $refundResult = $flowService->requestRefund($order, $gatewayTrx, $gatewayTrx->token);
+                /**
+                 * BALA DE PLATA:
+                 * Extraemos el ID numérico del JSON que guardamos en el Webhook.
+                 */
+                $rawResponse = json_decode($gatewayTrx->raw_response);
+                $flowTrxId = $rawResponse->flowOrder ?? null;
 
-                    if ($refundResult) {
-                        return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado exitosamente en Flow.');
-                    } else {
-                        Log::error("El servicio de Flow devolvió error al intentar reembolsar la orden {$order->id}");
-                        return redirect()->route('admin.doctor.panel')->with('error', 'Orden rechazada, pero hubo un error al procesar el reembolso en Flow. Contacte a soporte.');
-                    }
+                if (!$flowTrxId) {
+                    Log::warning("No se encontró flowOrder numérico en raw_response, se intentará con buy_order.");
                 }
 
-                Log::warning("Rechazo sin reembolso: No se encontró una transacción exitosa para la orden {$order->id}");
-                return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada. No se encontró pago previo para realizar reembolso automático.');
-            });
+                // Llamamos al servicio pasando el ID numérico
+                $refundResult = $flowService->requestRefund($order, $gatewayTrx, $flowTrxId);
 
-        } catch (\Exception $e) {
-            Log::error("CRASH RECHAZO (Excepción): " . $e->getMessage());
-            return redirect()->back()->with('error', 'Error interno al procesar el rechazo.');
-        }
+                if ($refundResult) {
+                    return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado exitosamente.');
+                } else {
+                    Log::error("El servicio de Flow devolvió error al intentar reembolsar la orden {$order->id}");
+                    return redirect()->route('admin.doctor.panel')->with('error', 'Orden rechazada, pero hubo un error en el reembolso. Contacte a soporte.');
+                }
+            }
+
+            Log::warning("Rechazo sin reembolso: No se encontró transacción para la orden {$order->id}");
+            return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada sin reembolso (no se encontró pago previo).');
+        });
+
+    } catch (\Exception $e) {
+        Log::error("CRASH RECHAZO (Excepción): " . $e->getMessage());
+        return redirect()->back()->with('error', 'Error interno al procesar el rechazo.');
     }
+}
+
+
 
     /**
      * Libera la orden.
