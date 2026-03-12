@@ -67,7 +67,7 @@ class MedicalOrderController extends Controller
      */
     public function showSignForm(MedicalOrder $order)
     {
-        $order->load(['patient' => fn($q) => $q->withTrashed(), 'examType']);
+        $order->load(['patient', 'doctor.specialties', 'examType']);
         $user = Auth::user();
         $doctor = $user->doctor;
 
