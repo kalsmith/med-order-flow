@@ -85,7 +85,7 @@ class MedicalOrderController extends Controller
 
         Log::info("Médico ID: {$doctor->id} ha tomado la orden {$order->id} para revisión.");
 
-        $doctor->load('specialty');
+        $doctor->load('specialties');
         return view('admin.orders.sign', compact('order'));
     }
 
