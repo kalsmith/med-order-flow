@@ -19,6 +19,7 @@ use App\Http\Controllers\Patient\PatientCircleController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FlowController;
+use App\Http\Controllers\OrderValidationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +27,11 @@ use App\Http\Controllers\FlowController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [LandingController::class, 'index'])->name('home');
+
+// Ruta pública para validar la autenticidad de la orden
+Route::get('/v/{id}', [OrderValidationController::class, 'show'])
+    ->name('validate.order');
+
 
 // Login & Auth
 Route::get('/login', function () { abort(404); });
