@@ -18,7 +18,7 @@
             </li>
 <li class="nav-item">
     <a class="nav-link {{ request()->routeIs('admin.admin.doctors.*') ? 'active' : '' }}"
-       href="{{ route('admin.admin.doctors.index') }}">
+       href="{{ route('admin.doctors.index') }}">
         <i class="bi bi-people-fill"></i> Médicos
     </a>
 </li>
