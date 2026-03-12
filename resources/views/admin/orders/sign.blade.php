@@ -38,8 +38,14 @@
                         <i class="bi bi-file-earmark-medical text-primary me-2"></i>
                         Revisión de Requerimiento #{{ substr($order->id, 0, 8) }}
                     </h5>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3">
-                        {{ ucfirst($order->status) }}
+                    @php
+                        $badgeClasses = [
+                            'paid' => 'bg-info-subtle text-info-emphasis border-info-subtle',
+                            'pending' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle'
+                        ];
+                    @endphp
+                    <span class="badge border {{ $badgeClasses[$order->status] ?? 'bg-light' }} px-3 py-2">
+                        {{ $order->status === 'paid' ? 'Pagada / Lista para Firma' : ucfirst($order->status) }}
                     </span>
                 </div>
             </div>
@@ -102,37 +108,32 @@
             </div>
 
             <div class="card-footer bg-white p-4 border-top">
-                <form action="{{ route('admin.orders.process.signature', $order->id) }}" method="POST" id="sign-form">
-                    @csrf
-                    <div class="row align-items-center">
-                        {{-- Visualización de Firma --}}
-                        <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                            <div class="d-inline-block border p-2 bg-light rounded text-center" style="min-width: 200px;">
-                                <label class="d-block small text-muted mb-1">Sello a Estampar</label>
-                                <img src="{{ auth()->user()->doctor->signature_path ? asset('storage/' . auth()->user()->doctor->signature_path) : asset('images/no-signature.png') }}"
-                                     alt="Firma" style="max-height: 60px;" class="mb-1">
-                                <div class="small fw-bold border-top pt-1">Dr. {{ auth()->user()->name }}</div>
-                            </div>
+                <div class="row align-items-center">
+                    {{-- Visualización de Firma --}}
+                    <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
+                        <div class="d-inline-block border p-2 bg-light rounded text-center" style="min-width: 180px;">
+                            <label class="d-block small text-muted mb-1">Sello a Estampar</label>
+                            <img src="{{ auth()->user()->doctor->signature_path ? asset('storage/' . auth()->user()->doctor->signature_path) : asset('images/no-signature.png') }}"
+                                 alt="Firma" style="max-height: 50px;" class="mb-1">
+                            <div class="small fw-bold border-top pt-1">Dr. {{ auth()->user()->name }}</div>
                         </div>
+                    </div>
 
-                        {{-- Botones de Acción --}}
-                        <div class="col-md-6 text-md-end text-center">
-                            <button type="button"
-                                    onclick="event.preventDefault(); document.getElementById('release-form').submit();"
-                                    class="btn btn-link text-muted text-decoration-none me-3">
-                                No estoy seguro
-                            </button>
+                    {{-- Botones de Acción --}}
+                    <div class="col-md-8 text-md-end text-center">
+                        {{-- Botón de Rechazo (Dispara Modal) --}}
+                        <button type="button" class="btn btn-outline-danger px-3 me-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                            <i class="bi bi-x-circle me-1"></i> Rechazar Orden
+                        </button>
+
+                        <form action="{{ route('admin.orders.process.signature', $order->id) }}" method="POST" class="d-inline">
+                            @csrf
                             <button type="submit" class="btn btn-success btn-lg px-4 shadow">
                                 <i class="bi bi-vector-pen me-2"></i> Confirmar y Firmar
                             </button>
-                        </div>
+                        </form>
                     </div>
-                </form>
-
-                {{-- Formulario oculto para liberar la orden sin firmar --}}
-                <form id="release-form" action="{{ route('admin.orders.release', $order->id) }}" method="POST" style="display: none;">
-                    @csrf
-                </form>
+                </div>
             </div>
         </div>
 
@@ -146,10 +147,36 @@
     </div>
 </div>
 
+{{-- MODAL DE RECHAZO --}}
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="rejectModalLabel">Rechazar Requerimiento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-target="#rejectModal" data-bs-toggle="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.orders.reject', $order->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="text-muted">Explique brevemente por qué no es posible emitir esta orden. Esta información será revisada por administración.</p>
+                    <div class="form-group">
+                        <label class="fw-bold mb-2">Motivo del Rechazo:</label>
+                        <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Ej: No corresponde a mi especialidad, requiere evaluación presencial, etc." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger px-4">Confirmar Rechazo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
     .text-purple { color: #7e22ce; }
-    .bg-primary-subtle { background-color: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe !important; }
+    .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
+    .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
     .border-warning { border-left-color: #ffc107 !important; }
-    .btn-link:hover { color: #dc3545 !important; }
 </style>
 @endsection

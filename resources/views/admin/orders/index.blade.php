@@ -47,17 +47,18 @@
                 <tbody>
                     @forelse($orders as $order)
                     @php
-                        // Lógica para determinar si la orden está bloqueada por otro
+                        $myDoctorId = auth()->user()->doctor->id ?? null;
+
+                        // Lógica de bloqueo mejorada: Considera estados 'pending' (manuales) y 'paid' (flujo normal)
                         $isClaimedByOther = $order->doctor_id &&
-                                            $order->doctor_id !== (auth()->user()->doctor->id ?? null) &&
-                                            $order->status === 'pending' &&
+                                            $order->doctor_id !== $myDoctorId &&
+                                            in_array($order->status, ['pending', 'paid']) &&
                                             $order->claimed_at &&
                                             $order->claimed_at > now()->subMinutes(20);
 
-                        // Lógica para determinar si yo la tengo tomada
                         $isClaimedByMe = $order->doctor_id &&
-                                         $order->doctor_id === (auth()->user()->doctor->id ?? null) &&
-                                         $order->status === 'pending';
+                                         $order->doctor_id === $myDoctorId &&
+                                         in_array($order->status, ['pending', 'paid']);
                     @endphp
                     <tr>
                         <td class="ps-4">
@@ -111,27 +112,36 @@
                                 @php
                                     $statusBadge = [
                                         'pending' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
-                                        'signed' => 'bg-success-subtle text-success-emphasis border-success-subtle',
-                                        'rejected' => 'bg-danger-subtle text-danger-emphasis border-danger-subtle',
+                                        'paid'    => 'bg-info-subtle text-info-emphasis border-info-subtle',
+                                        'signed'  => 'bg-success-subtle text-success-emphasis border-success-subtle',
+                                        'rejected'=> 'bg-danger-subtle text-danger-emphasis border-danger-subtle',
                                         'cancelled' => 'bg-light text-muted border-light-subtle'
                                     ];
                                     $statusIcon = [
                                         'pending' => 'bi-clock-history',
-                                        'signed' => 'bi-patch-check-fill',
-                                        'rejected' => 'bi-x-circle',
+                                        'paid'    => 'bi-cash-stack',
+                                        'signed'  => 'bi-patch-check-fill',
+                                        'rejected'=> 'bi-x-circle',
                                         'cancelled' => 'bi-slash-circle'
+                                    ];
+                                    $statusLabel = [
+                                        'pending' => 'Por Pagar',
+                                        'paid'    => 'Pagada / Por Firmar',
+                                        'signed'  => 'Firmada',
+                                        'rejected'=> 'Rechazada',
+                                        'cancelled' => 'Cancelada'
                                     ];
                                 @endphp
                                 <span class="badge border {{ $statusBadge[$order->status] ?? 'bg-secondary' }} px-2 py-1">
                                     <i class="bi {{ $statusIcon[$order->status] ?? 'bi-info-circle' }} me-1"></i>
-                                    {{ ucfirst(__($order->status)) }}
+                                    {{ $statusLabel[$order->status] ?? ucfirst($order->status) }}
                                 </span>
                             @endif
                         </td>
                         <td class="text-end pe-4">
                             <div class="btn-group shadow-sm">
                                 @role('doctor')
-                                    @if($order->status == 'pending')
+                                    @if(in_array($order->status, ['pending', 'paid']))
                                         @if($isClaimedByOther)
                                             <button class="btn btn-sm btn-light text-muted border" disabled title="Ocupada por otro médico">
                                                 <i class="bi bi-lock-fill"></i> Ocupada
@@ -161,7 +171,7 @@
                         @php $cols = auth()->user()->hasAnyRole('admin', 'director_tecnico') ? 6 : 5; @endphp
                         <td colspan="{{ $cols }}" class="text-center py-5 bg-light-subtle">
                             <i class="bi bi-clipboard2-x fs-1 text-muted d-block mb-3"></i>
-                            <span class="text-muted fw-medium">No hay órdenes pendientes en este momento.</span>
+                            <span class="text-muted fw-medium">No hay órdenes para gestionar en este momento.</span>
                         </td>
                     </tr>
                     @endforelse
@@ -181,5 +191,6 @@
     .bg-purple-subtle { background-color: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
     .text-purple { color: #7e22ce; }
     .btn-white { background-color: #fff; }
+    .badge.bg-info-subtle { background-color: #e0f2fe !important; color: #0369a1 !important; border-color: #bae6fd !important; }
 </style>
 @endsection

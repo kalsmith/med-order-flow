@@ -20,8 +20,8 @@ class MedicalOrderController extends Controller
         $user = Auth::user();
 
         // 1. Garbage Collector: Liberamos órdenes cuyo "claimed_at" expiró (20 minutos)
-        // Esto permite que otros doctores vean órdenes que alguien tomó pero no terminó.
-        MedicalOrder::where('status', 'pending')
+        // Ahora incluimos 'paid' porque es el estado en el que los médicos trabajan.
+        MedicalOrder::whereIn('status', ['pending', 'paid'])
             ->whereNotNull('claimed_at')
             ->where('claimed_at', '<', now()->subMinutes(20))
             ->update([
@@ -37,21 +37,23 @@ class MedicalOrderController extends Controller
             $doctor = $user->doctor;
 
             $query->where(function($q) use ($doctor) {
-                // Ver órdenes ya asignadas a mí
+                // 1. Ver órdenes que ya tengo tomadas YO (independiente del estado)
                 $q->where('doctor_id', $doctor->id)
-                // O ver pendientes de mi especialidad que no estén tomadas por otros
+                  ->whereIn('status', ['paid', 'pending'])
+
+                // 2. O ver órdenes de mi especialidad PAGADAS y sin asignar
                 ->orWhere(function($sq) use ($doctor) {
                     $sq->whereNull('doctor_id')
-                       ->where('status', 'pending')
+                       ->where('status', 'paid') // Solo mostramos lo que ya está pagado
                        ->whereHas('examType', function($eq) use ($doctor) {
                            $eq->where('specialty_id', $doctor->specialty_id);
                        });
                 })
-                // O ver solicitudes especiales (custom) sin asignar
+                // 3. O ver solicitudes especiales (custom) PAGADAS y sin asignar
                 ->orWhere(function($sq) {
                     $sq->whereNull('doctor_id')
                        ->whereNull('exam_type_id')
-                       ->where('status', 'pending');
+                       ->where('status', 'paid');
                 });
             });
         }
@@ -70,13 +72,12 @@ class MedicalOrderController extends Controller
         $doctor = $user->doctor;
 
         // VALIDACIÓN DE BLOQUEO ACTIVO
-        // Si la orden ya tiene doctor Y un reclamado reciente, y no soy yo: Bloquear.
         if ($order->doctor_id && $order->doctor_id !== $doctor->id && $order->claimed_at > now()->subMinutes(20)) {
             return redirect()->route('admin.orders.index')
                              ->with('error', 'Esta orden está siendo revisada por otro profesional.');
         }
 
-        // MARCAR COMO TOMADA: Actualizamos doctor_id y la marca de tiempo del reclamo
+        // MARCAR COMO TOMADA
         $order->update([
             'doctor_id' => $doctor->id,
             'claimed_at' => now()
@@ -95,10 +96,9 @@ class MedicalOrderController extends Controller
     {
         $doctor = Auth::user()->doctor;
 
-        // Seguridad: Verificar que sigue siendo el dueño del reclamo
         if ($order->doctor_id !== $doctor->id) {
             return redirect()->route('admin.orders.index')
-                             ->with('error', 'El tiempo de reserva de esta orden expiró y fue tomada por otro profesional.');
+                             ->with('error', 'El tiempo de reserva de esta orden expiró.');
         }
 
         DB::transaction(function () use ($order, $doctor) {
@@ -106,13 +106,10 @@ class MedicalOrderController extends Controller
             $order->update([
                 'status'    => 'signed',
                 'signed_at' => now(),
-                // Mantenemos el doctor_id que ya se asignó en showSignForm
             ]);
 
-            // 2. Vincular Transacción al Médico
-            // Buscamos el pago realizado por el paciente para esta orden específica
+            // 2. Vincular Transacción al Médico para su pago/comisión
             Transaction::where('reference_id', $order->id)
-                ->whereNull('receiver_id')
                 ->update([
                     'receiver_id' => $doctor->user_id
                 ]);
@@ -125,13 +122,40 @@ class MedicalOrderController extends Controller
     }
 
     /**
-     * Permite al médico liberar la orden manualmente si decide no firmarla.
+     * Nuevo método: Rechazar orden (especialmente útil para Custom Orders)
+     */
+    public function rejectOrder(Request $request, MedicalOrder $order)
+    {
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500'
+        ]);
+
+        $doctor = Auth::user()->doctor;
+
+        if ($order->doctor_id !== $doctor->id) {
+            return redirect()->route('admin.orders.index')->with('error', 'No tienes permiso sobre esta orden.');
+        }
+
+        $order->update([
+            'status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
+            // Al rechazarla, la orden deja de estar "claimed" pero mantiene quién la rechazó
+            'claimed_at' => null
+        ]);
+
+        Log::warning("Orden {$order->id} rechazada por Dr. {$doctor->id}. Motivo: {$request->rejection_reason}");
+
+        return redirect()->route('admin.orders.index')->with('info', 'La orden ha sido rechazada y marcada para revisión administrativa.');
+    }
+
+    /**
+     * Permite al médico liberar la orden manualmente si decide no firmarla (sin rechazarla).
      */
     public function releaseOrder(MedicalOrder $order)
     {
         $doctor = Auth::user()->doctor;
 
-        if ($order->doctor_id === $doctor->id && $order->status === 'pending') {
+        if ($order->doctor_id === $doctor->id && in_array($order->status, ['pending', 'paid'])) {
             $order->update([
                 'doctor_id' => null,
                 'claimed_at' => null
@@ -141,6 +165,17 @@ class MedicalOrderController extends Controller
 
         return redirect()->route('admin.orders.index');
     }
+
+    // ... create y store se mantienen igual ...
+
+
+
+
+
+
+
+
+
 
     /**
      * Emisión manual de órdenes por parte del médico.
