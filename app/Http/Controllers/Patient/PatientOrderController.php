@@ -54,57 +54,65 @@ class PatientOrderController extends Controller
      * Paso 2: Crear la orden en la base de datos y saltar al pago.
      */
 
-
 public function store(Request $request)
 {
-    // 1. Validación de entrada condicional
-    $request->validate([
-        'patient_id'   => 'required|exists:patients,id',
-        'exam_type_id' => 'required_unless:type,custom|exists:exam_types,id',
-        'custom_description' => 'required_if:type,custom|min:10'
-    ]);
+    Log::info("=== INICIO PROCESO DE ORDEN ===", ['payload' => $request->all()]);
+
+    // 1. Validación
+    try {
+        $request->validate([
+            'patient_id'   => 'required|exists:patients,id',
+            'exam_type_id' => 'required_unless:type,custom|exists:exam_types,id',
+            'custom_description' => 'required_if:type,custom|min:10'
+        ]);
+        Log::info("1. Validación aprobada.");
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error("Fallo en validación:", ['errors' => $e->errors()]);
+        throw $e;
+    }
 
     try {
         $order = DB::transaction(function () use ($request) {
 
-            // EL BLOQUE QUE ME COMÍ (Paciente siempre se necesita)
             $patient = Patient::findOrFail($request->patient_id);
+            Log::info("2. Paciente encontrado:", ['id' => $patient->id, 'nombre' => $patient->full_name]);
 
-            // 2. DETERMINAR SI ES CUSTOM O ESTÁNDAR
+            // DETERMINAR FLUJO
             if ($request->type === 'custom') {
+                Log::info("3. Entrando a FLUJO CUSTOM.");
 
-                // --- FLUJO CUSTOM ---
                 $examId = null;
                 $amount = 9990;
                 $orderType = 'custom';
                 $description = $request->custom_description;
+                $doctor = null; // En custom, queda libre para el pool
 
-                // Como es custom, no tenemos specialty_id.
-                // Buscamos al médico activo con el turno más antiguo (rotación general).
-                $doctor = null;
-
+                Log::info("4. Parámetros Custom listos. Doctor asignado: NULL (Pool abierto).");
             } else {
+                Log::info("3. Entrando a FLUJO ESTÁNDAR.");
 
-                // --- FLUJO ESTÁNDAR (Tu código original intacto) ---
                 $exam = ExamType::findOrFail($request->exam_type_id);
                 $examId = $exam->id;
                 $amount = $exam->base_price;
-                $orderType = 'standard'; // o 'standard' según prefieras
+                $orderType = 'standard';
                 $description = null;
 
-                // 2. EJECUTAR MOTOR DE ROTACIÓN (Tu bloque original)
+                Log::info("4. Buscando doctor por especialidad...", ['specialty_id' => $exam->specialty_id]);
                 $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+
+                if (!$doctor) {
+                    Log::error("ERROR: No se encontró doctor para la especialidad.");
+                    throw new \Exception('No hay médicos disponibles para esta especialidad.');
+                }
+                Log::info("5. Doctor asignado por rotación:", ['id' => $doctor->id]);
             }
 
-            if (!$doctor) {
-                throw new \Exception('No hay médicos disponibles para esta solicitud en este momento.');
-            }
-
-            // 3. CREAR LA ORDEN (Unificada para ambos casos)
+            // 3. CREAR LA ORDEN
+            Log::info("6. Intentando crear registro en MedicalOrder...");
             $newOrder = MedicalOrder::create([
                 'id'                => (string) \Illuminate\Support\Str::uuid(),
                 'patient_id'        => $patient->id,
-                'doctor_id'         => $doctor->id,
+                'doctor_id'         => $doctor ? $doctor->id : null, // IMPORTANTE: Permitir null
                 'exam_type_id'      => $examId,
                 'custom_description'=> $description,
                 'status'            => 'pending',
@@ -113,18 +121,29 @@ public function store(Request $request)
                 'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
             ]);
 
-            // 4. ACTUALIZAR TURNO (Tu bloque original)
-            $doctor->update(['last_assigned_at' => now()]);
+            Log::info("7. ORDEN CREADA EXITOSAMENTE:", ['order_id' => $newOrder->id]);
+
+            // 4. ACTUALIZAR TURNO (Solo si hay doctor)
+            if ($doctor) {
+                Log::info("8. Actualizando turno del doctor.");
+                $doctor->update(['last_assigned_at' => now()]);
+            } else {
+                Log::info("8. Sin doctor que actualizar (es flujo custom).");
+            }
 
             return $newOrder;
         });
 
-        // 5. REDIRIGIR AL PROCESO DE PAGO
+        Log::info("=== FIN PROCESO EXITOSO - REDIRIGIENDO AL PAGO ===");
         return redirect()->route('checkout.process', ['order' => $order->id]);
 
     } catch (\Exception $e) {
-        Log::error("Error en Creación de Orden: " . $e->getMessage());
-        return back()->with('error', $e->getMessage());
+        Log::error("!!! EXCEPCIÓN EN STORE !!!", [
+            'mensaje' => $e->getMessage(),
+            'linea'   => $e->getLine(),
+            'archivo' => $e->getFile()
+        ]);
+        return back()->with('error', 'Error al procesar la orden: ' . $e->getMessage());
     }
 }
 
