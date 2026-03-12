@@ -28,8 +28,8 @@
             <div class="bg-primary py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                {{-- CORRECCIÓN: Se pasa el objeto $doctor directamente para que Laravel use el parámetro 'medico' --}}
-                <form action="{{ route('admin.doctors.update', ['medico' => $doctor->id]) }}" method="POST" enctype="multipart/form-data">
+                {{-- CORRECCIÓN: Se usa el nombre del parámetro 'medico' que espera el Resource --}}
+                <form id="doctor-form" action="{{ route('admin.doctors.update', ['medico' => $doctor->id]) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -85,9 +85,9 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Estado del Médico</label>
-                            <select name="is_active" class="form-select">
-                                <option value="1" {{ $doctor->is_active ? 'selected' : '' }}>🟢 Activo / Vigente</option>
-                                <option value="0" {{ !$doctor->is_active ? 'selected' : '' }}>🔴 Inactivo</option>
+                            <select name="is_active" id="is_active_select" class="form-select">
+                                <option value="1" {{ old('is_active', $doctor->is_active) == 1 ? 'selected' : '' }}>🟢 Activo / Vigente</option>
+                                <option value="0" {{ old('is_active', $doctor->is_active) == 0 ? 'selected' : '' }}>🔴 Inactivo</option>
                             </select>
                         </div>
 
@@ -99,7 +99,7 @@
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="checkbox" name="specialties[]"
                                                    value="{{ $specialty->id }}" id="spec_{{ $specialty->id }}"
-                                                   {{ $doctor->specialties->contains($specialty->id) ? 'checked' : '' }}>
+                                                   {{ (is_array(old('specialties')) && in_array($specialty->id, old('specialties'))) || $doctor->specialties->contains($specialty->id) ? 'checked' : '' }}>
                                             <label class="form-check-label small" for="spec_{{ $specialty->id }}">
                                                 {{ $specialty->name }}
                                             </label>
@@ -107,6 +107,9 @@
                                     </div>
                                 @endforeach
                             </div>
+                            @error('specialties')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                         </div>
 
                         {{-- Sección: Firma Digital --}}
@@ -114,7 +117,7 @@
                             <label class="form-label fw-bold small text-muted">Firma Digital (Sello)</label>
                             <div class="d-flex align-items-center gap-4 p-3 border rounded">
                                 <div class="text-center bg-white p-2 border rounded" style="min-width: 150px;">
-                                    <small class="text-muted d-block mb-2">Vista Previa</small>
+                                    <small class="text-muted d-block mb-2">Vista Previa Actual</small>
                                     <img id="signature-preview"
                                          src="{{ $doctor->signature_path ? Storage::url($doctor->signature_path) : 'https://via.placeholder.com/150x80?text=Sin+Firma' }}"
                                          alt="Firma"
@@ -126,7 +129,7 @@
                                            class="form-control form-control-sm @error('signature') is-invalid @enderror"
                                            accept="image/png, image/jpeg">
                                     <p class="text-muted mb-0 mt-2" style="font-size: 0.75rem;">
-                                        <i class="bi bi-info-circle me-1"></i> Se recomienda formato PNG transparente de 300x150px. Máximo 1MB.
+                                        <i class="bi bi-info-circle me-1"></i> Se recomienda formato PNG transparente. Máximo 2MB.
                                     </p>
                                 </div>
                             </div>
@@ -135,8 +138,8 @@
                         {{-- Botones de Acción --}}
                         <div class="col-12 mt-5 pt-3 border-top">
                             <div class="d-flex justify-content-between align-items-center">
-                                <button type="button" class="btn btn-link text-danger text-decoration-none small" onclick="confirmDelete()">
-                                    <i class="bi bi-trash me-1"></i> Desactivar Médico
+                                <button type="button" class="btn btn-link text-danger text-decoration-none small" onclick="confirmDeactivation()">
+                                    <i class="bi bi-slash-circle me-1"></i> Desactivar Médico
                                 </button>
                                 <button type="submit" class="btn btn-primary px-5 shadow">
                                     <i class="bi bi-save me-2"></i> Actualizar Perfil
@@ -150,12 +153,20 @@
     </div>
 </div>
 
-{{-- Script para previsualizar la firma antes de subirla --}}
 <script>
+    // Previsualización de imagen
     document.getElementById('signature-input').onchange = function (evt) {
         const [file] = this.files;
         if (file) {
             document.getElementById('signature-preview').src = URL.createObjectURL(file);
+        }
+    }
+
+    // Lógica para el botón de desactivación rápida
+    function confirmDeactivation() {
+        if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo?')) {
+            document.getElementById('is_active_select').value = "0";
+            document.getElementById('doctor-form').submit();
         }
     }
 </script>

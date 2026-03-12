@@ -16,7 +16,7 @@ class DoctorController extends Controller
     /**
      * Nombre base de las rutas para evitar repeticiones.
      */
-    protected $routePrefix = 'admin.admin.doctors';
+    protected $routePrefix = 'admin.doctors';
 
     public function index()
     {
