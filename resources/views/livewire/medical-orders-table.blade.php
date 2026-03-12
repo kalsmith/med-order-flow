@@ -24,6 +24,12 @@
                     Mis Órdenes Firmadas
                 </button>
             </li>
+            <li class="nav-item">
+                <button wire:click="setTab('auto_signed')"
+                    class="nav-link {{ $tab === 'auto_signed' ? 'active fw-bold border-bottom border-primary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
+                    <i class="bi bi-robot me-1"></i> Firma Automática
+                </button>
+            </li>
         </ul>
     </div>
 
@@ -33,7 +39,7 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4 py-3 text-uppercase small fw-bold text-muted">Paciente</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted">Examen</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted">Examen / Tipo</th>
                         <th class="py-3 text-uppercase small fw-bold text-muted">Fecha</th>
                         <th class="py-3 text-uppercase small fw-bold text-muted">Estado</th>
                         <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted">Acciones</th>
@@ -52,13 +58,13 @@
                                 <small class="text-muted">{{ $order->patient->rut }}</small>
                             </td>
                             <td>
-                                @if($order->examType)
+                                @if($order->type === 'custom')
+                                    <span class="badge bg-purple-subtle text-purple border border-purple-subtle">
+                                        <i class="bi bi-stars me-1"></i> Solicitud Especial
+                                    </span>
+                                @elseif($order->examType)
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2">
                                         {{ $order->examType->name }}
-                                    </span>
-                                @else
-                                    <span class="badge bg-purple-subtle text-purple border border-purple-subtle">
-                                        <i class="bi bi-stars me-1"></i> Especial
                                     </span>
                                 @endif
                             </td>
@@ -77,6 +83,10 @@
                                             Lista para firmar
                                         </span>
                                     @endif
+                                @elseif($tab === 'auto_signed')
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                        <i class="bi bi-robot me-1"></i> Validado por Sistema
+                                    </span>
                                 @else
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">
                                         <i class="bi bi-patch-check-fill me-1"></i> Firmada por mí
@@ -97,10 +107,14 @@
                                         </a>
                                     @endif
                                 @else
-                                    {{-- Acciones para firmadas --}}
+                                    {{-- Acciones para órdenes finalizadas (Suyo o Auto) --}}
                                     <div class="btn-group">
-                                        <a href="#" class="btn btn-sm btn-outline-success"><i class="bi bi-file-pdf"></i></a>
-                                        <a href="#" class="btn btn-sm btn-light border"><i class="bi bi-eye"></i></a>
+                                        <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-sm btn-light border" title="Ver Detalles">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="#" class="btn btn-sm btn-outline-success" title="Descargar Orden">
+                                            <i class="bi bi-file-pdf"></i>
+                                        </a>
                                     </div>
                                 @endif
                             </td>
@@ -110,7 +124,13 @@
                             <td colspan="5" class="text-center py-5 bg-light-subtle">
                                 <div class="text-muted">
                                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                    {{ $tab === 'available' ? 'No hay órdenes pendientes de firma.' : 'Aún no has firmado ninguna orden.' }}
+                                    @if($tab === 'available')
+                                        No hay órdenes pendientes de firma.
+                                    @elseif($tab === 'auto_signed')
+                                        No se registran órdenes validadas automáticamente.
+                                    @else
+                                        Aún no has firmado ninguna orden.
+                                    @endif
                                 </div>
                             </td>
                         </tr>
