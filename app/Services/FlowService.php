@@ -107,6 +107,10 @@ public function handleWebhook(string $token)
                 } else {
                     Log::error("WEBHOOK: Falló la firma");
                     $order->update(['status' => 'refund_pending']);
+                    // 2. LLAMADA CRUCIAL: Aquí es donde invocamos a Flow para devolver el dinero
+                    $this->requestRefund($order, $gatewayTrx);
+
+
                     return false;
                 }
             }
