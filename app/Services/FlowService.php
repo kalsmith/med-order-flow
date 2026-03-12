@@ -171,46 +171,62 @@ public function handleWebhook(string $token)
     /**
  * Solicita un reembolso a Flow si la firma falla
  */
+
+    /**
+ * Solicita un reembolso a Flow si la firma falla
+ */
 public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTrx)
 {
     $endpoint = $this->urlBase . '/refund/create';
 
-    // Generamos un ID de reembolso único para nuestra BD
-    $refundId = "REF-" . strtoupper(bin2hex(random_bytes(4)));
+    // Identificador único para esta solicitud de reembolso
+    $refundOrder = "REF-" . strtoupper(bin2hex(random_bytes(4)));
 
+    // IMPORTANTE: Estos nombres deben coincidir EXACTAMENTE con la documentación de Flow
     $params = [
-        'apiKey'         => $this->apiKey,
-        'amount'         => (int)$order->amount,
-        'commerceTrxId'  => $gatewayTrx->buy_order, // La orden original de Flow
-        'externalRefundId' => $refundId,
-        'receiverEmail'  => $order->patient->user->email,
-        'urlCallBack'    => route('flow.refund.webhook'), // Ruta para confirmar el reembolso
+        'apiKey'               => $this->apiKey,
+        'refundCommerceOrder'  => $refundOrder,      // Requerido según tu doc
+        'receiverEmail'        => $order->patient->user->email, // Requerido
+        'amount'               => (int)$order->amount, // Requerido
+        'urlCallBack'          => route('flow.refund.webhook'), // Requerido
+        'commerceTrxId'        => $gatewayTrx->buy_order, // Identificador original
     ];
 
+    // Generar la firma con estos parámetros exactos
     $params['s'] = $this->makeSignature($params);
 
     try {
-        Log::info("SOLICITANDO REEMBOLSO: Orden {$order->id} por fallo en firma.");
+        Log::warning("SOLICITANDO REEMBOLSO FLOW: Orden {$order->id}");
 
         $response = Http::asForm()->post($endpoint, $params);
 
         if ($response->successful()) {
             $res = $response->object();
-            // Guardamos el ID de reembolso de Flow en la orden
+
+            // Según tu doc, devuelve un 'token' y un 'flowRefundOrder'
             $order->update([
-                'flow_refund_id' => $res->token, // O el ID que retorne Flow
-                'internal_notes' => ($order->internal_notes . "\n[Reembolso solicitado el " . now() . "]")
+                'flow_refund_id' => $res->token,
+                'internal_notes' => $order->internal_notes . "\n[Reembolso Flow Creado: {$res->flowRefundOrder} el " . now() . "]"
             ]);
 
-            Log::info("REEMBOLSO TRAMITADO: Token de Flow: " . $res->token);
+            Log::info("REEMBOLSO FLOW CREADO EXITOSAMENTE", [
+                'token' => $res->token,
+                'flowOrder' => $res->flowRefundOrder
+            ]);
+
             return true;
         }
 
-        Log::info("ERROR API FLOW REEMBOLSO: " . $response->body());
+        // Si falla, logueamos el error exacto de Flow para debuguear
+        Log::error("ERROR API FLOW REEMBOLSO", [
+            'status' => $response->status(),
+            'body' => $response->json()
+        ]);
+
         return false;
 
     } catch (\Exception $e) {
-        Log::info("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
+        Log::error("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
         return false;
     }
 }
