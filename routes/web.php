@@ -126,18 +126,17 @@ Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle
     Route::post('/validar-perfil-flow', [OrderFlowController::class, 'storeProfile'])->name('profile.store.flow');
 
     // Acciones con Perfil Completo
+    // --- Acciones con Perfil Completo ---
     Route::middleware(['check.profile'])->group(function () {
         Route::get('/mis-ordenes', [PatientOrderController::class, 'index'])->name('patient.orders');
-       // Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
 
-        // Checkout Interno
-        Route::get('/checkout/{order}', [CheckoutController::class, 'process'])->name('checkout.index');
-//        Route::get('/checkout/{order}', [CheckoutController::class, 'index'])->name('checkout.index');
-        Route::post('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.process');
+        // CHECKOUT: Una sola ruta clara para procesar el pago
+        // Cuando el controlador de la orden termina, redirige aquí.
+        Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])->name('checkout.process');
 
-        // Éxito del Pago (Protegida)
+        // ÉXITO
         Route::get('/pago-exitoso/{order?}', [PatientOrderController::class, 'showSuccess'])->name('payment.success');
     });
 });
