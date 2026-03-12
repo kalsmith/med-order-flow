@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
 @section('header')
-    {{ auth()->user()->hasRole('doctor') ? 'Mis Órdenes Pendientes' : 'Gestión Global de Órdenes' }}
+    {{ auth()->user()->hasRole('doctor') ? 'Panel de Órdenes Médicas' : 'Gestión Global de Órdenes' }}
 @endsection
 
 @section('content')
@@ -41,9 +41,17 @@
                     @forelse($orders as $order)
                     <tr>
                         <td class="ps-4">
-                            {{-- Usamos full_name del modelo Patient que ya maneja la desencriptación --}}
-                            <div class="fw-bold text-dark">{{ $order->patient->full_name }}</div>
-                            <small class="text-muted">RUT: {{ $order->patient->rut }}</small>
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <div class="fw-bold text-dark">
+                                        {{ $order->patient->full_name }}
+                                        @if($order->patient->trashed())
+                                            <i class="bi bi-archive text-muted ms-1" title="Paciente eliminado del círculo activo"></i>
+                                        @endif
+                                    </div>
+                                    <small class="text-muted">RUT: {{ $order->patient->rut }}</small>
+                                </div>
+                            </div>
                         </td>
                         <td>
                             @if($order->examType)
@@ -64,9 +72,10 @@
                         @role('admin|director_tecnico')
                         <td>
                             @if($order->doctor && $order->doctor->user)
-                                <div class="small">Dr. {{ $order->doctor->user->name }}</div>
+                                <div class="small text-dark fw-medium">Dr. {{ $order->doctor->user->name }}</div>
+                                <small class="text-muted">{{ $order->doctor->specialty->name ?? '' }}</small>
                             @else
-                                <span class="text-muted small italic">Sin asignar</span>
+                                <span class="text-muted small fst-italic">Sin asignar</span>
                             @endif
                         </td>
                         @endrole
@@ -78,32 +87,40 @@
                             @php
                                 $statusBadge = [
                                     'pending' => 'bg-warning text-dark',
-                                    'signed' => 'bg-success',
-                                    'rejected' => 'bg-danger',
-                                    'cancelled' => 'bg-secondary'
+                                    'signed' => 'bg-success text-white',
+                                    'rejected' => 'bg-danger text-white',
+                                    'cancelled' => 'bg-secondary text-white'
                                 ];
                                 $statusIcon = [
                                     'pending' => 'bi-clock-history',
-                                    'signed' => 'bi-check-circle',
+                                    'signed' => 'bi-check-all',
                                     'rejected' => 'bi-x-circle',
                                     'cancelled' => 'bi-slash-circle'
                                 ];
                                 $currentStatus = $order->status;
                             @endphp
-                            <span class="badge {{ $statusBadge[$currentStatus] ?? 'bg-secondary' }}">
+                            <span class="badge {{ $statusBadge[$currentStatus] ?? 'bg-secondary' }} px-2 py-1">
                                 <i class="bi {{ $statusIcon[$currentStatus] ?? 'bi-info-circle' }} me-1"></i>
                                 {{ ucfirst(__($currentStatus)) }}
                             </span>
                         </td>
                         <td class="text-end pe-4">
                             <div class="btn-group">
-                                @if(auth()->user()->hasRole('doctor') && $order->status == 'pending')
-                                    <a href="{{ route('admin.orders.sign.form', $order->id) }}" class="btn btn-sm btn-primary shadow-sm">
-                                        <i class="bi bi-vector-pen me-1"></i> Firmar
-                                    </a>
+                                {{-- Lógica de Doctor --}}
+                                @if(auth()->user()->hasRole('doctor'))
+                                    @if($order->status == 'pending')
+                                        <a href="{{ route('admin.orders.sign.form', $order->id) }}" class="btn btn-sm btn-primary shadow-sm">
+                                            <i class="bi bi-vector-pen me-1"></i> Firmar
+                                        </a>
+                                    @elseif($order->status == 'signed')
+                                        <a href="#" class="btn btn-sm btn-outline-success border-2 shadow-sm" title="Descargar Orden Médica">
+                                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+                                        </a>
+                                    @endif
                                 @endif
 
-                                <a href="#" class="btn btn-sm btn-outline-dark ms-1" title="Ver detalles">
+                                {{-- Acciones Generales --}}
+                                <a href="#" class="btn btn-sm btn-outline-dark ms-1" title="Ver detalles y trazabilidad">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </div>
@@ -111,9 +128,10 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ auth()->user()->hasRole('doctor') ? '5' : '6' }}" class="text-center py-5">
+                        @php $cols = auth()->user()->hasAnyRole('admin', 'director_tecnico') ? 6 : 5; @endphp
+                        <td colspan="{{ $cols }}" class="text-center py-5">
                             <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
-                            <span class="text-muted">No se encontraron órdenes registradas.</span>
+                            <span class="text-muted fw-medium">No se encontraron órdenes en esta sección.</span>
                         </td>
                     </tr>
                     @endforelse
