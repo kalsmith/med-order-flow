@@ -22,32 +22,33 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
-    public function render()
-    {
-        $user = Auth::user();
-        $myDoctorId = $user->doctor->id ?? null;
+public function render()
+{
+    $user = Auth::user();
+    $myDoctorId = $user->doctor->id ?? null;
 
-        $query = MedicalOrder::with(['patient', 'examType', 'doctor.user']);
+    $query = MedicalOrder::with(['patient', 'examType', 'doctor.user']);
 
-        if ($this->tab === 'available') {
-            $query->where('status', 'paid')
-                ->where(function($q) use ($myDoctorId) {
-                    $q->whereNull('doctor_id')
-                        ->orWhere('doctor_id', $myDoctorId)
-                        ->orWhere('claimed_at', '<', now()->subMinutes(20));
-                });
-        } elseif ($this->tab === 'auto_signed') {
-            // NUEVA PESTAÑA: Firmadas por el sistema (sin intervención de doctor)
-            $query->where('status', 'signed')
-                ->whereNull('doctor_id');
-        } else {
-            // Mis Firmadas: Solo las que YO firmé
-            $query->where('status', 'signed')
-                ->where('doctor_id', $myDoctorId);
-        }
+    if ($this->tab === 'available') {
+        // 1. POR FIRMAR: Solo Custom que están pagadas y esperando
+        $query->where('type', 'custom')
+              ->where('status', 'paid');
 
-        return view('livewire.medical-orders-table', [
-            'orders' => $query->latest()->paginate(10)
-        ]);
+    } elseif ($this->tab === 'auto_signed') {
+        // 2. FIRMA AUTOMÁTICA: Son Standard, ya están firmadas y asignadas a él
+        $query->where('type', 'standard')
+              ->where('status', 'signed')
+              ->where('doctor_id', $myDoctorId);
+
+    } else {
+        // 3. MIS FIRMADAS: Solo las Custom que él firmó manualmente
+        $query->where('type', 'custom')
+              ->where('status', 'signed')
+              ->where('doctor_id', $myDoctorId);
     }
+
+    return view('livewire.medical-orders-table', [
+        'orders' => $query->latest()->paginate(10)
+    ]);
+}
 }
