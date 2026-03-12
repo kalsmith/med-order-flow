@@ -127,7 +127,7 @@ public function submitRequest()
         $this->dispatch('trigger-payment-submit');
 
     } catch (\Exception $e) {
-        Log::error("Error en CustomOrderFlow: " . $e->getMessage());
+        Log::info("Error en CustomOrderFlow: " . $e->getMessage());
         $this->addError('description', 'No pudimos procesar la solicitud.');
     }
 }
