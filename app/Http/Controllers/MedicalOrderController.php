@@ -127,49 +127,66 @@ class MedicalOrderController extends Controller
      * Rechazar orden e iniciar reembolso.
      * Nota: Aquí usamos $medical_order como ID para el findOrFail manual.
      */
-    public function rejectOrder(Request $request, $medical_order, FlowService $flowService)
-    {
-        Log::info('--- INICIO PROCESO RECHAZO ---', [
-            'user_id' => auth()->id(),
-            'order_id' => $medical_order
+
+
+public function rejectOrder(Request $request, $medical_order, FlowService $flowService)
+{
+    Log::info('--- INICIO PROCESO RECHAZO ---', [
+        'user_id' => auth()->id(),
+        'order_id' => $medical_order
+    ]);
+
+    try {
+        // 1. Carga explícita para evitar fallos de Lazy Loading
+        $order = MedicalOrder::findOrFail($medical_order);
+        $user = auth()->user();
+        $doctor = $user->doctor;
+
+        // 2. LOG DE DEPURACIÓN (Para ver qué está fallando exactamente)
+        Log::info('Debug Permisos:', [
+            'order_doctor_id' => $order->doctor_id,
+            'authenticated_doctor_id' => $doctor->id ?? 'null',
+            'match' => ($doctor && strval($order->doctor_id) === strval($doctor->id)) ? 'YES' : 'NO'
         ]);
 
-        try {
-            $order = MedicalOrder::findOrFail($medical_order);
-            $doctor = auth()->user()->doctor;
+        // 3. Validación robusta (Convertimos ambos a String para asegurar coincidencia de UUID/ID)
+        if (!$doctor || strval($order->doctor_id) !== strval($doctor->id)) {
+            Log::error("CRASH RECHAZO: No tienes permiso. Médico autenticado: " . ($doctor->id ?? 'Ninguno'));
+            return abort(403, 'No tienes permiso sobre esta orden.');
+        }
 
-            if (!$doctor || $order->doctor_id !== $doctor->id) {
-                return abort(403, 'No tienes permiso sobre esta orden.');
+        $request->validate(['rejection_reason' => 'required|string|max:500']);
+
+        return DB::transaction(function () use ($request, $order, $flowService) {
+            // Actualización
+            $order->update([
+                'status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason,
+                'claimed_at' => null,
+                // Opcional: podrías querer liberar el doctor_id al rechazar
+                // 'doctor_id' => null
+            ]);
+
+            $gatewayTrx = GatewayTransaction::where('payable_id', $order->id)
+                ->where('status', 'authorized')
+                ->first();
+
+            if ($gatewayTrx) {
+                // Aquí llamamos al servicio de Flow
+                $refundResult = $flowService->requestRefund($order, $gatewayTrx, $gatewayTrx->token);
+                if ($refundResult) {
+                    return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado en Flow.');
+                }
             }
 
-            $request->validate(['rejection_reason' => 'required|string|max:500']);
+            return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada localmente, pero no se detectó transacción para reembolso automático.');
+        });
 
-            return DB::transaction(function () use ($request, $order, $flowService) {
-                $order->update([
-                    'status' => 'rejected',
-                    'rejection_reason' => $request->rejection_reason,
-                    'claimed_at' => null
-                ]);
-
-                $gatewayTrx = GatewayTransaction::where('payable_id', $order->id)
-                    ->where('status', 'authorized')
-                    ->first();
-
-                if ($gatewayTrx) {
-                    $refundResult = $flowService->requestRefund($order, $gatewayTrx, $gatewayTrx->token);
-                    if ($refundResult) {
-                        return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado.');
-                    }
-                }
-
-                return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada (reembolso manual requerido).');
-            });
-
-        } catch (\Exception $e) {
-            Log::error("CRASH RECHAZO: " . $e->getMessage());
-            return redirect()->back()->with('error', 'Error interno al procesar.');
-        }
+    } catch (\Exception $e) {
+        Log::error("CRASH RECHAZO: " . $e->getMessage());
+        return redirect()->back()->with('error', 'Error interno: ' . $e->getMessage());
     }
+}
 
     /**
      * Libera la orden.
