@@ -72,25 +72,28 @@ Route::middleware([
 
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
-// Rutas Doctor
-Route::middleware(['role:doctor'])->group(function () {
-    Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
-    Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
-    Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
+    // 1. RUTAS ESPECÍFICAS DEL DOCTOR (Deben ir antes que el resource)
+    Route::middleware(['role:doctor'])->group(function () {
+        Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
 
-    // ESTAS DOS deben estar aquí para que el doctor pueda ejecutarlas:
-    Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
-    Route::post('/ordenes/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
-});
-    // Administración
+        // Flujo de firma y gestión de estado por el médico
+        Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
+        Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
+        Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
+        Route::post('/ordenes/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
+    });
+
+    // 2. ADMINISTRACIÓN
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
+
+        // El resource se encarga de index, show, edit, update, destroy
         Route::resource('ordenes', MedicalOrderController::class)->names('orders')->except(['create', 'store']);
     });
 
-    // Contabilidad
+    // 3. CONTABILIDAD
     Route::middleware(['role:contable|admin'])->group(function () {
         Route::get('/reportes', [DashboardController::class, 'reports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
