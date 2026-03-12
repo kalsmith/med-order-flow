@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Casts\Attribute; // Importante
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\SoftDeletes; // <--- Añadido
 use Carbon\Carbon;
 use App\Support\RutHelper;
 
 class Patient extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes; // <--- Añadido SoftDeletes
 
     protected $fillable = [
         'user_id', 'full_name', 'rut', 'birth_date', 'gender_biologic',
@@ -40,7 +41,7 @@ class Patient extends Model
     {
         return Attribute::make(
             get: fn ($value) => $value ? RutHelper::format(decrypt($value)) : null,
-            set: fn ($value) => encrypt(RutHelper::clean($value)),
+            set: fn ($value) => $value ? encrypt(RutHelper::clean($value)) : null,
         );
     }
 
@@ -51,7 +52,7 @@ class Patient extends Model
     {
         return Attribute::make(
             get: fn ($value) => $value ? Carbon::parse(decrypt($value)) : null,
-            set: fn ($value) => encrypt($value),
+            set: fn ($value) => $value ? encrypt($value) : null,
         );
     }
 

@@ -42,38 +42,76 @@
         @endif
     </div>
 
-    <nav class="navbar navbar-expand-lg navbar-light sticky-nav border-bottom shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-extrabold text-primary fs-3 d-flex align-items-center" href="{{ route('home') }}">
-                <i class="bi bi-droplet-fill me-2"></i>
-                <span style="letter-spacing: -1px;">MedOrder<span class="text-dark">Flow</span></span>
-            </a>
 
-            <div class="ms-auto">
-                @auth
-                    <div class="dropdown">
-                        <button class="btn btn-light border dropdown-toggle px-3 py-2 rounded-4 shadow-sm" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1 text-primary"></i> {{ explode(' ', auth()->user()->name)[0] }}
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 p-2 rounded-4">
-                            <li><a class="dropdown-item rounded-3 py-2" href="{{ route('patient.orders') }}"><i class="bi bi-file-earmark-medical me-2"></i> Mis Órdenes</a></li>
-                            <li><hr class="dropdown-divider"></li>
+    <nav class="navbar navbar-expand-lg navbar-light sticky-nav border-bottom shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-extrabold text-primary fs-3 d-flex align-items-center" href="{{ route('home') }}">
+            <i class="bi bi-droplet-fill me-2"></i>
+            <span style="letter-spacing: -1px;">MedOrder<span class="text-dark">Flow</span></span>
+        </a>
+
+        <div class="ms-auto">
+            @auth
+                <div class="dropdown">
+                    <button class="btn btn-white border dropdown-toggle px-3 py-2 rounded-4 shadow-sm fw-bold" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1 text-primary"></i>
+                        {{ explode(' ', auth()->user()->name)[0] }}
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-3 p-2 rounded-4" style="min-width: 200px;">
+                        <div class="px-3 py-2 mb-1">
+                            <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.65rem;">Mi Gestión</span>
+                        </div>
+
+                        <li>
+                            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center" href="{{ route('patient.orders') }}">
+                                <i class="bi bi-file-earmark-medical me-2 text-primary"></i>
+                                <span>Mis Órdenes</span>
+                            </a>
+                        </li>
+
+<li>
+    <a class="dropdown-item rounded-3 py-2 d-flex align-items-center" href="{{ route('patient.circle') }}">
+        <i class="bi bi-people me-2 text-primary"></i>
+        <span>Mi Círculo</span>
+    </a>
+</li>
+
+                        @role('doctor|admin|director_tecnico')
+                            <li><hr class="dropdown-divider opacity-50"></li>
+                            <div class="px-3 py-2 mb-1">
+                                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.65rem;">Panel Profesional</span>
+                            </div>
                             <li>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item rounded-3 py-2 text-danger"><i class="bi bi-box-arrow-right me-2"></i> Salir</button>
-                                </form>
+                                <a class="dropdown-item rounded-3 py-2 d-flex align-items-center" href="{{ route('admin.orders.index') }}">
+                                    <i class="bi bi-clipboard-check me-2 text-success"></i>
+                                    <span>Gestión Clínica</span>
+                                </a>
                             </li>
-                        </ul>
-                    </div>
-                @else
-                    <a href="{{ route('auth.google') }}" class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm rounded-4">
-                        <i class="bi bi-google me-2"></i> Acceder
-                    </a>
-                @endauth
-            </div>
+                        @endrole
+
+                        <li><hr class="dropdown-divider opacity-50"></li>
+
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="dropdown-item rounded-3 py-2 text-danger d-flex align-items-center">
+                                    <i class="bi bi-box-arrow-right me-2"></i>
+                                    <span>Cerrar Sesión</span>
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            @else
+                <a href="{{ route('auth.google') }}" class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm rounded-4">
+                    <i class="bi bi-google me-2"></i> Acceder
+                </a>
+            @endauth
         </div>
-    </nav>
+    </div>
+</nav>
+
 
     <header class="hero-section">
         <div class="container text-center">

@@ -15,6 +15,7 @@ use App\Http\Controllers\MedicalOrderController;
 use App\Http\Controllers\Public\LandingController;
 use App\Http\Controllers\Patient\OrderFlowController;
 use App\Http\Controllers\Patient\PatientOrderController;
+use App\Http\Controllers\Patient\PatientCircleController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FlowController;
@@ -105,6 +106,20 @@ Route::middleware([
     'verified',
     'role:paciente'
 ])->group(function () {
+
+
+Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])
+    ->defaults('type', 'personalizada')
+    ->name('profile.complete');
+
+// La nueva ruta para el Micro-Panel de Gestión de Familiares
+    Route::get('/mi-circulo', [PatientCircleController::class, 'index'])->name('patient.circle');
+
+    // Rutas para acciones del círculo (opcional para después)
+    Route::post('/mi-circulo/agregar', [PatientCircleController::class, 'store'])->name('patient.circle.store');
+    Route::delete('/mi-circulo/{patient}', [PatientCircleController::class, 'destroy'])->name('patient.circle.destroy');
+
+
 
     // Embudo de compra inicial
     Route::get('/solicitar/{type}/{id?}', [OrderFlowController::class, 'handle'])->name('order.flow');
