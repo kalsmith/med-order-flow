@@ -72,16 +72,18 @@ Route::middleware([
 
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
-    // 1. RUTAS ESPECÍFICAS DEL DOCTOR (Deben ir antes que el resource)
+// 1. RUTAS ESPECÍFICAS DEL DOCTOR
+    // Usamos el middleware 'role:doctor' para proteger estas acciones
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
 
-        // Flujo de firma y gestión de estado por el médico
+        // Flujo de firma - Asegúrate de que el parámetro sea {order}
         Route::get('/ordenes/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
         Route::post('/ordenes/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
         Route::post('/ordenes/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
         Route::post('/ordenes/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
-        Route::post('/firmar-orden-medica/{order}', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
+
+        // Eliminé la ruta duplicada 'firmar-orden-medica' para evitar conflictos de nombre
     });
 
     // 2. ADMINISTRACIÓN

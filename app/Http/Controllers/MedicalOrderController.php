@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\FlowService;
 
 class MedicalOrderController extends Controller
 {
@@ -61,6 +62,9 @@ class MedicalOrderController extends Controller
         $orders = $query->latest()->paginate(10);
         return view('admin.orders.index', compact('orders'));
     }
+
+
+
 
     /**
      * Muestra el formulario de firma y MARCA la orden como reclamada (claimed_at).
@@ -137,30 +141,57 @@ class MedicalOrderController extends Controller
     /**
      * Nuevo método: Rechazar orden (especialmente útil para Custom Orders)
      */
-    public function rejectOrder(Request $request, MedicalOrder $order)
-    {
-        $request->validate([
-            'rejection_reason' => 'required|string|max:500'
-        ]);
+public function rejectOrder(Request $request, MedicalOrder $order, FlowService $flowService)
+{
+    $request->validate([
+        'rejection_reason' => 'required|string|max:500'
+    ]);
 
-        $doctor = Auth::user()->doctor;
+    $doctor = Auth::user()->doctor;
 
-        if ($order->doctor_id !== $doctor->id) {
-            return redirect()->route('admin.orders.index')->with('error', 'No tienes permiso sobre esta orden.');
-        }
-
-        $order->update([
-            'status' => 'rejected',
-            'rejection_reason' => $request->rejection_reason,
-            // Al rechazarla, la orden deja de estar "claimed" pero mantiene quién la rechazó
-            'claimed_at' => null
-        ]);
-
-        Log::warning("Orden {$order->id} rechazada por Dr. {$doctor->id}. Motivo: {$request->rejection_reason}");
-
-        return redirect()->route('admin.orders.index')->with('info', 'La orden ha sido rechazada y marcada para revisión administrativa.');
+    // 1. Verificación de propiedad (ya la tienes)
+    if ($order->doctor_id !== $doctor->id) {
+        return redirect()->route('admin.orders.index')->with('error', 'No tienes permiso sobre esta orden.');
     }
 
+    try {
+        return DB::transaction(function () use ($request, $order, $flowService, $doctor) {
+
+            // 2. Actualizar estado local
+            $order->update([
+                'status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason,
+                'claimed_at' => null
+            ]);
+
+            // 3. Buscar la transacción de Flow original
+            $gatewayTrx = GatewayTransaction::where('payable_id', $order->id)
+                ->where('status', 'authorized') // Solo reembolsamos lo pagado
+                ->first();
+
+            if ($gatewayTrx) {
+                // 4. Iniciar Reembolso en Flow
+                // Intentamos obtener el flowTrxId del metadata si lo guardaste, sino usa el buy_order
+                $flowTrxId = $gatewayTrx->token; // O donde guardes el ID de Flow
+
+                $refundResult = $flowService->requestRefund($order, $gatewayTrx, $flowTrxId);
+
+                if ($refundResult) {
+                    Log::info("Reembolso iniciado para Orden {$order->id}");
+                    return redirect()->route('admin.orders.index')
+                        ->with('info', 'Orden rechazada. Se ha solicitado el reembolso automático al paciente.');
+                }
+            }
+
+            return redirect()->route('admin.orders.index')
+                ->with('warning', 'Orden rechazada, pero el reembolso automático falló. Por favor, contacte a soporte.');
+        });
+
+    } catch (\Exception $e) {
+        Log::error("Error en proceso de rechazo: " . $e->getMessage());
+        return redirect()->back()->with('error', 'Ocurrió un error al procesar el rechazo.');
+    }
+}
 
 
 
