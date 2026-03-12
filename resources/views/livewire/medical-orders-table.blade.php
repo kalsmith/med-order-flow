@@ -1,4 +1,4 @@
-<div wire:poll.10s class="card shadow-sm border-0">
+<div wire:poll.10s class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
     <div class="card-header bg-white pt-3 pb-0 border-bottom-0">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0 text-dark fw-bold">
@@ -6,7 +6,9 @@
                 Gestión de Órdenes
             </h5>
             <div class="text-muted small">
-                <i class="bi bi-dot text-success fs-4"></i> En vivo
+                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle fw-medium">
+                    <i class="bi bi-dot fs-4"></i> En vivo
+                </span>
             </div>
         </div>
 
@@ -57,7 +59,8 @@
                                         {{ $order->examType->name }}
                                     </span>
                                 @else
-                                    <span class="badge bg-purple-subtle text-purple border border-purple-subtle">
+                                    {{-- Corregido: Morado con alto contraste --}}
+                                    <span class="badge border" style="background-color: #f3e8ff; color: #6b21a8; border-color: #d8b4fe;">
                                         <i class="bi bi-stars me-1"></i> Especial
                                     </span>
                                 @endif
@@ -79,7 +82,7 @@
                                     @endif
                                 @else
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        <i class="bi bi-patch-check-fill me-1"></i> Firmada por mí
+                                        <i class="bi bi-patch-check-fill me-1"></i> Firmada
                                     </span>
                                 @endif
                             </td>
@@ -91,16 +94,20 @@
                                         </button>
                                     @else
                                         <a href="{{ route('admin.orders.sign.form', $order->id) }}"
-                                           class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3 shadow-sm">
+                                           class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3 shadow-sm rounded-pill fw-bold">
                                             <i class="bi {{ $isClaimedByMe ? 'bi-play-fill' : 'bi-vector-pen' }} me-1"></i>
                                             {{ $isClaimedByMe ? 'Continuar' : 'Firmar' }}
                                         </a>
                                     @endif
                                 @else
-                                    {{-- Acciones para firmadas --}}
-                                    <div class="btn-group">
-                                        <a href="#" class="btn btn-sm btn-outline-success"><i class="bi bi-file-pdf"></i></a>
-                                        <a href="#" class="btn btn-sm btn-light border"><i class="bi bi-eye"></i></a>
+                                    {{-- Acciones para firmadas: Evitamos el 403 redirigiendo a la ruta que el doctor sí posee --}}
+                                    <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
+                                        <a href="{{ route('admin.orders.sign.form', $order->id) }}" class="btn btn-sm btn-white border border-end-0" title="Ver Detalles">
+                                            <i class="bi bi-eye text-primary"></i>
+                                        </a>
+                                        <a href="#" class="btn btn-sm btn-white border text-danger" title="Descargar PDF">
+                                            <i class="bi bi-file-pdf"></i>
+                                        </a>
                                     </div>
                                 @endif
                             </td>
@@ -108,8 +115,8 @@
                     @empty
                         <tr>
                             <td colspan="5" class="text-center py-5 bg-light-subtle">
-                                <div class="text-muted">
-                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                <div class="text-muted py-3">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
                                     {{ $tab === 'available' ? 'No hay órdenes pendientes de firma.' : 'Aún no has firmado ninguna orden.' }}
                                 </div>
                             </td>
@@ -123,3 +130,8 @@
         {{ $orders->links() }}
     </div>
 </div>
+
+<style>
+    .btn-white { background-color: #fff; color: #374151; }
+    .btn-white:hover { background-color: #f9fafb; }
+</style>
