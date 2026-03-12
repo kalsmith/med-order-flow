@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamType;
 use App\Models\MedicalOrder;
 use App\Models\Doctor;
+use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PatientOrderController extends Controller
@@ -50,41 +53,57 @@ class PatientOrderController extends Controller
     /**
      * Paso 2: Crear la orden en la base de datos y saltar al pago.
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'exam_type_id' => 'required_without:custom_description|exists:exam_types,id',
-            'custom_description' => 'required_without:exam_type_id|string|min:10|max:1000',
-        ]);
 
-        $user = Auth::user();
-        $patient = $user->patients()->where('relationship', 'self')->firstOrFail();
 
-        // Asignamos un médico disponible (puedes rotarlos o tener uno fijo)
-        $doctor = Doctor::where('is_active', true)->first();
 
-        if (!$doctor) {
-            return back()->with('error', 'Lo sentimos, no hay médicos disponibles en este momento. Intenta más tarde.');
-        }
+public function store(Request $request)
+{
+    // 1. Validación de entrada
+    $request->validate([
+        'exam_type_id' => 'required|exists:exam_types,id',
+        'patient_id'   => 'required|exists:patients,id'
+    ]);
 
-        $isCustom = $request->filled('custom_description');
+    try {
+        $order = \DB::transaction(function () use ($request) {
+            $exam = \App\Models\ExamType::findOrFail($request->exam_type_id);
+            $patient = \App\Models\Patient::findOrFail($request->patient_id);
 
-        // Creamos la orden médica
-        $order = MedicalOrder::create([
-            'id'                 => (string) Str::uuid(),
-            'patient_id'         => $patient->id,
-            'doctor_id'          => $doctor->id,
-            'exam_type_id'       => $isCustom ? null : $request->exam_type_id,
-            'custom_description' => $request->custom_description,
-            'type'               => $isCustom ? 'custom' : 'standard',
-            'amount'             => $isCustom ? 9990 : ExamType::find($request->exam_type_id)->base_price,
-            'status'             => 'pending', // Esperando pago
-            'verification_code'  => strtoupper(Str::random(8)),
-        ]);
+            // 2. EJECUTAR MOTOR DE ROTACIÓN
+            // Usamos la función que ya escribimos en el Modelo Doctor
+            $doctor = \App\Models\Doctor::getNextAvailableForSpecialty($exam->specialty_id);
 
-        // Redirigimos al Checkout (Próximo controlador)
-        return redirect()->route('checkout.index', $order->id);
+            if (!$doctor) {
+                throw new \Exception('No hay médicos disponibles para esta especialidad en este momento.');
+            }
+
+            // 3. CREAR LA ORDEN ASIGNANDO AL DOCTOR GANADOR
+            $newOrder = \App\Models\MedicalOrder::create([
+                'id'                => (string) \Illuminate\Support\Str::uuid(),
+                'patient_id'        => $patient->id,
+                'doctor_id'         => $doctor->id, // Aquí queda guardado el Doctor 1 o 2 según toque
+                'exam_type_id'      => $exam->id,
+                'status'            => 'pending',
+                'type'              => 'standard',
+                'amount'            => $exam->base_price,
+                'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
+            ]);
+
+            // 4. ACTUALIZAR TURNO: El doctor seleccionado pasa al final de la cola
+            $doctor->update(['last_assigned_at' => now()]);
+
+            return $newOrder;
+        });
+
+        // 5. REDIRIGIR AL PROCESO DE PAGO (CheckoutController)
+        return redirect()->route('checkout.process', ['order' => $order->id]);
+
+    } catch (\Exception $e) {
+        \Log::error("Error en Rotación/Creación de Orden: " . $e->getMessage());
+        return back()->with('error', $e->getMessage());
     }
+}
+
 
     /**
      * Listado de órdenes del paciente.

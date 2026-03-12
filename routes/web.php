@@ -128,6 +128,7 @@ Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle
     // Acciones con Perfil Completo
     Route::middleware(['check.profile'])->group(function () {
         Route::get('/mis-ordenes', [PatientOrderController::class, 'index'])->name('patient.orders');
+       // Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
 
