@@ -63,8 +63,7 @@
                 @foreach($orders as $order)
                 {{-- ... dentro del @foreach($orders as $order) ... --}}
 
-
-                <div class="col-12">
+<div class="col-12">
     <div class="card card-order border-0 shadow-sm overflow-hidden">
         <div class="card-body p-4">
             <div class="row align-items-center">
@@ -79,7 +78,7 @@
                         {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
                     </h5>
 
-                    {{-- AVISO EXCLUSIVO PARA REEMBOLSOS EN CURSO --}}
+                    {{-- AVISO ESPECÍFICO DE REEMBOLSO (Solo si el dinero está en camino externamente) --}}
                     @if($order->status === 'refund_pending')
                         <div class="mt-3 p-3 bg-info-subtle border-start border-4 border-info rounded-end">
                             <div class="d-flex">
@@ -87,9 +86,9 @@
                                 <div>
                                     <strong class="d-block text-dark" style="font-size: 0.85rem;">Proceso de devolución iniciado</strong>
                                     <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
-                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong> de Flow.
-                                        Debe completar sus datos bancarios en el link recibido para recibir el dinero.
-                                        <span class="text-dark fw-bold">El trámite depende exclusivamente de la pasarela de pagos.</span>
+                                        Revise su correo con el asunto <strong>"Solicitud de reembolso"</strong> enviado por Flow.
+                                        Debe completar sus datos bancarios para recibir el dinero.
+                                        <span class="text-dark fw-bold small d-block mt-1">El trámite depende de la pasarela de pagos.</span>
                                     </span>
                                 </div>
                             </div>
@@ -134,16 +133,18 @@
                             </a>
                         @endif
 
+                        {{-- Botón Motivo: Siempre disponible si hay una razón registrada --}}
                         @if($order->rejection_reason)
-                            <button class="btn btn-outline-danger btn-action px-3"
+                            <button class="btn btn-outline-secondary btn-action px-3"
                                     onclick="Swal.fire({
-                                        title: 'Información de la Orden',
+                                        title: 'Detalle de la Orden',
                                         text: '{{ $order->rejection_reason }}',
                                         icon: 'info',
+                                        confirmButtonColor: '#0d6efd',
                                         confirmButtonText: 'Entendido'
                                     })"
                                     title="Ver motivo">
-                                <i class="bi bi-chat-left-text"></i> Motivo
+                                <i class="bi bi-chat-left-text me-1"></i> Motivo
                             </button>
                         @endif
                     </div>
