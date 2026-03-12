@@ -99,7 +99,6 @@
                             <i class="bi bi-info-circle-fill fs-4 me-3"></i>
                             <div class="small">
                                 Al confirmar, se estampará tu <strong>firma digital y registro RNPI</strong> en el documento.
-                                Esta acción asignará automáticamente el pago a tu cuenta profesional.
                             </div>
                         </div>
                     </div>
@@ -111,7 +110,10 @@
                     <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
                         <div class="d-inline-block border p-2 bg-light rounded text-center" style="min-width: 180px;">
                             <label class="d-block small text-muted mb-1">Sello a Estampar</label>
-                            <img src="{{ auth()->user()->doctor->signature_path ? asset('storage/' . auth()->user()->doctor->signature_path) : asset('images/no-signature.png') }}"
+                            @php
+                                $sigPath = auth()->user()->doctor->signature_path;
+                            @endphp
+                            <img src="{{ $sigPath ? asset('storage/' . $sigPath) : asset('images/no-signature.png') }}"
                                  alt="Firma" style="max-height: 50px;" class="mb-1">
                             <div class="small fw-bold border-top pt-1">Dr. {{ auth()->user()->name }}</div>
                         </div>
@@ -123,8 +125,8 @@
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        {{-- Botón de Firma --}}
-                        <form action="{{ route('admin.orders.sign.process', $order->id) }}" method="POST" class="d-inline">
+                        {{-- Botón de Firma Definitivo --}}
+                        <form action="{{ route('admin.orders.sign.process', ['order' => $order->id]) }}" method="POST" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-success btn-lg px-4 shadow">
                                 <i class="bi bi-vector-pen me-2"></i> Confirmar y Firmar
