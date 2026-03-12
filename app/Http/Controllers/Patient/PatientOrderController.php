@@ -55,52 +55,76 @@ class PatientOrderController extends Controller
      */
 
 
-
 public function store(Request $request)
 {
-    dd($request->all());
-    // 1. Validación de entrada
+    // 1. Validación de entrada condicional
     $request->validate([
-        'exam_type_id' => 'required|exists:exam_types,id',
-        'patient_id'   => 'required|exists:patients,id'
+        'patient_id'   => 'required|exists:patients,id',
+        'exam_type_id' => 'required_unless:type,custom|exists:exam_types,id',
+        'custom_description' => 'required_if:type,custom|min:10'
     ]);
 
     try {
-        $order =  DB::transaction(function () use ($request) {
-            $exam = ExamType::findOrFail($request->exam_type_id);
+        $order = DB::transaction(function () use ($request) {
+
+            // EL BLOQUE QUE ME COMÍ (Paciente siempre se necesita)
             $patient = Patient::findOrFail($request->patient_id);
 
-            // 2. EJECUTAR MOTOR DE ROTACIÓN
-            // Usamos la función que ya escribimos en el Modelo Doctor
-            $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+            // 2. DETERMINAR SI ES CUSTOM O ESTÁNDAR
+            if ($request->type === 'custom') {
 
-            if (!$doctor) {
-                throw new \Exception('No hay médicos disponibles para esta especialidad en este momento.');
+                // --- FLUJO CUSTOM ---
+                $examId = null;
+                $amount = 9990;
+                $orderType = 'custom';
+                $description = $request->custom_description;
+
+                // Como es custom, no tenemos specialty_id.
+                // Buscamos al médico activo con el turno más antiguo (rotación general).
+                $doctor = Doctor::where('is_active', true)
+                                ->orderBy('last_assigned_at', 'asc')
+                                ->first();
+            } else {
+
+                // --- FLUJO ESTÁNDAR (Tu código original intacto) ---
+                $exam = ExamType::findOrFail($request->exam_type_id);
+                $examId = $exam->id;
+                $amount = $exam->base_price;
+                $orderType = 'standard'; // o 'standard' según prefieras
+                $description = null;
+
+                // 2. EJECUTAR MOTOR DE ROTACIÓN (Tu bloque original)
+                $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
             }
 
-            // 3. CREAR LA ORDEN ASIGNANDO AL DOCTOR GANADOR
+            if (!$doctor) {
+                throw new \Exception('No hay médicos disponibles para esta solicitud en este momento.');
+            }
+
+            // 3. CREAR LA ORDEN (Unificada para ambos casos)
             $newOrder = MedicalOrder::create([
                 'id'                => (string) \Illuminate\Support\Str::uuid(),
                 'patient_id'        => $patient->id,
-                'doctor_id'         => $doctor->id, // Aquí queda guardado el Doctor 1 o 2 según toque
-                'exam_type_id'      => $exam->id,
+                'doctor_id'         => $doctor->id,
+                'exam_type_id'      => $examId,
+                'custom_description'=> $description,
                 'status'            => 'pending',
-                'type'              => 'standard',
-                'amount'            => $exam->base_price,
+                'type'              => $orderType,
+                'amount'            => $amount,
                 'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
             ]);
 
-            // 4. ACTUALIZAR TURNO: El doctor seleccionado pasa al final de la cola
+            // 4. ACTUALIZAR TURNO (Tu bloque original)
             $doctor->update(['last_assigned_at' => now()]);
 
             return $newOrder;
         });
 
-        // 5. REDIRIGIR AL PROCESO DE PAGO (CheckoutController)
+        // 5. REDIRIGIR AL PROCESO DE PAGO
         return redirect()->route('checkout.process', ['order' => $order->id]);
 
     } catch (\Exception $e) {
-        \Log::error("Error en Rotación/Creación de Orden: " . $e->getMessage());
+        Log::error("Error en Creación de Orden: " . $e->getMessage());
         return back()->with('error', $e->getMessage());
     }
 }
