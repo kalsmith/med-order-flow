@@ -191,62 +191,72 @@ class FlowService
     /**
      * Solicita un reembolso a Flow
      */
-    public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTrx, $flowTrxId = null)
-    {
-        // URL Hardcoded para Sandbox según solicitud
-        $endpoint = 'https://sandbox.flow.cl/api/refund/create';
-        $refundOrder = "REF-" . strtoupper(bin2hex(random_bytes(4)));
+public function requestRefund(MedicalOrder $order, GatewayTransaction $gatewayTrx, $flowTrxId = null)
+{
+    $endpoint = 'https://sandbox.flow.cl/api/refund/create';
+    $refundOrder = "REF-" . strtoupper(bin2hex(random_bytes(4)));
 
-        $params = [
-            'apiKey'               => $this->apiKey,
-            'refundCommerceOrder'  => $refundOrder,
-            'receiverEmail'        => $order->patient->user->email,
-            'amount'               => (int)$order->amount,
-            'urlCallBack'          => route('flow.refund.webhook'),
-        ];
+    // 1. Preparamos parámetros básicos
+    $params = [
+        'apiKey'               => $this->apiKey,
+        'refundCommerceOrder'  => $refundOrder,
+        'receiverEmail'        => $order->patient->user->email,
+        'amount'               => (int)$order->amount,
+        'urlCallBack'          => route('flow.refund.webhook'),
+    ];
 
-        // Usamos el ID interno de Flow si está disponible (Bala de plata)
-        if ($flowTrxId) {
-            $params['flowTrxId'] = $flowTrxId;
-        } else {
-            $params['commerceTrxId'] = $gatewayTrx->buy_order;
-        }
+    // 2. Lógica de identificación (Aquí es donde queremos ver qué prefiere Flow)
+    if ($flowTrxId && is_numeric($flowTrxId)) {
+        $params['flowTrxId'] = $flowTrxId;
+        Log::info("--- [DEBUG REFUND] Usando ID Numérico (flowTrxId) ---", ['val' => $flowTrxId]);
+    } else {
+        $params['commerceTrxId'] = $gatewayTrx->buy_order;
+        Log::info("--- [DEBUG REFUND] Usando ID Alfanumérico (commerceTrxId) ---", ['val' => $gatewayTrx->buy_order]);
+    }
 
-        $params['s'] = $this->makeSignature($params);
+    // 3. Generamos firma y logeamos parámetros finales (sin keys sensibles)
+    $params['s'] = $this->makeSignature($params);
 
-        try {
-            Log::warning("SOLICITANDO REEMBOLSO FLOW: Orden {$order->id} | FlowID: {$flowTrxId}");
+    Log::info("--- [DEBUG REFUND] PARÁMETROS ENVIADOS A FLOW ---", [
+        'endpoint' => $endpoint,
+        'params_sent' => array_diff_key($params, ['apiKey' => '', 's' => ''])
+    ]);
 
-            $response = Http::asForm()->post($endpoint, $params);
+    try {
+        $response = Http::asForm()->post($endpoint, $params);
 
-            if ($response->successful()) {
-                $res = $response->object();
+        // 4. LOG AGRESIVO DE RESPUESTA
+        Log::info("--- [DEBUG REFUND] RESPUESTA API FLOW ---", [
+            'http_status' => $response->status(),
+            'body' => $response->json(),
+        ]);
+
+        if ($response->successful()) {
+            $res = $response->object();
 
             $order->update([
                 'flow_refund_id' => $res->token,
-                'status'         => 'refund_pending', // Estado válido en tu SQL
+                'status'         => 'refund_pending',
                 'internal_notes' => $order->internal_notes . "\n[Reembolso Creado en Flow: {$res->flowRefundOrder} el " . now() . "]"
             ]);
 
-                Log::info("REEMBOLSO FLOW CREADO EXITOSAMENTE", [
-                    'token' => $res->token,
-                    'flowOrder' => $res->flowRefundOrder
-                ]);
-
-                return true;
-            }
-
-            Log::error("ERROR API FLOW REEMBOLSO", [
-                'status' => $response->status(),
-                'body' => $response->json(),
-                'flowTrxId_usado' => $flowTrxId
-            ]);
-
-            return false;
-
-        } catch (\Exception $e) {
-            Log::error("EXCEPCIÓN EN REEMBOLSO: " . $e->getMessage());
-            return false;
+            Log::info("--- [DEBUG REFUND] REEMBOLSO EXITOSO ---", ['token' => $res->token]);
+            return true;
         }
+
+        Log::error("--- [DEBUG REFUND] API RECHAZÓ LA SOLICITUD ---", [
+            'error_body' => $response->json()
+        ]);
+
+        return false;
+
+    } catch (\Exception $e) {
+        Log::error("--- [DEBUG REFUND] EXCEPCIÓN CRÍTICA ---", [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return false;
     }
+}
+
 }
