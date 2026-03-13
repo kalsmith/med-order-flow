@@ -1,4 +1,4 @@
-<div wire:poll.300s class="card card-order border-0 shadow-sm mb-3">
+<div wire:poll.30s class="card card-order border-0 shadow-sm mb-3">
     <div class="card-body p-4">
         <div class="row align-items-center">
 
