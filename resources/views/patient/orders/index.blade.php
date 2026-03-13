@@ -18,9 +18,9 @@
     </div>
 
     @if($orders->isEmpty())
-        <div class="empty-state shadow-sm border-0">
+        <div class="empty-state shadow-sm border-0 text-center py-5">
             <div class="mb-4">
-                <div class="d-inline-flex align-items-center justify-content-center bg-soft-bg rounded-circle" style="width: 100px; height: 100px;">
+                <div class="d-inline-flex align-items-center justify-content-center bg-soft-bg rounded-circle" style="width: 100px; height: 100px; background-color: #f8f9fa;">
                     <i class="bi bi-clipboard2-pulse text-primary" style="font-size: 3rem; opacity: 0.5;"></i>
                 </div>
             </div>
@@ -43,23 +43,23 @@
                             {{-- LADO IZQUIERDO: Información del Examen --}}
                             <div class="col-lg-7">
                                 <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
-                                    <span class="badge badge-id px-3 py-2">
+                                    <span class="badge bg-light text-dark border px-3 py-2">
                                         ID: {{ strtoupper(substr($order->id, 0, 8)) }}
                                     </span>
                                     <span class="text-muted small mx-2">
                                         <i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}
                                     </span>
-                                    <span class="patient-tag text-uppercase px-3">
+                                    <span class="badge bg-primary-subtle text-primary text-uppercase px-3">
                                         <i class="bi bi-person-circle me-1"></i> {{ $order->patient->full_name ?? 'TITULAR' }}
                                     </span>
                                 </div>
 
                                 <h2 class="fw-800 text-dark mb-0" style="letter-spacing: -1.2px; font-size: 1.85rem;">
-                                    {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
+                                    {{ is_null($order->exam_type_id) ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
                                 </h2>
 
                                 @if($order->status === 'paid' && $order->interactions->count() === 0)
-                                    <div class="mt-4 p-3 info-box bg-waiting d-inline-flex align-items-center rounded-3">
+                                    <div class="mt-4 p-3 info-box bg-light d-inline-flex align-items-center rounded-3 border">
                                         <div class="spinner-border spinner-border-sm text-primary me-3" role="status"></div>
                                         <div>
                                             <span class="d-block fw-bold text-dark small">Médico revisando su solicitud</span>
@@ -77,9 +77,9 @@
                                     <div class="order-lg-1">
                                         @php
                                             $statusConfig = [
-                                                'pending' => ['class' => 'badge-status-pending', 'label' => 'PENDIENTE'],
-                                                'paid'    => ['class' => 'bg-info-subtle text-info-emphasis border-info-subtle', 'label' => 'EN REVISIÓN'],
-                                                'signed'  => ['class' => 'badge-status-signed', 'label' => 'LISTA'],
+                                                'pending' => ['class' => 'bg-warning-subtle text-warning-emphasis', 'label' => 'PENDIENTE'],
+                                                'paid'    => ['class' => 'bg-info-subtle text-info-emphasis', 'label' => 'EN REVISIÓN'],
+                                                'signed'  => ['class' => 'bg-success-subtle text-success', 'label' => 'LISTA'],
                                                 'rejected'=> ['class' => 'bg-danger-subtle text-danger', 'label' => 'RECHAZADA'],
                                             ];
                                             $curr = $statusConfig[$order->status] ?? ['class' => 'bg-secondary-subtle', 'label' => strtoupper($order->status)];
@@ -99,7 +99,7 @@
                                     {{-- Botones de Acción --}}
                                     <div class="order-lg-2 d-flex flex-column gap-2">
                                         @if($order->status === 'signed')
-                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 px-4 shadow-sm">
+                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 px-4 shadow-sm fw-bold">
                                                 <i class="bi bi-file-earmark-pdf-fill fs-5"></i> Descargar PDF
                                             </a>
                                         @elseif($order->status === 'pending')
@@ -108,16 +108,22 @@
                                             </a>
                                         @endif
 
-                                        {{-- Botón de Chat (Solo si ya está pagada o tiene mensajes) --}}
-                                        @if($order->status !== 'pending')
-                                            <button class="btn btn-chat-toggle d-flex align-items-center justify-content-center gap-2"
+                                        {{-- Lógica de Chat: Solo Custom o con Mensajes existentes --}}
+                                        @php
+                                            $isCustom = is_null($order->exam_type_id);
+                                            $hasMessages = $order->interactions->count() > 0;
+                                        @endphp
+
+                                        @if($order->status !== 'pending' && ($isCustom || $hasMessages))
+                                            <button class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-2 px-4"
                                                     type="button"
                                                     data-bs-toggle="collapse"
                                                     data-bs-target="#chat-{{ $order->id }}">
                                                 <i class="bi bi-chat-left-text"></i>
-                                                <span>{{ $order->interactions->count() > 0 ? 'Ver Mensajes' : 'Consultar' }}</span>
+                                                <span>{{ $hasMessages ? 'Ver Mensajes' : 'Consultar Médico' }}</span>
+
                                                 @if($order->interactions->where('sender_type', 'doctor')->count() > 0)
-                                                    <span class="chat-dot"></span>
+                                                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
                                                 @endif
                                             </button>
                                         @endif
@@ -126,14 +132,14 @@
                             </div>
                         </div>
 
-                        {{-- SECCIÓN DE CHAT LIVEWIRE --}}
-{{-- En tu archivo index.blade.php del paciente --}}
-<div class="collapse" id="chat-{{ $order->id }}">
-    <div class="chat-wrapper-custom mt-4 pt-4 border-top">
-        {{-- Usamos el componente específico para el cliente --}}
-        @livewire('patient.order-chat', ['order' => $order], key('patient-chat-'.$order->id))
-    </div>
-</div>
+                        {{-- SECCIÓN DE CHAT COLLAPSE --}}
+                        @if($order->status !== 'pending' && ($isCustom || $hasMessages))
+                            <div class="collapse" id="chat-{{ $order->id }}">
+                                <div class="chat-wrapper-custom mt-4 pt-4 border-top">
+                                    @livewire('patient.order-chat', ['order' => $order], key('patient-chat-'.$order->id))
+                                </div>
+                            </div>
+                        @endif
 
                     </div>
                 </div>
@@ -146,4 +152,13 @@
         </div>
     @endif
 </div>
+
+<style>
+    .fw-800 { font-weight: 800; }
+    .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; }
+    .bg-success-subtle { background-color: #dcfce7; color: #15803d; }
+    .bg-warning-subtle { background-color: #fef3c7; color: #92400e; }
+    .card-order { transition: transform 0.2s; }
+    .card-order:hover { transform: translateY(-2px); }
+</style>
 @endsection
