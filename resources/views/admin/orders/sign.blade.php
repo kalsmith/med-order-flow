@@ -78,16 +78,32 @@
                         <hr class="opacity-10 my-0">
                     </div>
 
-                    {{-- COMPONENTE LIVEWIRE: Historial y Chat --}}
+                    {{-- Detalle del Requerimiento (Motivo de Consulta) --}}
+                    <div class="col-12">
+                        <label class="text-muted small text-uppercase fw-bold">Motivo de Consulta (Usuario)</label>
+                        <div class="mt-2 p-3 bg-light rounded border border-dashed">
+                            @if($order->examType)
+                                <h6 class="fw-bold text-dark mb-1">{{ $order->examType->name }}</h6>
+                                <p class="mb-0 text-muted small">{{ $order->examType->description }}</p>
+                            @else
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-chat-quote text-secondary me-2 mt-1"></i>
+                                    <p class="mb-0 text-dark fst-italic">"{{ $order->custom_description }}"</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- COMPONENTE LIVEWIRE: Interacciones en tiempo real --}}
                     <div class="col-12">
                         @livewire('admin.order-interactions', ['order' => $order])
                     </div>
 
-                    {{-- Formulario de Firma --}}
+                    {{-- Input de Contexto Clínico (Lo que va al PDF) --}}
                     <div class="col-12">
                         <div class="form-group">
                             <label class="text-primary fw-bold mb-2 small text-uppercase">
-                                <i class="bi bi-pencil-square me-1"></i> Indicación Médica Profesional
+                                <i class="bi bi-pencil-square me-1"></i> Indicación Médica Profesional (PDF)
                             </label>
                             <textarea name="clinical_context"
                                       form="signature-form"
@@ -96,7 +112,16 @@
                                       placeholder="Redacte aquí el diagnóstico y los exámenes solicitados..."
                                       required>{{ old('clinical_context', $order->clinical_context) }}</textarea>
                             <div class="form-text small text-muted">
-                                <i class="bi bi-info-circle me-1"></i> Esta indicación aparecerá en el PDF firmado.
+                                <i class="bi bi-info-circle me-1"></i> Esta indicación aparecerá en el PDF firmado. Use el chat arriba para pedir más info si es necesario.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-0">
+                            <i class="bi bi-shield-check fs-4 me-3"></i>
+                            <div class="small">
+                                Al confirmar, se guardará la indicación médica y se estampará tu <strong>firma digital con registro RNPI</strong>.
                             </div>
                         </div>
                     </div>
@@ -118,6 +143,7 @@
                     </div>
 
                     <div class="col-md-9 text-md-end text-center">
+                        {{-- Opción de Derivación --}}
                         @if(!$order->exam_type_id)
                             <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
                                 <i class="bi bi-person-gear me-1"></i> Derivar a Especialidad
@@ -139,19 +165,67 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
-        <div class="text-center px-4">
-            <p class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">
-                Este sistema cumple con los estándares de la Ley N° 20.584. IP: {{ request()->ip() }}
-            </p>
+{{-- MODAL RECHAZO --}}
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold">Rechazar Requerimiento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('admin.orders.reject', ['medical_order' => $order->id]) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="text-muted">Explique el motivo del rechazo para informar al paciente.</p>
+                    <textarea name="rejection_reason" class="form-control" rows="4" required placeholder="Ej: No corresponde a atención telemédica..."></textarea>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger px-4">Confirmar Rechazo</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-@include('admin.orders.partials.modals-sign')
+{{-- MODAL DERIVACIÓN --}}
+@if(!$order->exam_type_id)
+<div class="modal fade" id="derivateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">Derivar Solicitud</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('admin.orders.derivate', ['medical_order' => $order->id]) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Asignar a Área:</label>
+                        <select name="specialty_id" class="form-select" required>
+                            <option value="">-- Seleccionar área --</option>
+                            @foreach(\App\Models\Specialty::all() as $spec)
+                                <option value="{{ $spec->id }}">{{ $spec->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Confirmar Derivación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 <style>
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
+    .border-dashed { border-style: dashed !important; }
 </style>
 @endsection
