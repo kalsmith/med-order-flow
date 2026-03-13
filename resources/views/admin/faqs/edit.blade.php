@@ -84,7 +84,7 @@
 
 @push('js')
     {{-- Ruta corregida para storage (Asegúrate de haber corrido php artisan storage:link) --}}
-    <script src="{{ asset('storage/ckeditor/ckeditor.js') }}"></script>
+    <script src="{{ asset('assets/ckeditor/ckeditor.js') }}"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
