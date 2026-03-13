@@ -11,14 +11,22 @@
                 </div>
             </div>
 
-            <div class="col-6 col-lg-2">
-                <h6 class="fw-bold mb-4 text-uppercase small text-primary">Servicios</h6>
-                <ul class="list-unstyled small text-white-50">
-                    <li class="mb-2"><a href="#packs" class="text-decoration-none text-reset">Packs Preventivos</a></li>
-                    <li class="mb-2"><a href="#individuales" class="text-decoration-none text-reset">Exámenes Individuales</a></li>
-                    <li class="mb-2"><a href="#" class="text-decoration-none text-reset">Orden a Medida</a></li>
-                </ul>
-            </div>
+<div class="col-6 col-lg-2">
+    <h6 class="fw-bold mb-4 text-uppercase small text-primary">Servicios</h6>
+    <ul class="list-unstyled small text-white-50">
+        {{-- Agregamos "/" antes del # para forzar el salto al Home --}}
+        <li class="mb-2">
+            <a href="{{ url('/#packs') }}" class="text-decoration-none text-reset hover-white">Packs Preventivos</a>
+        </li>
+        <li class="mb-2">
+            <a href="{{ url('/#individuales') }}" class="text-decoration-none text-reset hover-white">Exámenes Individuales</a>
+        </li>
+        <li class="mb-2">
+            {{-- Si tienes una ruta específica para pedidos especiales, úsala aquí --}}
+            <a href="{{ url('/#orden-a-medida') }}" class="text-decoration-none text-reset hover-white">Orden a Medida</a>
+        </li>
+    </ul>
+</div>
 
 <div class="col-6 col-lg-2">
     <h6 class="fw-bold mb-4 text-uppercase small text-primary">Soporte</h6>
