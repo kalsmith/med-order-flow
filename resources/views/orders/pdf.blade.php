@@ -1,214 +1,336 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <style>
-        @page { margin: 0; }
-        body {
-            font-family: 'Helvetica', sans-serif;
-            color: #1e293b;
-            font-size: 11px;
-            margin: 0;
-            line-height: 1.5;
-            background-color: #ffffff;
-        }
+<meta charset="utf-8">
 
-        /* Colores */
-        .text-blue { color: #0056b3; }
-        .bg-navy { background-color: #0f172a; } /* Azul muy oscuro para contraste */
+<style>
 
-        /* Marca de Agua / Fondo sutil */
-        .watermark {
-            position: absolute;
-            top: 45%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 400px;
-            color: #f8fafc;
-            z-index: -1;
-            font-weight: bold;
-        }
+@page { margin:0; }
 
-        /* Header Premium */
-        .header-top {
-            background: linear-gradient(90deg, #0056b3 0%, #003d7a 100%);
-            padding: 30px 50px;
-            color: white;
-            position: relative;
-        }
+body{
+    font-family: Helvetica, Arial, sans-serif;
+    margin:0;
+    font-size:11px;
+    color:#1f2937;
+}
 
-        .header-logo { font-size: 28px; font-weight: 800; letter-spacing: -1.5px; margin: 0; }
-        .header-sub { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
+/* HEADER */
 
-        .qr-header {
-            position: absolute;
-            right: 50px;
-            top: 25px;
-            background: white;
-            padding: 8px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+.header{
+    border-top:6px solid #6366f1;
+    padding:25px 40px 10px 40px;
+}
 
-        /* Contenido */
-        .main-content { padding: 40px 50px; }
+.logo{
+    font-size:22px;
+    font-weight:800;
+    color:#1e293b;
+}
 
-        .document-title {
-            font-size: 20px;
-            font-weight: 800;
-            color: #0f172a;
-            border-bottom: 3px solid #0056b3;
-            display: inline-block;
-            margin-bottom: 30px;
-            padding-bottom: 5px;
-        }
+.subtitle{
+    font-size:9px;
+    color:#64748b;
+}
 
-        /* Tarjeta de Información del Paciente */
-        .info-card {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            border: 1px solid #e2e8f0;
-        }
+.header-table{
+    width:100%;
+}
 
-        .label { font-size: 9px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 3px; }
-        .value { font-size: 13px; font-weight: 700; color: #1e293b; }
+.header-meta{
+    text-align:right;
+    font-size:10px;
+}
 
-        /* Área de Prescripción */
-        .prescription-area {
-            margin-top: 20px;
-            min-height: 350px;
-        }
+.meta-label{
+    color:#6b7280;
+}
 
-        .rp-icon {
-            font-size: 35px;
-            font-weight: 800;
-            color: #0056b3;
-            margin-bottom: 15px;
-            font-style: italic;
-        }
+/* TITLE */
 
-        .indications-text {
-            font-size: 16px;
-            color: #334155;
-            padding-left: 10px;
-            border-left: 3px solid #e2e8f0;
-        }
+.title{
+    margin:10px 40px 20px 40px;
+    font-size:18px;
+    font-weight:700;
+}
 
-        /* Firma y Footer */
-        .footer-table { width: 100%; margin-top: 40px; }
+/* INFO GRID */
 
-        .signature-box {
-            text-align: center;
-            width: 250px;
-        }
+.info-box{
+    margin:0 40px;
+    border-top:1px solid #e5e7eb;
+    border-bottom:1px solid #e5e7eb;
+}
 
-        .signature-img {
-            max-width: 160px;
-            margin-bottom: 10px;
-            filter: contrast(1.2);
-        }
+.info-row{
+    display:flex;
+    padding:8px 0;
+}
 
-        .doc-name { font-size: 13px; font-weight: 800; color: #0f172a; margin: 0; }
-        .doc-meta { font-size: 9px; color: #64748b; margin-top: 3px; }
+.info-label{
+    width:120px;
+    font-size:9px;
+    text-transform:uppercase;
+    color:#6b7280;
+    font-weight:700;
+}
 
-        .verification-badge {
-            background: #f1f5f9;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 9px;
-            color: #475569;
-            border: 1px dashed #cbd5e0;
-        }
+.info-value{
+    flex:1;
+    font-weight:600;
+}
 
-        .bottom-strip {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 6px;
-            background: #0056b3;
-        }
-    </style>
+.info-right{
+    width:120px;
+}
+
+/* PRESTACIONES */
+
+.section{
+    margin:20px 40px;
+}
+
+.section-title{
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    color:#6b7280;
+    margin-bottom:8px;
+}
+
+.exam{
+    margin-bottom:10px;
+}
+
+.exam-name{
+    font-weight:700;
+    color:#1e40af;
+}
+
+.exam-prep{
+    font-size:10px;
+    color:#4b5563;
+}
+
+/* NOTES */
+
+.notes{
+    border-top:1px solid #e5e7eb;
+    padding-top:8px;
+}
+
+/* PROFESSIONAL */
+
+.prof-box{
+    margin:25px 40px;
+    border-top:1px solid #e5e7eb;
+    padding-top:10px;
+}
+
+.prof-table{
+    width:100%;
+}
+
+.prof-name{
+    font-weight:700;
+}
+
+.prof-meta{
+    font-size:10px;
+    color:#4b5563;
+}
+
+.signature{
+    max-width:120px;
+}
+
+/* QR */
+
+.qr-box{
+    margin:20px 40px;
+    display:flex;
+    align-items:center;
+}
+
+.qr-text{
+    font-size:10px;
+    margin-left:10px;
+    color:#4b5563;
+}
+
+/* FOOTER */
+
+.footer{
+    margin-top:20px;
+    border-top:1px solid #e5e7eb;
+    padding:10px 40px;
+    font-size:9px;
+    color:#6b7280;
+}
+
+</style>
 </head>
+
 <body>
-    <div class="watermark">Rp</div>
 
-    <div class="header-top">
-        <div class="qr-header">
-            <img src="data:image/png;base64,{{ $qrCode }}" width="65">
-        </div>
-        <p class="header-logo">DOCTOR 911</p>
-        <p class="header-sub">Servicios Médicos Digitales • Red MedOrder</p>
-    </div>
+<!-- HEADER -->
 
-    <div class="main-content">
-        <div class="document-title">ORDEN MÉDICA ELECTRÓNICA</div>
+<div class="header">
 
-        <div class="info-card">
-            <table width="100%">
-                <tr>
-                    <td width="55%">
-                        <div class="label">Paciente</div>
-                        <div class="value">{{ strtoupper($order->patient->full_name) }}</div>
-                    </td>
-                    <td width="25%">
-                        <div class="label">R.U.T</div>
-                        <div class="value">{{ $order->patient->rut }}</div>
-                    </td>
-                    <td width="20%">
-                        <div class="label">Fecha</div>
-                        <div class="value">{{ $order->created_at->format('d/m/Y') }}</div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="3" style="padding-top: 15px;">
-                        <span class="label">ID de Documento:</span>
-                        <span style="font-family: monospace; font-weight: bold;">{{ strtoupper(substr($order->id, 0, 12)) }}</span>
-                    </td>
-                </tr>
-            </table>
-        </div>
+<table class="header-table">
 
-        <div class="prescription-area">
-            <div class="rp-icon">Rp.</div>
-            <div class="indications-text">
-                {{-- Aquí va el contenido que arreglaremos --}}
-                <strong style="font-size: 18px;">{{ $order->clinical_context }}</strong>
-                <p style="color: #64748b; font-size: 11px; margin-top: 20px;">
-                    * Prestación autorizada para ser realizada en cualquier centro de salud en convenio.
-                </p>
-            </div>
-        </div>
+<tr>
 
-        <table class="footer-table">
-            <tr>
-                <td width="50%" style="vertical-align: bottom;">
-                    <div class="verification-badge">
-                        <strong>VERIFICACIÓN DE SEGURIDAD</strong><br>
-                        Este documento cuenta con firma electrónica avanzada. Puede validar su integridad en www.doctor911.cl con el código de seguimiento indicado arriba.
-                    </div>
-                </td>
-                <td width="50%" align="right">
-                    <div class="signature-box">
-                        @if($order->doctor->signature_path)
-                            <img src="{{ public_path('storage/' . $order->doctor->signature_path) }}" class="signature-img">
-                        @endif
-                        <div style="border-top: 1px solid #e2e8f0; padding-top: 8px;">
-                            <p class="doc-name">DR. {{ strtoupper($order->doctor->user->name) }}</p>
-                            <p class="doc-meta">
-                                RUT: {{ $order->doctor->rut }} | Reg. SIS: {{ $order->doctor->rnpi_number }}<br>
-                                @foreach($order->doctor->specialties as $specialty)
-                                    {{ strtoupper($specialty->name) }}{{ !$loop->last ? ' / ' : '' }}
-                                @endforeach
-                            </p>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
+<td>
+<div class="logo">Doctor911</div>
+<div class="subtitle">
+Los Leones 787, Providencia Santiago · +56999999999
+</div>
+</td>
 
-    <div class="bottom-strip"></div>
+<td class="header-meta">
+<div><span class="meta-label">Fecha Emisión</span><br>
+{{ $order->created_at->format('d-m-Y') }}</div>
+
+<br>
+
+<div><span class="meta-label">ID</span><br>
+{{ strtoupper(substr($order->id,0,12)) }}</div>
+</td>
+
+</tr>
+
+</table>
+
+</div>
+
+<!-- TITLE -->
+
+<div class="title">Orden médica</div>
+
+<!-- INFO -->
+
+<div class="info-box">
+
+<div class="info-row">
+<div class="info-label">Paciente</div>
+<div class="info-value">{{ $order->patient->full_name }}</div>
+
+<div class="info-right">
+<span class="meta-label">Edad</span><br>
+{{ $order->patient->age }}
+</div>
+</div>
+
+<div class="info-row">
+<div class="info-label">RUT</div>
+<div class="info-value">{{ $order->patient->rut }}</div>
+</div>
+
+<div class="info-row">
+<div class="info-label">Dirección</div>
+<div class="info-value">{{ $order->patient->address }}</div>
+</div>
+
+</div>
+
+<!-- PRESTACIONES -->
+
+<div class="section">
+
+<div class="section-title">Prestaciones</div>
+
+<div class="exam">
+<div class="exam-name">
+{{ $order->clinical_context }}
+</div>
+
+<div class="exam-prep">
+Prestación autorizada para ser realizada en cualquier centro de salud en convenio.
+</div>
+</div>
+
+</div>
+
+<!-- NOTES -->
+
+<div class="section notes">
+
+<div class="section-title">Notas</div>
+
+<div>
+Sin notas
+</div>
+
+</div>
+
+<!-- PROFESIONAL -->
+
+<div class="prof-box">
+
+<table class="prof-table">
+
+<tr>
+
+<td>
+
+<div class="section-title">Profesional</div>
+
+<div class="prof-name">
+Dr. {{ $order->doctor->user->name }}
+</div>
+
+<div class="prof-meta">
+RUT {{ $order->doctor->rut }}<br>
+Reg. SIS {{ $order->doctor->rnpi_number }}<br>
+
+@foreach($order->doctor->specialties as $specialty)
+{{ $specialty->name }}{{ !$loop->last ? ' / ' : '' }}
+@endforeach
+
+</div>
+
+</td>
+
+<td align="right">
+
+<div class="section-title">Firma</div>
+
+@if($order->doctor->signature_path)
+
+<img
+src="{{ public_path('storage/' . $order->doctor->signature_path) }}"
+class="signature">
+
+@endif
+
+</td>
+
+</tr>
+
+</table>
+
+</div>
+
+<!-- QR -->
+
+<div class="qr-box">
+
+<img src="data:image/png;base64,{{ $qrCode }}" width="70">
+
+<div class="qr-text">
+Para validar la veracidad de este documento escanee el código QR
+o ingrese el ID del documento en el portal Doctor911.
+</div>
+
+</div>
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+CODE TECH DIGITAL SPA · Doctor911 · RUT 77.736.856-7
+
+</div>
+
 </body>
 </html>
