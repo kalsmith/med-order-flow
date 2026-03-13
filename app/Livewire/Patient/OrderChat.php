@@ -45,11 +45,19 @@ class OrderChat extends Component
         $this->dispatch('scroll-bottom');
     }
 
+    // Sin cambios mayores en la lógica, pero asegúrate de que el render
+    // pase la información necesaria para validar el estado.
+
     public function render()
     {
+        $messages = $this->order->interactions()->orderBy('created_at', 'asc')->get();
+
+        // Verificamos si el doctor ha enviado al menos un mensaje
+        $canPatientReply = $messages->where('sender_type', 'doctor')->count() > 0;
+
         return view('livewire.patient.order-chat', [
-            // Pasamos los mensajes directamente para asegurar frescura
-            'messages' => $this->order->interactions()->orderBy('created_at', 'asc')->get()
+            'messages' => $messages,
+            'canPatientReply' => $canPatientReply
         ]);
     }
 }
