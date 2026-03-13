@@ -1,4 +1,4 @@
-<div wire:poll.30s class="card card-order border-0 shadow-sm mb-3">
+<div wire:poll.300s class="card card-order border-0 shadow-sm mb-3">
     <div class="card-body p-4">
         <div class="row align-items-center">
 
@@ -74,26 +74,39 @@
                             $isCustom = is_null($order->exam_type_id);
                             $hasMessages = $order->interactions->count() > 0;
                             $hasUnread = $order->interactions->where('sender_type', 'doctor')->count() > 0;
+
+                            // Lógica de visibilidad del chat:
+                            // 1. No mostrar en pendientes.
+                            // 2. Si está firmada, solo mostrar si ya hay mensajes (historial).
+                            // 3. Si no está firmada, mostrar si es custom o ya hay mensajes.
+                            $shouldShowChat = ($order->status !== 'pending') && (
+                                ($order->status === 'signed' ? $hasMessages : ($isCustom || $hasMessages))
+                            );
                         @endphp
 
-                        @if($order->status !== 'pending' && ($isCustom || $hasMessages))
-{{-- Botón de Chat dentro de order-item.blade.php --}}
-<button class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-2 px-4 position-relative"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#chat-{{ $order->id }}"
-        wire:click="markAsRead"> {{-- <--- Esto limpia el globo al hacer clic --}}
+                        @if($shouldShowChat)
+                            <button class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-2 px-4 position-relative"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#chat-{{ $order->id }}"
+                                    wire:click="markAsRead">
 
-    <i class="bi bi-chat-left-text"></i>
-    <span>{{ $hasMessages ? 'Ver Mensajes' : 'Consultar Médico' }}</span>
+                                <i class="bi bi-chat-left-text"></i>
+                                <span>
+                                    @if($order->status === 'signed')
+                                        Ver Historial
+                                    @else
+                                        {{ $hasMessages ? 'Ver Mensajes' : 'Consultar Médico' }}
+                                    @endif
+                                </span>
 
-    {{-- Globo de notificación mejorado --}}
-    @if($showNotificationBadge && $order->status !== 'signed')
-        <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow">
-            <span class="visually-hidden">Nuevo mensaje</span>
-        </span>
-    @endif
-</button>
+                                {{-- Globo de notificación: Solo si NO está firmada --}}
+                                @if($showNotificationBadge && $order->status !== 'signed')
+                                    <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow">
+                                        <span class="visually-hidden">Nuevo mensaje</span>
+                                    </span>
+                                @endif
+                            </button>
                         @endif
                     </div>
                 </div>
@@ -101,8 +114,8 @@
         </div>
 
         {{-- SECCIÓN DE CHAT COLLAPSE --}}
-        @if($order->status !== 'pending' && ($isCustom || $hasMessages))
-            <div class="collapse {{ $hasUnread ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
+        @if($shouldShowChat)
+            <div class="collapse {{ ($hasUnread && $order->status !== 'signed') ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
                 <div class="chat-wrapper-custom mt-4 pt-4 border-top">
                     @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
                 </div>
