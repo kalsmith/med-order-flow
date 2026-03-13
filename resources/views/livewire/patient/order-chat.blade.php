@@ -48,26 +48,31 @@
         </div>
     </form>
 
-    <script>
-        // Función dedicada para el scroll de esta instancia de chat
-        function scrollToBottom{{ $order->id }}() {
-            const chatBox = document.getElementById('chat-box-{{ $order->id }}');
+<script>
+    document.addEventListener('livewire:load', function () {
+        const chatBoxId = 'chat-box-{{ $order->id }}';
+        const chatBox = document.getElementById(chatBoxId);
+
+        // Función para bajar al fondo
+        const scrollToBottom = () => {
             if (chatBox) {
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
-        }
+        };
 
-        // Bajar cuando Livewire emite el evento desde PHP
-        window.addEventListener('scroll-bottom', scrollToBottom{{ $order->id }});
+        // 1. Bajar al cargar por primera vez
+        scrollToBottom();
 
-        // Bajar al cargar la página por primera vez
-        document.addEventListener('livewire:load', function () {
-            scrollToBottom{{ $order->id }}();
-
-            // Opcional: Bajar el scroll después de cada poll si hay cambios
-            Livewire.hook('message.processed', (message, component) => {
-                scrollToBottom{{ $order->id }}();
-            });
+        // 2. Bajar cuando el componente se actualice (mensajes nuevos del médico o tuyos)
+        Livewire.hook('message.processed', (message, component) => {
+            // Solo bajamos si el componente que se actualizó es este chat
+            if (component.fingerprint.name === 'patient.order-chat') {
+                scrollToBottom();
+            }
         });
-    </script>
+
+        // 3. Bajar cuando tú envíes un mensaje (evento explícito)
+        window.addEventListener('scroll-bottom', scrollToBottom);
+    });
+</script>
 </div>
