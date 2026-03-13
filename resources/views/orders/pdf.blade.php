@@ -6,169 +6,209 @@
         @page { margin: 0; }
         body {
             font-family: 'Helvetica', sans-serif;
-            color: #2d3748;
+            color: #1e293b;
             font-size: 11px;
             margin: 0;
-            line-height: 1.4;
+            line-height: 1.5;
+            background-color: #ffffff;
         }
 
-        /* Colores de Marca */
-        .bg-primary { background-color: #0056b3; }
-        .text-primary { color: #0056b3; }
+        /* Colores */
+        .text-blue { color: #0056b3; }
+        .bg-navy { background-color: #0f172a; } /* Azul muy oscuro para contraste */
 
-        /* Contenedor Principal */
-        .container { padding: 40px; }
-
-        /* Header con Estilo */
-        .header { margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
-        .logo-txt { font-size: 26px; font-weight: bold; margin: 0; color: #0056b3; letter-spacing: -1px; }
-        .logo-sub { font-size: 10px; color: #718096; text-transform: uppercase; margin-top: 2px; }
-
-        .qr-header { float: right; text-align: right; }
-        .order-id { font-family: monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 10px; margin-top: 5px; }
-
-        /* Bloques de Sección Modernos */
-        .section { margin-bottom: 25px; clear: both; }
-        .section-header {
-            background: #f1f5f9;
-            padding: 8px 15px;
-            border-left: 4px solid #0056b3;
+        /* Marca de Agua / Fondo sutil */
+        .watermark {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 400px;
+            color: #f8fafc;
+            z-index: -1;
             font-weight: bold;
-            font-size: 10px;
-            text-transform: uppercase;
-            color: #475569;
-            margin-bottom: 15px;
         }
 
-        .data-grid { width: 100%; border-collapse: collapse; }
-        .data-label { color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: bold; }
-        .data-value { font-size: 13px; font-weight: 600; color: #1e293b; }
-
-        /* El área de la receta (Rp) */
-        .rp-box {
-            background: #ffffff;
-            padding: 10px 15px;
-            min-height: 250px;
+        /* Header Premium */
+        .header-top {
+            background: linear-gradient(90deg, #0056b3 0%, #003d7a 100%);
+            padding: 30px 50px;
+            color: white;
+            position: relative;
         }
-        .rp-symbol { font-size: 24px; font-weight: bold; color: #0056b3; margin-bottom: 10px; }
-        .indications { font-size: 15px; color: #334155; line-height: 1.6; font-weight: 500; }
 
-        /* Footer y Firma */
-        .footer { margin-top: 40px; }
-        .signature-block { float: right; width: 250px; text-align: center; }
-        .signature-img { max-width: 180px; height: auto; margin-bottom: 5px; mix-blend-mode: multiply; }
-        .doc-line { border-top: 1px solid #cbd5e0; margin-top: 10px; padding-top: 10px; }
+        .header-logo { font-size: 28px; font-weight: 800; letter-spacing: -1.5px; margin: 0; }
+        .header-sub { font-size: 10px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
 
-        .validation-box {
-            float: left;
-            width: 300px;
+        .qr-header {
+            position: absolute;
+            right: 50px;
+            top: 25px;
+            background: white;
+            padding: 8px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Contenido */
+        .main-content { padding: 40px 50px; }
+
+        .document-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+            border-bottom: 3px solid #0056b3;
+            display: inline-block;
+            margin-bottom: 30px;
+            padding-bottom: 5px;
+        }
+
+        /* Tarjeta de Información del Paciente */
+        .info-card {
             background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
             border: 1px solid #e2e8f0;
+        }
+
+        .label { font-size: 9px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 3px; }
+        .value { font-size: 13px; font-weight: 700; color: #1e293b; }
+
+        /* Área de Prescripción */
+        .prescription-area {
+            margin-top: 20px;
+            min-height: 350px;
+        }
+
+        .rp-icon {
+            font-size: 35px;
+            font-weight: 800;
+            color: #0056b3;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .indications-text {
+            font-size: 16px;
+            color: #334155;
+            padding-left: 10px;
+            border-left: 3px solid #e2e8f0;
+        }
+
+        /* Firma y Footer */
+        .footer-table { width: 100%; margin-top: 40px; }
+
+        .signature-box {
+            text-align: center;
+            width: 250px;
+        }
+
+        .signature-img {
+            max-width: 160px;
+            margin-bottom: 10px;
+            filter: contrast(1.2);
+        }
+
+        .doc-name { font-size: 13px; font-weight: 800; color: #0f172a; margin: 0; }
+        .doc-meta { font-size: 9px; color: #64748b; margin-top: 3px; }
+
+        .verification-badge {
+            background: #f1f5f9;
             padding: 15px;
             border-radius: 8px;
-            margin-top: 20px;
+            font-size: 9px;
+            color: #475569;
+            border: 1px dashed #cbd5e0;
         }
 
-        .bottom-bar {
+        .bottom-strip {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 40px;
+            height: 6px;
             background: #0056b3;
-            text-align: center;
-            color: white;
-            font-size: 9px;
-            line-height: 40px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="qr-header">
-                <img src="data:image/png;base64,{{ $qrCode }}" width="70">
-                <div class="order-id">ID: {{ strtoupper(substr($order->id, 0, 8)) }}</div>
-            </div>
-            <div class="logo-area">
-                <p class="logo-txt">DOCTOR 911</p>
-                <p class="logo-sub">Servicios Médicos Digitales • Telemedicina</p>
-            </div>
-        </div>
+    <div class="watermark">Rp</div>
 
-        <div class="section">
-            <div class="section-header">Identificación del Paciente</div>
-            <table class="data-grid">
+    <div class="header-top">
+        <div class="qr-header">
+            <img src="data:image/png;base64,{{ $qrCode }}" width="65">
+        </div>
+        <p class="header-logo">DOCTOR 911</p>
+        <p class="header-sub">Servicios Médicos Digitales • Red MedOrder</p>
+    </div>
+
+    <div class="main-content">
+        <div class="document-title">ORDEN MÉDICA ELECTRÓNICA</div>
+
+        <div class="info-card">
+            <table width="100%">
                 <tr>
-                    <td width="60%">
-                        <div class="data-label">Nombre Completo</div>
-                        <div class="data-value">{{ $order->patient->full_name }}</div>
+                    <td width="55%">
+                        <div class="label">Paciente</div>
+                        <div class="value">{{ strtoupper($order->patient->full_name) }}</div>
                     </td>
-                    <td width="40%">
-                        <div class="data-label">Fecha de Emisión</div>
-                        <div class="data-value">{{ $order->created_at->format('d / m / Y') }}</div>
+                    <td width="25%">
+                        <div class="label">R.U.T</div>
+                        <div class="value">{{ $order->patient->rut }}</div>
+                    </td>
+                    <td width="20%">
+                        <div class="label">Fecha</div>
+                        <div class="value">{{ $order->created_at->format('d/m/Y') }}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding-top: 15px;">
-                        <div class="data-label">R.U.T</div>
-                        <div class="data-value">{{ $order->patient->rut }}</div>
-                    </td>
-                    <td style="padding-top: 15px;">
-                        <div class="data-label">Edad</div>
-                        <div class="data-value">{{ $order->patient->age }} años</div>
+                    <td colspan="3" style="padding-top: 15px;">
+                        <span class="label">ID de Documento:</span>
+                        <span style="font-family: monospace; font-weight: bold;">{{ strtoupper(substr($order->id, 0, 12)) }}</span>
                     </td>
                 </tr>
             </table>
         </div>
 
-        <div class="section">
-            <div class="section-header">Indicaciones Médicas / Rp</div>
-            <div class="rp-box">
-                <div class="rp-symbol">Rp.</div>
-                <div class="indications">
-                    {{-- Aquí corregiremos el bug del contenido --}}
-                    {!! nl2br(e($order->clinical_context)) !!}
-                </div>
+        <div class="prescription-area">
+            <div class="rp-icon">Rp.</div>
+            <div class="indications-text">
+                {{-- Aquí va el contenido que arreglaremos --}}
+                <strong style="font-size: 18px;">{{ $order->clinical_context }}</strong>
+                <p style="color: #64748b; font-size: 11px; margin-top: 20px;">
+                    * Prestación autorizada para ser realizada en cualquier centro de salud en convenio.
+                </p>
             </div>
         </div>
 
-        <div class="footer">
-            <div class="signature-block">
-                @if($order->doctor->signature_path)
-                    <img src="{{ public_path('storage/' . $order->doctor->signature_path) }}" class="signature-img">
-                @else
-                    <div style="height: 90px;"></div>
-                @endif
-                <div class="doc-line">
-                    <strong style="font-size: 12px;">Dr. {{ $order->doctor->user->name }}</strong><br>
-                    <span style="color: #64748b; font-size: 10px;">
-                        R.U.T: {{ $order->doctor->rut }}<br>
-                        @foreach($order->doctor->specialties as $specialty)
-                            {{ $specialty->name }}{{ !$loop->last ? ' / ' : '' }}
-                        @endforeach<br>
-                        Reg. S.I.S: {{ $order->doctor->rnpi_number }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="validation-box">
-                <table width="100%">
-                    <tr>
-                        <td width="20%"><i class="bi bi-shield-check" style="font-size: 20px; color: #0056b3;"></i></td>
-                        <td>
-                            <strong style="font-size: 10px; color: #1e293b; display: block; margin-bottom: 3px;">Documento Verificado</strong>
-                            <p style="font-size: 8px; color: #64748b; margin: 0;">
-                                La autenticidad de esta orden puede ser validada escaneando el código QR o ingresando el ID en <strong>doctor911.cl/verificar</strong>
+        <table class="footer-table">
+            <tr>
+                <td width="50%" style="vertical-align: bottom;">
+                    <div class="verification-badge">
+                        <strong>VERIFICACIÓN DE SEGURIDAD</strong><br>
+                        Este documento cuenta con firma electrónica avanzada. Puede validar su integridad en www.doctor911.cl con el código de seguimiento indicado arriba.
+                    </div>
+                </td>
+                <td width="50%" align="right">
+                    <div class="signature-box">
+                        @if($order->doctor->signature_path)
+                            <img src="{{ public_path('storage/' . $order->doctor->signature_path) }}" class="signature-img">
+                        @endif
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                            <p class="doc-name">DR. {{ strtoupper($order->doctor->user->name) }}</p>
+                            <p class="doc-meta">
+                                RUT: {{ $order->doctor->rut }} | Reg. SIS: {{ $order->doctor->rnpi_number }}<br>
+                                @foreach($order->doctor->specialties as $specialty)
+                                    {{ strtoupper($specialty->name) }}{{ !$loop->last ? ' / ' : '' }}
+                                @endforeach
                             </p>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div class="bottom-bar">
-        Doctor 911 SpA • Contacto: contacto@doctor911.cl • www.doctor911.cl
-    </div>
+    <div class="bottom-strip"></div>
 </body>
 </html>
