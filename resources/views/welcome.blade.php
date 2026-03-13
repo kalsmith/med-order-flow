@@ -21,49 +21,69 @@
             </div>
         </div>
     </header>
-
 {{-- TRUST BADGES --}}
-    <section class="py-5 border-top border-bottom bg-white">
-        <div class="container">
-            <div class="row text-center g-4">
-                {{-- 1. FIRMA ELECTRÓNICA --}}
-                <div class="col-6 col-md-3">
-                    <div class="px-2">
-                        <i class="bi bi-shield-check text-success fs-3 mb-2 d-block"></i>
-                        <span class="d-block fw-bold text-dark small">Firma Electrónica Avanzada</span>
-                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Documentos con validez legal según Ley 19.799.</p>
-                    </div>
-                </div>
+<section class="py-5 border-top border-bottom bg-white">
+    <div class="container">
+        <div class="row text-center g-4 justify-content-center">
 
-                {{-- 2. DISPONIBILIDAD 24/7 (En vez de Todo Chile) --}}
-                <div class="col-6 col-md-3">
-                    <div class="px-2">
-                        <i class="bi bi-clock-fill text-danger fs-3 mb-2 d-block"></i>
-                        <span class="d-block fw-bold text-dark small">Disponibilidad 24/7</span>
-                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Solicita tu orden en cualquier momento, los 365 días.</p>
-                    </div>
-                </div>
-
-                {{-- 3. ENTREGA EN MINUTOS --}}
-                <div class="col-6 col-md-3">
-                    <div class="px-2">
-                        <i class="bi bi-lightning-charge-fill text-warning fs-3 mb-2 d-block"></i>
-                        <span class="d-block fw-bold text-dark small">Entrega en Minutos</span>
-                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Procesamiento inmediato para que no pierdas tiempo.</p>
-                    </div>
-                </div>
-
-                {{-- 4. LABORATORIOS --}}
-                <div class="col-6 col-md-3">
-                    <div class="px-2">
-                        <i class="bi bi-hospital text-info fs-3 mb-2 d-block"></i>
-                        <span class="d-block fw-bold text-dark small">Red Nacional</span>
-                        <p class="text-muted mb-0" style="font-size: 0.75rem;">Válida en Fonasa, Isapre y centros particulares de Chile.</p>
-                    </div>
+            {{-- 1. FIRMA ELECTRÓNICA --}}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="px-2">
+                    <i class="bi bi-shield-check text-success fs-3 mb-2 d-block"></i>
+                    <span class="d-block fw-bold text-dark small">Firma Avanzada</span>
+                    <p class="text-muted mb-0" style="font-size: 0.72rem; line-height: 1.2;">
+                        Validez legal según <br><strong>Ley 19.799</strong>.
+                    </p>
                 </div>
             </div>
+
+            {{-- 2. DISPONIBILIDAD 24/7 --}}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="px-2">
+                    <i class="bi bi-clock-fill text-danger fs-3 mb-2 d-block"></i>
+                    <span class="d-block fw-bold text-dark small">Disponibilidad 24/7</span>
+                    <p class="text-muted mb-0" style="font-size: 0.72rem; line-height: 1.2;">
+                        Solicita tu orden los <br>365 días del año.
+                    </p>
+                </div>
+            </div>
+
+            {{-- 3. ENTREGA EN MINUTOS --}}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="px-2">
+                    <i class="bi bi-lightning-charge-fill text-warning fs-3 mb-2 d-block"></i>
+                    <span class="d-block fw-bold text-dark small">Entrega Veloz</span>
+                    <p class="text-muted mb-0" style="font-size: 0.72rem; line-height: 1.2;">
+                        Procesamiento y envío <br>en minutos.
+                    </p>
+                </div>
+            </div>
+
+            {{-- 4. LABORATORIOS --}}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="px-2">
+                    <i class="bi bi-hospital text-info fs-3 mb-2 d-block"></i>
+                    <span class="d-block fw-bold text-dark small">Red Nacional</span>
+                    <p class="text-muted mb-0" style="font-size: 0.72rem; line-height: 1.2;">
+                        Válida en Fonasa, Isapre <br>y particulares.
+                    </p>
+                </div>
+            </div>
+
+            {{-- 5. PRIVACIDAD Y DATOS (LEY 21.719) --}}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="px-2">
+                    <i class="bi bi-lock-fill text-primary fs-3 mb-2 d-block"></i>
+                    <span class="d-block fw-bold text-dark small">Datos Protegidos</span>
+                    <p class="text-muted mb-0" style="font-size: 0.72rem; line-height: 1.2;">
+                        Resguardados bajo la <br><strong>Ley 21.719</strong>.
+                    </p>
+                </div>
+            </div>
+
         </div>
-    </section>
+    </div>
+</section>
 
     {{-- PASOS --}}
     {{-- PASOS --}}
