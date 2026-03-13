@@ -19,7 +19,7 @@
                     <h1 class="fw-extrabold text-primary mb-4">{{ $faq->question }}</h1>
 
                     <div class="text-muted lh-lg fs-5">
-                        {!! nl2br(e($faq->answer)) !!}
+                        {!! $faq->answer !!}
                     </div>
 
                     <div class="mt-5 pt-4 border-top text-center">
