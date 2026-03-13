@@ -8,6 +8,7 @@ use App\Models\Specialty;
 
 // Controladores
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\SpecialtyController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ExamTypeController;
@@ -96,6 +97,13 @@ Route::middleware(['role:doctor'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
+
+        // Nueva ruta para FAQs
+    Route::resource('preguntas-frecuentes', FaqController::class)
+        ->names('faqs')
+        ->parameters(['preguntas-frecuentes' => 'faq']);
+
+
 
         // El resource se encarga de index, show, edit, update, destroy
         Route::resource('ordenes', MedicalOrderController::class)->names('orders')->except(['create', 'store']);

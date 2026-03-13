@@ -27,6 +27,15 @@
                     <i class="bi bi-microscope-fill"></i> Catálogo Exámenes
                 </a>
             </li>
+
+
+            {{-- NUEVO ITEM: CONTENIDOS / FAQ --}}
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.faqs.*') ? 'active' : '' }}" href="{{ route('admin.faqs.index') }}">
+                    <i class="bi bi-info-circle-fill"></i> Contenidos / FAQ
+                </a>
+            </li>
+
             @endrole
 
             {{-- MODULO: OPERACIONES (Diferenciado por Rol) --}}
