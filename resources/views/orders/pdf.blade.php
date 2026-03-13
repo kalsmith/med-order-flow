@@ -10,51 +10,64 @@
             margin: 0;
             font-size: 11px;
             color: #212529;
-            line-height: 1.4;
+            line-height: 1.5; /* Un poco más de aire al texto */
         }
 
         /* IDENTIDAD VISUAL BOOTSTRAP */
         .top-bar { height: 8px; background-color: #0d6efd; }
-        .header { padding: 35px 50px 15px 50px; }
+        .header { padding: 40px 50px 20px 50px; }
         .logo { font-size: 28px; font-weight: 800; color: #0d6efd; letter-spacing: -1px; }
         .contact-info { font-size: 10px; color: #6c757d; margin-top: 4px; }
 
         .header-right { text-align: right; }
 
-        /* Ajuste 50/50 y expansión del badge */
         .id-badge {
             background: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
+            padding: 15px; /* Más padding para que se vea importante */
+            border-radius: 8px;
             border: 1px solid #dee2e6;
             text-align: left;
-            width: 100%; /* Ocupa todo el ancho de su celda (50%) */
+            width: 100%;
             box-sizing: border-box;
         }
 
-        .document-title { margin: 10px 50px 20px 50px; font-size: 20px; font-weight: 700; color: #212529; }
-
-        /* SECCIONES TIPO PAPERMED */
-        .section-container {
-            margin: 0 50px 15px 50px;
-            border-top: 1px solid #dee2e6;
-            padding-top: 12px;
+        .document-title {
+            margin: 10px 50px 30px 50px; /* Más espacio bajo el título */
+            font-size: 22px;
+            font-weight: 700;
+            color: #212529;
         }
-        .section-table { width: 100%; border-collapse: collapse; }
-        .sidebar { width: 110px; vertical-align: top; font-size: 10px; color: #0d6efd; text-transform: uppercase; font-weight: 800; }
-        .content { padding-left: 15px; }
 
-        .label { font-size: 8px; color: #6c757d; text-transform: uppercase; font-weight: 700; }
-        .value { font-size: 12px; font-weight: 600; color: #212529; margin-bottom: 8px; }
+        /* SECCIONES CON MÁS ESPACIO */
+        .section-container {
+            margin: 0 50px 25px 50px; /* Aumentado el margen inferior entre secciones */
+            border-top: 1px solid #dee2e6;
+            padding-top: 18px; /* Más espacio después de la línea divisoria */
+        }
+
+        .section-table { width: 100%; border-collapse: collapse; }
+        .sidebar {
+            width: 120px;
+            vertical-align: top;
+            font-size: 10px;
+            color: #0d6efd;
+            text-transform: uppercase;
+            font-weight: 800;
+            padding-top: 2px;
+        }
+        .content { padding-left: 20px; }
+
+        .label { font-size: 8px; color: #6c757d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .value { font-size: 13px; font-weight: 600; color: #212529; margin-bottom: 12px; }
 
         /* EXAMEN RESALTADO */
         .exam-box {
             background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            border-left: 4px solid #0d6efd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #0d6efd;
         }
-        .exam-name { font-size: 15px; font-weight: 800; color: #0d6efd; }
+        .exam-name { font-size: 16px; font-weight: 800; color: #0d6efd; }
 
         /* BLOQUE DE VERIFICACIÓN */
         .footer-wrapper {
@@ -64,20 +77,20 @@
         }
 
         .verification-block {
-            margin: 0 50px 20px 50px;
-            padding: 15px;
+            margin: 0 50px 30px 50px;
+            padding: 20px;
             background: #f8f9fa;
-            border-radius: 10px;
+            border-radius: 12px;
             border: 1px solid #e9ecef;
         }
 
-        .qr-small { width: 70px; vertical-align: middle; }
-        .verification-text { padding-left: 15px; vertical-align: middle; color: #495057; font-size: 10px; }
-        .verification-title { font-weight: 800; color: #0d6efd; margin-bottom: 3px; font-size: 11px; }
+        .qr-small { width: 75px; vertical-align: middle; }
+        .verification-text { padding-left: 20px; vertical-align: middle; color: #495057; font-size: 10px; }
+        .verification-title { font-weight: 800; color: #0d6efd; margin-bottom: 5px; font-size: 11px; }
 
         .final-footer {
             border-top: 1px solid #dee2e6;
-            padding: 15px 50px;
+            padding: 20px 50px;
             text-align: center;
             font-size: 9px;
             color: #adb5bd;
@@ -103,11 +116,11 @@
                         <tr>
                             <td>
                                 <div class="label">Fecha Emisión</div>
-                                <div class="value">{{ $order->created_at->format('d/m/Y') }}</div>
+                                <div class="value" style="margin-bottom:0;">{{ $order->created_at->format('d/m/Y') }}</div>
                             </td>
                             <td style="text-align: right;">
                                 <div class="label">ID Seguimiento</div>
-                                <div class="value" style="color:#0d6efd; font-family: monospace;">{{ strtoupper(substr($order->id,0,12)) }}</div>
+                                <div class="value" style="color:#0d6efd; font-family: monospace; margin-bottom:0;">{{ strtoupper(substr($order->id,0,12)) }}</div>
                             </td>
                         </tr>
                     </table>
@@ -124,7 +137,7 @@
         <tr>
             <td class="sidebar">Médico Emisor</td>
             <td class="content">
-                <div class="value" style="font-size: 14px; margin-bottom: 2px;">Dr. {{ $order->doctor->user->name }}</div>
+                <div class="value" style="font-size: 15px; margin-bottom: 4px;">Dr. {{ $order->doctor->user->name }}</div>
                 <div style="color: #6c757d;">
                     RUT: {{ $order->doctor->rut }} | Reg. SIS: {{ $order->doctor->rnpi_number }}<br>
                     @foreach($order->doctor->specialties as $specialty)
@@ -160,7 +173,7 @@
             <td class="content">
                 <div class="exam-box">
                     <div class="exam-name">{{ $order->clinical_context }}</div>
-                    <div style="color: #6c757d; font-size: 10px; margin-top: 5px; font-style: italic;">
+                    <div style="color: #6c757d; font-size: 10px; margin-top: 8px; font-style: italic;">
                         Documento válido para ser presentado en cualquier centro de salud o laboratorio en convenio.
                     </div>
                 </div>
@@ -173,7 +186,7 @@
     <div class="verification-block">
         <table width="100%">
             <tr>
-                <td width="70"><img src="data:image/png;base64,{{ $qrCode }}" class="qr-small"></td>
+                <td width="75"><img src="data:image/png;base64,{{ $qrCode }}" class="qr-small"></td>
                 <td class="verification-text">
                     <div class="verification-title">VERIFICACIÓN ELECTRÓNICA DE SEGURIDAD</div>
                     Este documento es una orden médica electrónica válida en todo el territorio nacional.
