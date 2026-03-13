@@ -17,7 +17,8 @@
             <hr class="mb-5">
 
 <div class="lh-lg text-muted faq-content" style="font-size: 1.1rem;">
-    {!! $faq->answer !!}
+    {{-- Decodifica las entidades como &eacute; a letras con tilde --}}
+    {!! html_entity_decode($faq->answer) !!}
 </div>
 
             <div class="mt-5 pt-4 border-top">
