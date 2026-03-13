@@ -7,27 +7,22 @@ use App\Models\ExamType;
 
 class LandingController extends Controller
 {
-public function index()
-{
-    $packs = ExamType::where('is_active', true)
-        ->has('children')
-        ->with('children:id,name')
-        ->get();
+    public function index()
+    {
+        // 1. PACKS: Exámenes que son "Padres" (tienen registros en la tabla pivote como parent_id)
+        $packs = ExamType::where('is_active', true)
+            ->has('children')
+            ->with('children')
+            ->get();
 
-    $individuales = ExamType::where('is_active', true)
-        ->doesntHave('children')
-        ->whereDoesntHave('parents')
-        ->get();
+        // 2. INDIVIDUALES: Exámenes que NO tienen hijos
+        // Y que NO son hijos de otros packs (para que el Hemograma no salga repetido)
+        $individuales = ExamType::where('is_active', true)
+            ->doesntHave('children') // No es un pack
+            ->whereDoesntHave('parents') // No es parte de un pack
+            ->orderBy('name', 'asc')
+            ->get();
 
-    dd([
-        'Total Packs Encontrados' => $packs->count(),
-        'Nombres de Packs' => $packs->pluck('name')->toArray(),
-        'Total Individuales Encontrados' => $individuales->count(),
-        'Nombres de Individuales' => $individuales->pluck('name')->toArray(),
-        'SQL Individuales' => ExamType::where('is_active', true)
-            ->doesntHave('children')
-            ->whereDoesntHave('parents')
-            ->toSql()
-    ]);
-}
+        return view('welcome', compact('packs', 'individuales'));
+    }
 }
