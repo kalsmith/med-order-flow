@@ -24,7 +24,7 @@
     <h6 class="fw-bold mb-4 text-uppercase small text-primary">Soporte</h6>
     <ul class="list-unstyled small text-white-50">
         {{-- Enlace estático a la sección de FAQs del home si quieres --}}
-        <li class="mb-2"><a href="#faq-section" class="text-decoration-none text-reset">Preguntas Frecuentes</a></li>
+
 
         {{-- Renderiza TODO lo que esté activo en la tabla faqs --}}
 @foreach($faqs as $item)

@@ -1,9 +1,18 @@
 @extends('layouts.admin')
 
+{{-- Estilos para el editor --}}
+@push('css')
+<style>
+    .ck-editor__editable_inline {
+        min-height: 300px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container py-4">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-10"> {{-- Amplié un poco el ancho para el editor --}}
             <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-body p-4">
                     <h3 class="fw-bold mb-4 text-center">Nuevo Contenido Informativo</h3>
@@ -33,7 +42,8 @@
 
                             <div class="col-12">
                                 <label class="form-label fw-bold small">Respuesta / Contenido detallado</label>
-                                <textarea name="answer" class="form-control" rows="6" placeholder="Escribe aquí el contenido..." required></textarea>
+                                {{-- ID "editor" añadido aquí --}}
+                                <textarea name="answer" id="editor" class="form-control" rows="6">{{ old('answer') }}</textarea>
                             </div>
 
                             <div class="col-12">
@@ -55,3 +65,28 @@
     </div>
 </div>
 @endsection
+
+@push('js')
+    {{-- Si lo tienes en public/assets/ --}}
+    <script src="{{ asset('assets/ckeditor/ckeditor.js') }}"></script>
+
+    {{-- Si prefieres no arriesgar con la ruta local, puedes usar el CDN de CK5: --}}
+    {{-- <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script> --}}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof ClassicEditor !== 'undefined') {
+                ClassicEditor
+                    .create(document.querySelector('#editor'), {
+                        toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo']
+                    })
+                    .catch(error => { console.error(error); });
+            } else if (typeof CKEDITOR !== 'undefined') {
+                CKEDITOR.replace('editor', {
+                    height: 400,
+                    removeButtons: 'PasteFromWord'
+                });
+            }
+        });
+    </script>
+@endpush
