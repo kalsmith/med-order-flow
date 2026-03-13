@@ -16,20 +16,21 @@ class OrderChat extends Component
 
     public function sendMessage()
     {
-        $this->validate();
+        $this->validate([
+            'newMessage' => 'required|string|max:1000'
+        ]);
 
+        // Usamos los nombres de columna correctos según tu modelo
         $this->order->interactions()->create([
-            'user_id' => auth()->id(),
-            'message' => $this->newMessage,
-            'sender_type' => 'patient', // Hardcoded porque este componente es SOLO para pacientes
+            'sender_type' => 'patient',
+            'type'        => 'text',      // Agregamos el tipo ya que está en tu fillable
+            'content'     => $this->newMessage, // Cambiado de 'message' a 'content'
         ]);
 
         $this->newMessage = '';
         $this->order->load('interactions');
-
-        // Opcional: emitir evento para scroll o notificaciones
-        $this->dispatch('messageSent');
     }
+
 
     public function render()
     {

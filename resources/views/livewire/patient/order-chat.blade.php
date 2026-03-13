@@ -10,7 +10,8 @@
                         <span class="d-block fw-bold mb-1 text-primary" style="font-size: 0.65rem;">MÉDICO</span>
                     @endif
 
-                    <p class="mb-0">{{ $interaction->message }}</p>
+                    {{-- Mostramos content, que es el campo real de tu DB --}}
+                    <p class="mb-0">{{ $interaction->content }}</p>
 
                     <small class="msg-time">{{ $interaction->created_at->format('H:i') }}</small>
                 </div>
