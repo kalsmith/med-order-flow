@@ -9,12 +9,23 @@ class OrderChat extends Component
 {
     public MedicalOrder $order;
     public $newMessage = '';
+    public $lastMessageCount = 0; // Para comparar con el conteo anterior
 
-    // Esta función solo sirve para que Livewire refresque el modelo
-    // y detecte si llegaron mensajes nuevos del médico.
+    public function mount()
+    {
+        $this->lastMessageCount = $this->order->interactions->count();
+    }
+
     public function refreshMessages()
     {
         $this->order->load('interactions');
+        $currentCount = $this->order->interactions->count();
+
+        // Si hay más mensajes de los que había antes, notificamos al JS
+        if ($currentCount > $this->lastMessageCount) {
+            $this->dispatch('new-messages-received');
+            $this->lastMessageCount = $currentCount;
+        }
     }
 
     public function sendMessage()
