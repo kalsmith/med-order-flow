@@ -110,6 +110,24 @@
 <div class="section-container">
     <table class="section-table">
         <tr>
+            <td class="sidebar">Médico</td>
+            <td class="content">
+                <div class="value" style="font-size: 14px; margin-bottom: 2px;">Dr. {{ $order->doctor->user->name }}</div>
+                <div style="color: #6c757d;">
+                    RUT: {{ $order->doctor->rut }} | Reg. SIS: {{ $order->doctor->rnpi_number }}<br>
+                    @foreach($order->doctor->specialties as $specialty)
+                        {{ strtoupper($specialty->name) }}{{ !$loop->last ? ' / ' : '' }}
+                    @endforeach
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+
+<div class="section-container">
+    <table class="section-table">
+        <tr>
             <td class="sidebar">Paciente</td>
             <td class="content">
                 <table width="100%">
@@ -140,22 +158,7 @@
     </table>
 </div>
 
-<div class="section-container">
-    <table class="section-table">
-        <tr>
-            <td class="sidebar">Médico</td>
-            <td class="content">
-                <div class="value" style="font-size: 14px; margin-bottom: 2px;">Dr. {{ $order->doctor->user->name }}</div>
-                <div style="color: #6c757d;">
-                    RUT: {{ $order->doctor->rut }} | Reg. SIS: {{ $order->doctor->rnpi_number }}<br>
-                    @foreach($order->doctor->specialties as $specialty)
-                        {{ strtoupper($specialty->name) }}{{ !$loop->last ? ' / ' : '' }}
-                    @endforeach
-                </div>
-            </td>
-        </tr>
-    </table>
-</div>
+
 
 <div class="footer-wrapper">
     <div class="verification-block">
