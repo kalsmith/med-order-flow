@@ -1,207 +1,203 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Órdenes | MedOrder Flow</title>
+@extends('layouts.front')
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+@section('title', 'Mis Órdenes - MedOrder Flow')
 
-    <style>
-        :root { --primary-color: #0d6efd; --bg-light: #f8faff; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-light); color: #212529; }
-        .navbar { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
-        .card-order { border-radius: 20px; border: 1px solid #edf2f7; transition: transform 0.2s; }
-        .card-order:hover { transform: translateY(-3px); }
-        .badge-status { border-radius: 10px; padding: 0.5em 1em; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
-        .btn-action { border-radius: 12px; font-weight: 600; }
-        .empty-state { padding: 4rem 2rem; text-align: center; }
-        .patient-tag { font-size: 0.75rem; background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+@push('styles')
+<style>
+    .card-order {
+        border-radius: 20px;
+        border: none;
+        transition: all 0.25s ease;
+        background: #ffffff;
+    }
+    .card-order:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.06) !important;
+    }
+    .badge-status {
+        border-radius: 10px;
+        padding: 0.6em 1.2em;
+        font-weight: 700;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .patient-tag {
+        font-size: 0.75rem;
+        background: #f0f7ff;
+        color: #0056b3;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    .info-box {
+        border-radius: 16px;
+        border-left: 4px solid !important;
+    }
+    .bg-waiting {
+        background-color: #f0f7ff;
+        border-color: #0d6efd !important;
+    }
+    .empty-state {
+        padding: 5rem 2rem;
+        background: white;
+        border-radius: 24px;
+    }
+    .swal2-popup-custom { border-radius: 24px !important; font-family: 'Inter', sans-serif; }
+</style>
+@endpush
 
-        /* Estilos para estados informativos */
-        .info-box { border-radius: 15px; border-left-width: 5px !important; }
-        .bg-waiting { background-color: #e7f1ff; border-color: #0d6efd; }
-        .spinner-review { width: 1.2rem; height: 1.2rem; border-width: 0.2em; }
-
-        /* SweetAlert personalizado */
-        .swal2-popup-custom { border-radius: 20px !important; }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar navbar-expand-lg navbar-light sticky-top border-bottom shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-extrabold text-primary fs-3 d-flex align-items-center" href="{{ route('home') }}">
-                <i class="bi bi-droplet-fill me-2"></i>
-                <span style="letter-spacing: -1px;">MedOrder<span class="text-dark">Flow</span></span>
+@section('content')
+<div class="container py-5">
+    {{-- Header de la Sección --}}
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-6">
+            <h2 class="fw-800 mb-1" style="letter-spacing: -1.5px;">Mis Órdenes Médicas</h2>
+            <p class="text-muted mb-0">Gestiona tus solicitudes y descarga tus documentos.</p>
+        </div>
+        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+            <a href="{{ route('home') }}" class="btn btn-primary rounded-4 fw-bold shadow-sm px-4 py-2">
+                <i class="bi bi-plus-lg me-2"></i> Nueva Solicitud
             </a>
-            <div class="ms-auto d-flex align-items-center">
-                <span class="text-muted small d-none d-md-inline me-3">Hola, {{ auth()->user()->name }}</span>
-                <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-link text-danger p-0 border-0"><i class="bi bi-box-arrow-right fs-4"></i></button>
-                </form>
-            </div>
         </div>
-    </nav>
+    </div>
 
-    <div class="container py-5">
-        <div class="row mb-4 align-items-center">
-            <div class="col-md-6">
-                <h2 class="fw-extrabold mb-0" style="letter-spacing: -1px;">Mis Órdenes Médicas</h2>
-                <p class="text-muted">Gestiona tus solicitudes y descarga tus órdenes firmadas.</p>
+    @if($orders->isEmpty())
+        <div class="empty-state text-center shadow-sm">
+            <div class="mb-4">
+                <i class="bi bi-file-earmark-medical display-1 text-primary opacity-25"></i>
             </div>
-            <div class="col-md-6 text-md-end">
-                <a href="{{ route('home') }}" class="btn btn-primary btn-action shadow-sm px-4">
-                    <i class="bi bi-plus-lg me-2"></i> Nueva Solicitud
-                </a>
-            </div>
+            <h4 class="fw-bold">Aún no tienes órdenes</h4>
+            <p class="text-muted mx-auto" style="max-width: 400px;">
+                Tus órdenes aparecerán aquí una vez que realices una solicitud. Podrás descargarlas en formato PDF.
+            </p>
+            <a href="{{ route('home') }}" class="btn btn-outline-primary rounded-4 fw-bold mt-3">Comenzar ahora</a>
         </div>
-
-        @if($orders->isEmpty())
-            <div class="card card-order border-0 shadow-sm empty-state">
-                <div class="mb-4 text-muted"><i class="bi bi-file-earmark-medical display-1 opacity-25"></i></div>
-                <h4>Aún no tienes órdenes</h4>
-                <p class="text-muted">Tus órdenes aparecerán aquí una vez que realices una solicitud.</p>
-            </div>
-        @else
-            <div class="row g-4">
-                @foreach($orders as $order)
-                <div class="col-12">
-                    <div class="card card-order border-0 shadow-sm overflow-hidden">
-                        <div class="card-body p-4">
-                            <div class="row align-items-center">
-                                <div class="col-md-5 mb-3 mb-md-0">
-                                    <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
-                                        <span class="badge bg-light text-primary border" style="font-size: 0.7rem;">ID: {{ substr($order->id, 0, 8) }}</span>
-                                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
-                                        <span class="patient-tag"><i class="bi bi-person me-1"></i>{{ $order->patient->full_name ?? 'Titular' }}</span>
-                                    </div>
-
-                                    <h5 class="fw-bold mb-1 text-dark">
-                                        {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
-                                    </h5>
-
-                                    {{-- CASO: EN REVISIÓN (PAID) --}}
-                                    @if($order->status === 'paid')
-                                        <div class="mt-3 p-3 info-box bg-waiting border-start border-primary shadow-sm">
-                                            <div class="d-flex align-items-center">
-                                                <div class="spinner-border spinner-review text-primary me-3" role="status"></div>
-                                                <div>
-                                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Médico revisando su solicitud</strong>
-                                                    <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
-                                                        Plazo aproximado: <strong>24 horas</strong> (casi siempre antes).
-                                                        Te enviaremos un email cuando esté lista.
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    {{-- CASO: REEMBOLSO PENDIENTE --}}
-                                    @if($order->status === 'refund_pending')
-                                        <div class="mt-3 p-3 info-box bg-info-subtle border-start border-info shadow-sm">
-                                            <div class="d-flex">
-                                                <i class="bi bi-info-circle-fill text-info me-2 fs-5"></i>
-                                                <div>
-                                                    <strong class="d-block text-dark" style="font-size: 0.85rem;">Proceso de devolución iniciado</strong>
-                                                    <span class="text-muted d-block" style="font-size: 0.8rem; line-height: 1.4;">
-                                                        Revisa tu correo: <strong>"Solicitud de reembolso"</strong>.
-                                                        Debes completar tus datos en el enlace de Flow.
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
+    @else
+        <div class="row g-4">
+            @foreach($orders as $order)
+            <div class="col-12">
+                <div class="card card-order shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            {{-- Info Principal --}}
+                            <div class="col-lg-5 mb-3 mb-lg-0">
+                                <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
+                                    <span class="badge bg-white text-dark border fw-bold" style="font-size: 0.7rem; border-radius: 6px;">
+                                        ID: {{ strtoupper(substr($order->id, 0, 8)) }}
+                                    </span>
+                                    <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}</span>
+                                    <span class="patient-tag"><i class="bi bi-person-fill me-1"></i>{{ $order->patient->full_name ?? 'Titular' }}</span>
                                 </div>
 
-                                <div class="col-md-3 text-md-center mb-3 mb-md-0">
-                                    <div class="mb-1">
-                                        @switch($order->status)
-                                            @case('pending')
-                                                <span class="badge badge-status bg-warning-subtle text-warning border border-warning-subtle">Pendiente de Pago</span>
-                                                @break
-                                            @case('paid')
-                                                <span class="badge badge-status bg-info-subtle text-info border border-info-subtle">En Revisión</span>
-                                                @break
-                                            @case('signed')
-                                                <span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Lista para Descarga</span>
-                                                @break
-                                            @case('refund_pending')
-                                                <span class="badge badge-status bg-primary-subtle text-primary border border-primary-subtle">Reembolso Enviado</span>
-                                                @break
-                                            @case('rejected')
-                                                <span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Orden Rechazada</span>
-                                                @break
-                                            @default
-                                                <span class="badge badge-status bg-secondary-subtle text-secondary border border-secondary-subtle">{{ ucfirst($order->status) }}</span>
-                                        @endswitch
+                                <h5 class="fw-bold mb-0 text-dark">
+                                    {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
+                                </h5>
+
+                                {{-- Estado: En Revisión --}}
+                                @if($order->status === 'paid')
+                                    <div class="mt-3 p-3 info-box bg-waiting shadow-sm">
+                                        <div class="d-flex align-items-center">
+                                            <div class="spinner-border spinner-border-sm text-primary me-3" role="status"></div>
+                                            <div>
+                                                <span class="d-block fw-bold text-dark mb-1" style="font-size: 0.85rem;">Médico revisando su solicitud</span>
+                                                <span class="text-muted d-block small" style="line-height: 1.4;">
+                                                    Plazo aproximado: <strong>24 horas</strong>. Te avisaremos por email.
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="fw-bold text-dark fs-5">$ {{ number_format($order->amount, 0, ',', '.') }}</div>
+                                @endif
+
+                                {{-- Estado: Reembolso --}}
+                                @if($order->status === 'refund_pending')
+                                    <div class="mt-3 p-3 info-box bg-light border-info shadow-sm">
+                                        <div class="d-flex">
+                                            <i class="bi bi-info-circle-fill text-info me-2 fs-5"></i>
+                                            <div>
+                                                <span class="d-block fw-bold text-dark small">Reembolso en proceso</span>
+                                                <span class="text-muted d-block small">Revisa el correo de Flow para completar tus datos bancarios.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Monto y Badge --}}
+                            <div class="col-lg-3 text-lg-center mb-3 mb-lg-0">
+                                <div class="mb-2">
+                                    @php
+                                        $statusConfig = [
+                                            'pending' => ['class' => 'bg-warning-subtle text-warning border-warning-subtle', 'label' => 'Pendiente de Pago'],
+                                            'paid' => ['class' => 'bg-info-subtle text-info border-info-subtle', 'label' => 'En Revisión'],
+                                            'signed' => ['class' => 'bg-success-subtle text-success border-success-subtle', 'label' => 'Lista para Descarga'],
+                                            'refund_pending' => ['class' => 'bg-primary-subtle text-primary border-primary-subtle', 'label' => 'Reembolso Enviado'],
+                                            'rejected' => ['class' => 'bg-danger-subtle text-danger border-danger-subtle', 'label' => 'Rechazada'],
+                                        ];
+                                        $curr = $statusConfig[$order->status] ?? ['class' => 'bg-secondary-subtle', 'label' => $order->status];
+                                    @endphp
+                                    <span class="badge badge-status border {{ $curr['class'] }}">{{ $curr['label'] }}</span>
                                 </div>
+                                <div class="fw-800 text-dark fs-4">$ {{ number_format($order->amount, 0, ',', '.') }}</div>
+                            </div>
 
-                                <div class="col-md-4 text-md-end">
-                                    <div class="d-flex gap-2 justify-content-md-end">
-                                        @if($order->status === 'pending')
-                                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary btn-action flex-grow-1 shadow-sm">
-                                                <i class="bi bi-credit-card me-2"></i> Pagar ahora
-                                            </a>
-                                        @elseif($order->status === 'signed')
-                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success btn-action flex-grow-1 shadow-sm text-white">
-                                                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar PDF
-                                            </a>
-                                        @endif
+                            {{-- Botones de Acción --}}
+                            <div class="col-lg-4 text-lg-end">
+                                <div class="d-flex gap-2 justify-content-lg-end">
+                                    @if($order->status === 'pending')
+                                        <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary rounded-4 fw-bold flex-grow-1 flex-lg-grow-0 px-4">
+                                            <i class="bi bi-credit-card me-2"></i> Pagar
+                                        </a>
+                                    @elseif($order->status === 'signed')
+                                        <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success text-white rounded-4 fw-bold flex-grow-1 flex-lg-grow-0 px-4">
+                                            <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> Descargar PDF
+                                        </a>
+                                    @endif
 
-                                        @if($order->rejection_reason)
-                                            <button type="button"
-                                                    class="btn btn-outline-secondary btn-action px-3 btn-show-reason"
-                                                    data-reason="{{ $order->rejection_reason }}"
-                                                    data-id="{{ substr($order->id, 0, 8) }}">
-                                                <i class="bi bi-chat-left-text me-1"></i> Ver Motivo
-                                            </button>
-                                        @endif
-                                    </div>
+                                    @if($order->rejection_reason)
+                                        <button type="button"
+                                                class="btn btn-outline-secondary rounded-4 fw-bold px-3 btn-show-reason"
+                                                data-reason="{{ $order->rejection_reason }}"
+                                                data-id="{{ strtoupper(substr($order->id, 0, 8)) }}">
+                                            <i class="bi bi-chat-left-text me-1"></i> Motivo
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                @endforeach
             </div>
+            @endforeach
+        </div>
 
-            <div class="mt-5 d-flex justify-content-center">
-                {{ $orders->links() }}
-            </div>
-        @endif
-    </div>
+        <div class="mt-5 d-flex justify-content-center">
+            {{ $orders->links() }}
+        </div>
+    @endif
+</div>
+@endsection
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const reasonButtons = document.querySelectorAll('.btn-show-reason');
-
-            reasonButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const reason = this.getAttribute('data-reason');
-                    const orderId = this.getAttribute('data-id');
-
-                    Swal.fire({
-                        title: 'Nota del Médico - Orden #' + orderId,
-                        text: reason,
-                        icon: 'info',
-                        confirmButtonColor: '#0d6efd',
-                        confirmButtonText: 'Entendido',
-                        customClass: {
-                            popup: 'swal2-popup-custom'
-                        }
-                    });
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reasonButtons = document.querySelectorAll('.btn-show-reason');
+        reasonButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                Swal.fire({
+                    title: 'Nota del Médico',
+                    html: `<div class="text-start p-2">
+                            <p class="text-muted mb-2 small text-uppercase fw-bold">Referencia: Orden #${this.dataset.id}</p>
+                            <p class="mb-0">${this.dataset.reason}</p>
+                           </div>`,
+                    icon: 'info',
+                    confirmButtonColor: '#0d6efd',
+                    confirmButtonText: 'Entendido',
+                    customClass: { popup: 'swal2-popup-custom' }
                 });
             });
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+@endpush
