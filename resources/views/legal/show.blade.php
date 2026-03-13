@@ -17,7 +17,7 @@
             <hr class="mb-5">
 
 <div class="lh-lg text-muted faq-content" style="font-size: 1.1rem;">
-    {!! htmlspecialchars_decode($faq->answer) !!}
+    {!! $faq->answer !!}
 </div>
 
             <div class="mt-5 pt-4 border-top">
