@@ -3,81 +3,91 @@
 <head>
     <meta charset="utf-8">
     <style>
-        /* Configuraciones de página para dompdf */
         @page { margin: 0; }
         body {
-            font-family: 'Helvetica', Arial, sans-serif;
-            color: #1a202c;
+            font-family: 'Helvetica', sans-serif;
+            color: #2d3748;
             font-size: 11px;
             margin: 0;
-            background-color: #ffffff;
+            line-height: 1.4;
         }
 
-        /* Decoración Superior */
-        .top-bar { height: 8px; background: #0056b3; width: 100%; }
+        /* Colores de Marca */
+        .bg-primary { background-color: #0056b3; }
+        .text-primary { color: #0056b3; }
 
+        /* Contenedor Principal */
         .container { padding: 40px; }
 
-        /* Header */
-        .header { width: 100%; margin-bottom: 40px; }
-        .logo-txt { color: #0056b3; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -1px; }
-        .logo-sub { color: #718096; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+        /* Header con Estilo */
+        .header { margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
+        .logo-txt { font-size: 26px; font-weight: bold; margin: 0; color: #0056b3; letter-spacing: -1px; }
+        .logo-sub { font-size: 10px; color: #718096; text-transform: uppercase; margin-top: 2px; }
 
-        .qr-box { float: right; text-align: right; }
-        .qr-box img { margin-bottom: 5px; }
-        .id-label { font-size: 9px; color: #a0aec0; }
-        .id-value { font-family: monospace; font-size: 11px; color: #2d3748; font-weight: bold; }
+        .qr-header { float: right; text-align: right; }
+        .order-id { font-family: monospace; background: #f8fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 10px; margin-top: 5px; }
 
-        /* Estructura de Secciones (Look PaperMed) */
-        .section-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .section-title-cell {
-            width: 120px;
-            background-color: #f7fafc;
-            border-right: 2px solid #edf2f7;
-            padding: 15px 10px;
-            vertical-align: top;
-            text-align: right;
-        }
-        .section-title {
-            color: #4a5568;
-            font-size: 9px;
+        /* Bloques de Sección Modernos */
+        .section { margin-bottom: 25px; clear: both; }
+        .section-header {
+            background: #f1f5f9;
+            padding: 8px 15px;
+            border-left: 4px solid #0056b3;
             font-weight: bold;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #475569;
+            margin-bottom: 15px;
         }
-        .section-content { padding: 15px 20px; vertical-align: top; }
 
-        /* Detalles de contenido */
-        .data-row { margin-bottom: 5px; }
-        .data-label { color: #718096; font-weight: bold; width: 60px; display: inline-block; }
-        .med-list { font-size: 14px; font-weight: bold; color: #2d3748; line-height: 1.5; }
+        .data-grid { width: 100%; border-collapse: collapse; }
+        .data-label { color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: bold; }
+        .data-value { font-size: 13px; font-weight: 600; color: #1e293b; }
 
-        /* Firma */
-        .footer-area { margin-top: 50px; border-top: 1px solid #edf2f7; padding-top: 30px; }
-        .signature-col { width: 50%; float: right; text-align: center; }
-        .signature-img { max-width: 180px; height: auto; margin-bottom: 5px; }
-        .doc-info { font-size: 10px; color: #4a5568; line-height: 1.3; }
+        /* El área de la receta (Rp) */
+        .rp-box {
+            background: #ffffff;
+            padding: 10px 15px;
+            min-height: 250px;
+        }
+        .rp-symbol { font-size: 24px; font-weight: bold; color: #0056b3; margin-bottom: 10px; }
+        .indications { font-size: 15px; color: #334155; line-height: 1.6; font-weight: 500; }
 
-        .bottom-legal {
+        /* Footer y Firma */
+        .footer { margin-top: 40px; }
+        .signature-block { float: right; width: 250px; text-align: center; }
+        .signature-img { max-width: 180px; height: auto; margin-bottom: 5px; mix-blend-mode: multiply; }
+        .doc-line { border-top: 1px solid #cbd5e0; margin-top: 10px; padding-top: 10px; }
+
+        .validation-box {
+            float: left;
+            width: 300px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .bottom-bar {
             position: absolute;
-            bottom: 30px;
+            bottom: 0;
             width: 100%;
-            padding: 0 40px;
-            font-size: 8px;
-            color: #a0aec0;
+            height: 40px;
+            background: #0056b3;
             text-align: center;
+            color: white;
+            font-size: 9px;
+            line-height: 40px;
         }
     </style>
 </head>
 <body>
-    <div class="top-bar"></div>
-
     <div class="container">
         <div class="header">
-            <div class="qr-box">
-                <img src="data:image/png;base64,{{ $qrCode }}" width="75">
-                <div class="id-label">ID DE ORDEN</div>
-                <div class="id-value">{{ strtoupper($order->id_short ?? substr($order->id, 0, 8)) }}</div>
+            <div class="qr-header">
+                <img src="data:image/png;base64,{{ $qrCode }}" width="70">
+                <div class="order-id">ID: {{ strtoupper(substr($order->id, 0, 8)) }}</div>
             </div>
             <div class="logo-area">
                 <p class="logo-txt">DOCTOR 911</p>
@@ -85,75 +95,80 @@
             </div>
         </div>
 
-        <h1 style="font-size: 18px; color: #2d3748; margin-bottom: 30px;">Orden Médica</h1>
+        <div class="section">
+            <div class="section-header">Identificación del Paciente</div>
+            <table class="data-grid">
+                <tr>
+                    <td width="60%">
+                        <div class="data-label">Nombre Completo</div>
+                        <div class="data-value">{{ $order->patient->full_name }}</div>
+                    </td>
+                    <td width="40%">
+                        <div class="data-label">Fecha de Emisión</div>
+                        <div class="data-value">{{ $order->created_at->format('d / m / Y') }}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-top: 15px;">
+                        <div class="data-label">R.U.T</div>
+                        <div class="data-value">{{ $order->patient->rut }}</div>
+                    </td>
+                    <td style="padding-top: 15px;">
+                        <div class="data-label">Edad</div>
+                        <div class="data-value">{{ $order->patient->age }} años</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
-        <table class="section-table">
-            <tr>
-                <td class="section-title-cell"><span class="section-title">Paciente</span></td>
-                <td class="section-content">
-                    <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{{ $order->patient->full_name }}</div>
-                    <table width="100%">
-                        <tr>
-                            <td width="50%">
-                                <span class="data-label">RUT:</span> {{ $order->patient->rut }}<br>
-                                <span class="data-label">EDAD:</span> {{ $order->patient->age }} años
-                            </td>
-                            <td width="50%" style="text-align: right;">
-                                <span class="data-label">FECHA:</span> {{ $order->created_at->format('d/m/Y') }}
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
+        <div class="section">
+            <div class="section-header">Indicaciones Médicas / Rp</div>
+            <div class="rp-box">
+                <div class="rp-symbol">Rp.</div>
+                <div class="indications">
+                    {{-- Aquí corregiremos el bug del contenido --}}
+                    {!! nl2br(e($order->clinical_context)) !!}
+                </div>
+            </div>
+        </div>
 
-        <table class="section-table">
-            <tr>
-                <td class="section-title-cell"><span class="section-title">Indicaciones</span></td>
-                <td class="section-content">
-                    <div class="med-list">
-                        {{-- Aquí es donde arreglaremos el bug del contenido después --}}
-                        {!! nl2br(e($order->clinical_context)) !!}
-                    </div>
-                    <div style="margin-top: 15px; color: #718096; font-style: italic; font-size: 10px;">
-                        Nota: Validez de 30 días desde la fecha de emisión.
-                    </div>
-                </td>
-            </tr>
-        </table>
-
-        <div class="footer-area">
-            <div class="signature-col">
+        <div class="footer">
+            <div class="signature-block">
                 @if($order->doctor->signature_path)
                     <img src="{{ public_path('storage/' . $order->doctor->signature_path) }}" class="signature-img">
                 @else
-                    <div style="height: 80px; border-bottom: 1px dashed #cbd5e0; margin-bottom: 10px;"></div>
+                    <div style="height: 90px;"></div>
                 @endif
-                <div class="doc-info">
-                    <strong>Dr. {{ $order->doctor->user->name }}</strong><br>
-                    R.U.T: {{ $order->doctor->rut }}<br>
-                    @foreach($order->doctor->specialties as $specialty)
-                        {{ $specialty->name }}{{ !$loop->last ? ' / ' : '' }}
-                    @endforeach<br>
-                    Registro S.I.S: {{ $order->doctor->rnpi_number ?? '123456' }}
+                <div class="doc-line">
+                    <strong style="font-size: 12px;">Dr. {{ $order->doctor->user->name }}</strong><br>
+                    <span style="color: #64748b; font-size: 10px;">
+                        R.U.T: {{ $order->doctor->rut }}<br>
+                        @foreach($order->doctor->specialties as $specialty)
+                            {{ $specialty->name }}{{ !$loop->last ? ' / ' : '' }}
+                        @endforeach<br>
+                        Reg. S.I.S: {{ $order->doctor->rnpi_number }}
+                    </span>
                 </div>
             </div>
 
-            <div style="float: left; width: 45%; margin-top: 20px;">
-                <div style="border: 1px solid #edf2f7; padding: 10px; border-radius: 5px;">
-                    <small style="color: #a0aec0; display: block; margin-bottom: 5px;">VALIDACIÓN</small>
-                    <p style="font-size: 9px; margin: 0; color: #718096;">
-                        Escanee el código QR para verificar la autenticidad de este documento en nuestro portal oficial.
-                    </p>
-                </div>
+            <div class="validation-box">
+                <table width="100%">
+                    <tr>
+                        <td width="20%"><i class="bi bi-shield-check" style="font-size: 20px; color: #0056b3;"></i></td>
+                        <td>
+                            <strong style="font-size: 10px; color: #1e293b; display: block; margin-bottom: 3px;">Documento Verificado</strong>
+                            <p style="font-size: 8px; color: #64748b; margin: 0;">
+                                La autenticidad de esta orden puede ser validada escaneando el código QR o ingresando el ID en <strong>doctor911.cl/verificar</strong>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
             </div>
-            <div style="clear: both;"></div>
         </div>
     </div>
 
-    <div class="bottom-legal">
-        Este documento es una receta médica electrónica generada bajo los estándares de la Ley 21.242. <br>
-        Doctor 911 Chile - www.doctor911.cl
+    <div class="bottom-bar">
+        Doctor 911 SpA • Contacto: contacto@doctor911.cl • www.doctor911.cl
     </div>
 </body>
 </html>
