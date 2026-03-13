@@ -78,7 +78,7 @@
                         <hr class="opacity-10 my-0">
                     </div>
 
-                    {{-- Detalle del Requerimiento (Motivo de Consulta) --}}
+                    {{-- 1. Detalle del Requerimiento (Motivo de Consulta) --}}
                     <div class="col-12">
                         <label class="text-muted small text-uppercase fw-bold">Motivo de Consulta (Usuario)</label>
                         <div class="mt-2 p-3 bg-light rounded border border-dashed">
@@ -94,12 +94,7 @@
                         </div>
                     </div>
 
-                    {{-- COMPONENTE LIVEWIRE: Interacciones en tiempo real --}}
-                    <div class="col-12">
-                        @livewire('admin.order-interactions', ['order' => $order])
-                    </div>
-
-                    {{-- Input de Contexto Clínico (Lo que va al PDF) --}}
+                    {{-- 2. Input de Contexto Clínico (Lo que va al PDF) --}}
                     <div class="col-12">
                         <div class="form-group">
                             <label class="text-primary fw-bold mb-2 small text-uppercase">
@@ -112,9 +107,19 @@
                                       placeholder="Redacte aquí el diagnóstico y los exámenes solicitados..."
                                       required>{{ old('clinical_context', $order->clinical_context) }}</textarea>
                             <div class="form-text small text-muted">
-                                <i class="bi bi-info-circle me-1"></i> Esta indicación aparecerá en el PDF firmado. Use el chat arriba para pedir más info si es necesario.
+                                <i class="bi bi-info-circle me-1"></i> Esta indicación aparecerá en el PDF final firmado.
                             </div>
                         </div>
+                    </div>
+
+                    {{-- 3. COMPONENTE LIVEWIRE: Interacciones y Chat --}}
+                    <div class="col-12">
+                        <div class="d-flex align-items-center mb-2">
+                            <hr class="flex-grow-1 opacity-10">
+                            <span class="mx-3 text-muted small fw-bold text-uppercase">Interacción con Paciente</span>
+                            <hr class="flex-grow-1 opacity-10">
+                        </div>
+                        @livewire('admin.order-interactions', ['order' => $order])
                     </div>
 
                     <div class="col-12">
@@ -143,7 +148,6 @@
                     </div>
 
                     <div class="col-md-9 text-md-end text-center">
-                        {{-- Opción de Derivación --}}
                         @if(!$order->exam_type_id)
                             <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
                                 <i class="bi bi-person-gear me-1"></i> Derivar a Especialidad
