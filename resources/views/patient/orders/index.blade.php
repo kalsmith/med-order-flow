@@ -18,7 +18,6 @@
     </div>
 
     @if($orders->isEmpty())
-        {{-- Empty State: Se activa cuando no hay órdenes --}}
         <div class="empty-state shadow-sm border-0">
             <div class="mb-4">
                 <div class="d-inline-flex align-items-center justify-content-center bg-soft-bg rounded-circle" style="width: 100px; height: 100px;">
@@ -38,7 +37,7 @@
             @foreach($orders as $order)
             <div class="col-12">
                 <div class="card card-order border-0 shadow-sm mb-3">
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <div class="row align-items-center">
 
                             {{-- LADO IZQUIERDO: Información del Examen --}}
@@ -59,18 +58,18 @@
                                     {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
                                 </h2>
 
-                                @if($order->status === 'paid')
-                                    <div class="mt-4 p-3 info-box bg-waiting d-inline-flex align-items-center">
+                                @if($order->status === 'paid' && $order->interactions->count() === 0)
+                                    <div class="mt-4 p-3 info-box bg-waiting d-inline-flex align-items-center rounded-3">
                                         <div class="spinner-border spinner-border-sm text-primary me-3" role="status"></div>
                                         <div>
                                             <span class="d-block fw-bold text-dark small">Médico revisando su solicitud</span>
-                                            <span class="text-muted d-block" style="font-size: 0.75rem;">Plazo: 24 horas aprox.</span>
+                                            <span class="text-muted d-block" style="font-size: 0.75rem;">Tiempo estimado: 2 a 24 horas.</span>
                                         </div>
                                     </div>
                                 @endif
                             </div>
 
-                            {{-- LADO DERECHO: Precio y Botón --}}
+                            {{-- LADO DERECHO: Precio y Acciones --}}
                             <div class="col-lg-5 mt-4 mt-lg-0 text-lg-end">
                                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-end gap-4">
 
@@ -79,8 +78,8 @@
                                         @php
                                             $statusConfig = [
                                                 'pending' => ['class' => 'badge-status-pending', 'label' => 'PENDIENTE'],
-                                                'paid'    => ['class' => 'bg-info-subtle text-info', 'label' => 'EN REVISIÓN'],
-                                                'signed'  => ['class' => 'badge-status-signed', 'label' => 'LISTA PARA DESCARGA'],
+                                                'paid'    => ['class' => 'bg-info-subtle text-info-emphasis border-info-subtle', 'label' => 'EN REVISIÓN'],
+                                                'signed'  => ['class' => 'badge-status-signed', 'label' => 'LISTA'],
                                                 'rejected'=> ['class' => 'bg-danger-subtle text-danger', 'label' => 'RECHAZADA'],
                                             ];
                                             $curr = $statusConfig[$order->status] ?? ['class' => 'bg-secondary-subtle', 'label' => strtoupper($order->status)];
@@ -97,23 +96,48 @@
                                         </div>
                                     </div>
 
-                                    {{-- Botón de Acción --}}
-                                    <div class="order-lg-2">
+                                    {{-- Botones de Acción --}}
+                                    <div class="order-lg-2 d-flex flex-column gap-2">
                                         @if($order->status === 'signed')
-                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success d-flex align-items-center gap-2">
+                                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 px-4 shadow-sm">
                                                 <i class="bi bi-file-earmark-pdf-fill fs-5"></i> Descargar PDF
                                             </a>
                                         @elseif($order->status === 'pending')
-                                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary px-4">
+                                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary px-4 py-2 shadow-sm fw-bold">
                                                 Pagar Ahora
                                             </a>
                                         @endif
+
+                                        {{-- Botón de Chat (Solo si ya está pagada o tiene mensajes) --}}
+                                        @if($order->status !== 'pending')
+                                            <button class="btn btn-chat-toggle d-flex align-items-center justify-content-center gap-2"
+                                                    type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#chat-{{ $order->id }}">
+                                                <i class="bi bi-chat-left-text"></i>
+                                                <span>{{ $order->interactions->count() > 0 ? 'Ver Mensajes' : 'Consultar' }}</span>
+                                                @if($order->interactions->where('sender_type', 'doctor')->count() > 0)
+                                                    <span class="chat-dot"></span>
+                                                @endif
+                                            </button>
+                                        @endif
                                     </div>
-
                                 </div>
-                            </div> {{-- Fin Columna Derecha --}}
-
+                            </div>
                         </div>
+
+                        {{-- SECCIÓN DE CHAT LIVEWIRE --}}
+                        <div class="collapse {{ $order->status === 'paid' && $order->interactions->count() > 0 ? 'show' : '' }}" id="chat-{{ $order->id }}">
+                            <div class="chat-wrapper-custom mt-4 pt-4 border-top">
+                                <div class="chat-header-info mb-3">
+                                    <i class="bi bi-info-circle me-2 text-primary"></i>
+                                    <small class="text-muted">Utilice este canal para responder dudas del médico o complementar su solicitud.</small>
+                                </div>
+
+                                @livewire('admin.order-interactions', ['order' => $order], key('chat-'.$order->id))
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

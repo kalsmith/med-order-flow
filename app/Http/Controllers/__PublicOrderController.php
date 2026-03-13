@@ -37,14 +37,15 @@ class PublicOrderController extends Controller
      */
     public function index()
     {
-        // Actualizado: usamos la relación plural y filtramos por titular
         $patient = Auth::user()->patients()->where('relationship', 'self')->first();
 
         if (!$patient) {
             return redirect()->route('profile.complete');
         }
 
-        $orders = $patient->medicalOrders()->latest()->get();
+        // Usamos paginate para mejor performance
+        $orders = $patient->medicalOrders()->latest()->paginate(10);
+
         return view('patient.orders.index', compact('orders'));
     }
 
