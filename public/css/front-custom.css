@@ -308,59 +308,45 @@ footer a:hover {
     font-size: 1.25rem;
 }
 
-/* Contenedor principal del chat en la vista cliente */
-.chat-wrapper-custom {
-    background-color: #fcfcfc;
-    border-radius: 12px;
-}
-
-/* Botón que abre el chat */
-.btn-chat-toggle {
-    background-color: transparent;
-    border: 2px solid #e2e8f0;
-    color: #64748b;
-    font-weight: 700;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+/* ACA VAN LOS CSS DEL CHAT PACIENTE DOCTOR */
+/* Globos de texto estilo moderno */
+.message-bubble {
+    padding: 12px 16px;
+    max-width: 85%;
     position: relative;
+    font-size: 0.95rem;
+    line-height: 1.4;
 }
 
-.btn-chat-toggle:hover {
-    border-color: #3b82f6;
-    color: #3b82f6;
-    background-color: #eff6ff;
+/* El Doctor: Gris claro / Blanco */
+.doctor-msg {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    border-radius: 18px 18px 18px 4px;
 }
 
-/* Punto de notificación si hay mensajes del doctor */
-.chat-dot {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 10px;
-    height: 10px;
-    background-color: #ef4444;
-    border: 2px solid white;
-    border-radius: 50%;
-    animation: pulse-red 2s infinite;
+/* El Paciente (Tú): Azul de marca */
+.patient-msg {
+    background-color: #3b82f6; /* Ajusta a tu azul primario */
+    color: #ffffff;
+    border-radius: 18px 18px 4px 18px;
 }
 
-@keyframes pulse-red {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+.msg-time {
+    display: block;
+    font-size: 0.6rem;
+    margin-top: 4px;
+    opacity: 0.7;
+    text-align: right;
 }
 
-/* Estilos de badges personalizados */
-.bg-info-subtle { background-color: #e0f2fe !important; }
-.text-info-emphasis { color: #0369a1 !important; }
-.border-info-subtle { border: 1px solid #bae6fd !important; }
-
-.chat-header-info {
-    display: flex;
-    align-items: center;
-    background: #f1f5f9;
-    padding: 8px 15px;
-    border-radius: 8px;
+/* Scrollbar estética */
+.chat-messages::-webkit-scrollbar {
+    width: 5px;
 }
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+/* ACA VAN LOS CSS DEL CHAT PACIENTE DOCTOR */

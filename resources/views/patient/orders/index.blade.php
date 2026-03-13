@@ -127,16 +127,13 @@
                         </div>
 
                         {{-- SECCIÓN DE CHAT LIVEWIRE --}}
-                        <div class="collapse {{ $order->status === 'paid' && $order->interactions->count() > 0 ? 'show' : '' }}" id="chat-{{ $order->id }}">
-                            <div class="chat-wrapper-custom mt-4 pt-4 border-top">
-                                <div class="chat-header-info mb-3">
-                                    <i class="bi bi-info-circle me-2 text-primary"></i>
-                                    <small class="text-muted">Utilice este canal para responder dudas del médico o complementar su solicitud.</small>
-                                </div>
-
-                                @livewire('admin.order-interactions', ['order' => $order], key('chat-'.$order->id))
-                            </div>
-                        </div>
+{{-- En tu archivo index.blade.php del paciente --}}
+<div class="collapse" id="chat-{{ $order->id }}">
+    <div class="chat-wrapper-custom mt-4 pt-4 border-top">
+        {{-- Usamos el componente específico para el cliente --}}
+        @livewire('patient.order-chat', ['order' => $order], key('patient-chat-'.$order->id))
+    </div>
+</div>
 
                     </div>
                 </div>
