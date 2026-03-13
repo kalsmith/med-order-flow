@@ -113,5 +113,24 @@ public function finalizePayment()
     Log::info("Orden {$this->id} actualizada a estado: {$newStatus}");
 }
 
+/**
+ * Obtiene el nombre de la prestación de forma inteligente para el PDF
+ */
+public function getDisplayNameAttribute()
+{
+    // 1. Si el médico ya escribió algo en el contexto clínico (firma), eso manda.
+    if (!empty($this->clinical_context)) {
+        return $this->clinical_context;
+    }
+
+    // 2. Si es una orden personalizada y tiene descripción.
+    if ($this->type === 'custom' && !empty($this->custom_description)) {
+        return $this->custom_description;
+    }
+
+    // 3. Si es estándar, buscamos el nombre en la relación del examen.
+    return $this->examType ? $this->examType->name : 'Consulta Médica General';
+}
+
 
 }
