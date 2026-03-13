@@ -14,15 +14,25 @@ body{
     color:#1f2937;
 }
 
+/* BARRA SUPERIOR */
+
+.top-bar{
+    height:6px;
+    background:#6366f1;
+}
+
 /* HEADER */
 
 .header{
-    border-top:6px solid #6366f1;
-    padding:25px 40px 10px 40px;
+    padding:25px 40px 15px 40px;
+}
+
+.header-table{
+    width:100%;
 }
 
 .logo{
-    font-size:22px;
+    font-size:24px;
     font-weight:800;
     color:#1e293b;
 }
@@ -32,11 +42,7 @@ body{
     color:#64748b;
 }
 
-.header-table{
-    width:100%;
-}
-
-.header-meta{
+.header-right{
     text-align:right;
     font-size:10px;
 }
@@ -48,42 +54,37 @@ body{
 /* TITLE */
 
 .title{
-    margin:10px 40px 20px 40px;
+    margin:10px 40px 15px 40px;
     font-size:18px;
     font-weight:700;
 }
 
-/* INFO GRID */
+/* LINE */
 
-.info-box{
-    margin:0 40px;
+.line{
     border-top:1px solid #e5e7eb;
-    border-bottom:1px solid #e5e7eb;
+    margin:0 40px 10px 40px;
 }
 
-.info-row{
-    display:flex;
-    padding:8px 0;
+/* INFO */
+
+.info-table{
+    width:100%;
+    margin:0 40px;
 }
 
 .info-label{
-    width:120px;
     font-size:9px;
-    text-transform:uppercase;
     color:#6b7280;
+    text-transform:uppercase;
     font-weight:700;
 }
 
 .info-value{
-    flex:1;
     font-weight:600;
 }
 
-.info-right{
-    width:120px;
-}
-
-/* PRESTACIONES */
+/* SECTIONS */
 
 .section{
     margin:20px 40px;
@@ -91,40 +92,19 @@ body{
 
 .section-title{
     font-size:10px;
-    font-weight:700;
-    text-transform:uppercase;
     color:#6b7280;
+    text-transform:uppercase;
+    font-weight:700;
     margin-bottom:8px;
 }
 
+/* PRESTACIONES */
+
 .exam{
-    margin-bottom:10px;
+    padding-left:10px;
 }
 
-.exam-name{
-    font-weight:700;
-    color:#1e40af;
-}
-
-.exam-prep{
-    font-size:10px;
-    color:#4b5563;
-}
-
-/* NOTES */
-
-.notes{
-    border-top:1px solid #e5e7eb;
-    padding-top:8px;
-}
-
-/* PROFESSIONAL */
-
-.prof-box{
-    margin:25px 40px;
-    border-top:1px solid #e5e7eb;
-    padding-top:10px;
-}
+/* PROFESIONAL */
 
 .prof-table{
     width:100%;
@@ -139,28 +119,36 @@ body{
     color:#4b5563;
 }
 
+/* FIRMA */
+
 .signature{
-    max-width:120px;
+    max-height:60px;
+}
+
+.signature-line{
+    border-top:1px solid #d1d5db;
+    width:160px;
+    margin-top:5px;
 }
 
 /* QR */
 
-.qr-box{
-    margin:20px 40px;
-    display:flex;
-    align-items:center;
+.qr-section{
+    margin:25px 40px;
+}
+
+.qr-table{
+    width:100%;
 }
 
 .qr-text{
     font-size:10px;
-    margin-left:10px;
     color:#4b5563;
 }
 
 /* FOOTER */
 
 .footer{
-    margin-top:20px;
     border-top:1px solid #e5e7eb;
     padding:10px 40px;
     font-size:9px;
@@ -171,6 +159,8 @@ body{
 </head>
 
 <body>
+
+<div class="top-bar"></div>
 
 <!-- HEADER -->
 
@@ -187,14 +177,16 @@ Los Leones 787, Providencia Santiago · +56999999999
 </div>
 </td>
 
-<td class="header-meta">
-<div><span class="meta-label">Fecha Emisión</span><br>
-{{ $order->created_at->format('d-m-Y') }}</div>
+<td class="header-right">
 
-<br>
+<span class="meta-label">Fecha Emisión</span><br>
+{{ $order->created_at->format('d-m-Y') }}
 
-<div><span class="meta-label">ID</span><br>
-{{ strtoupper(substr($order->id,0,12)) }}</div>
+<br><br>
+
+<span class="meta-label">ID</span><br>
+{{ strtoupper(substr($order->id,0,12)) }}
+
 </td>
 
 </tr>
@@ -203,35 +195,45 @@ Los Leones 787, Providencia Santiago · +56999999999
 
 </div>
 
-<!-- TITLE -->
-
 <div class="title">Orden médica</div>
 
-<!-- INFO -->
+<div class="line"></div>
 
-<div class="info-box">
+<!-- PACIENTE -->
 
-<div class="info-row">
+<table class="info-table">
+
+<tr>
+<td width="40%">
 <div class="info-label">Paciente</div>
 <div class="info-value">{{ $order->patient->full_name }}</div>
+</td>
 
-<div class="info-right">
-<span class="meta-label">Edad</span><br>
-{{ $order->patient->age }}
-</div>
-</div>
+<td width="20%">
+<div class="info-label">Edad</div>
+<div class="info-value">{{ $order->patient->age }}</div>
+</td>
+</tr>
 
-<div class="info-row">
+<tr><td colspan="2" height="12"></td></tr>
+
+<tr>
+<td>
 <div class="info-label">RUT</div>
 <div class="info-value">{{ $order->patient->rut }}</div>
-</div>
+</td>
+</tr>
 
-<div class="info-row">
+<tr><td colspan="2" height="12"></td></tr>
+
+<tr>
+<td colspan="2">
 <div class="info-label">Dirección</div>
 <div class="info-value">{{ $order->patient->address }}</div>
-</div>
+</td>
+</tr>
 
-</div>
+</table>
 
 <!-- PRESTACIONES -->
 
@@ -240,32 +242,32 @@ Los Leones 787, Providencia Santiago · +56999999999
 <div class="section-title">Prestaciones</div>
 
 <div class="exam">
-<div class="exam-name">
-{{ $order->clinical_context }}
-</div>
+<strong>{{ $order->clinical_context }}</strong>
 
-<div class="exam-prep">
+<br><br>
+
 Prestación autorizada para ser realizada en cualquier centro de salud en convenio.
 </div>
-</div>
 
 </div>
 
-<!-- NOTES -->
+<div class="line"></div>
 
-<div class="section notes">
+<!-- NOTAS -->
+
+<div class="section">
 
 <div class="section-title">Notas</div>
 
-<div>
 Sin notas
-</div>
 
 </div>
+
+<div class="line"></div>
 
 <!-- PROFESIONAL -->
 
-<div class="prof-box">
+<div class="section">
 
 <table class="prof-table">
 
@@ -280,6 +282,7 @@ Dr. {{ $order->doctor->user->name }}
 </div>
 
 <div class="prof-meta">
+
 RUT {{ $order->doctor->rut }}<br>
 Reg. SIS {{ $order->doctor->rnpi_number }}<br>
 
@@ -303,6 +306,8 @@ class="signature">
 
 @endif
 
+<div class="signature-line"></div>
+
 </td>
 
 </tr>
@@ -313,14 +318,27 @@ class="signature">
 
 <!-- QR -->
 
-<div class="qr-box">
+<div class="qr-section">
+
+<table class="qr-table">
+
+<tr>
+
+<td width="80">
 
 <img src="data:image/png;base64,{{ $qrCode }}" width="70">
 
-<div class="qr-text">
-Para validar la veracidad de este documento escanee el código QR
-o ingrese el ID del documento en el portal Doctor911.
-</div>
+</td>
+
+<td class="qr-text">
+
+Para validar la veracidad de este documento escanee el código QR o ingrese el ID del documento en el portal Doctor911.
+
+</td>
+
+</tr>
+
+</table>
 
 </div>
 
