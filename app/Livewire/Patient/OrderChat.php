@@ -16,13 +16,21 @@ class OrderChat extends Component
         $this->lastMessageCount = $this->order->interactions()->count();
     }
 
+// En app/Livewire/Patient/OrderChat.php
+
     public function refreshMessages()
     {
-        // Forzamos la recarga de la relación
         $this->order->load('interactions');
         $currentCount = $this->order->interactions->count();
 
         if ($currentCount > $this->lastMessageCount) {
+            // Buscamos si el nuevo mensaje es del doctor
+            $lastMessage = $this->order->interactions->last();
+            if($lastMessage->sender_type === 'doctor') {
+                // Notificamos al componente OrderItem que hay algo nuevo
+                $this->dispatch('refresh-order-item')->to(OrderItem::class);
+            }
+
             $this->dispatch('new-messages-received');
             $this->lastMessageCount = $currentCount;
         }

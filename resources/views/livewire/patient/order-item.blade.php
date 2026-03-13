@@ -77,19 +77,23 @@
                         @endphp
 
                         @if($order->status !== 'pending' && ($isCustom || $hasMessages))
-                            <button class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-2 px-4 position-relative"
-                                    type="button"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#chat-{{ $order->id }}">
-                                <i class="bi bi-chat-left-text"></i>
-                                <span>{{ $hasMessages ? 'Ver Mensajes' : 'Consultar Médico' }}</span>
+{{-- Botón de Chat dentro de order-item.blade.php --}}
+<button class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-2 px-4 position-relative"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#chat-{{ $order->id }}"
+        wire:click="markAsRead"> {{-- <--- Esto limpia el globo al hacer clic --}}
 
-                                @if($hasUnread && $order->status !== 'signed')
-                                    <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle">
-                                        <span class="visually-hidden">Nuevo mensaje</span>
-                                    </span>
-                                @endif
-                            </button>
+    <i class="bi bi-chat-left-text"></i>
+    <span>{{ $hasMessages ? 'Ver Mensajes' : 'Consultar Médico' }}</span>
+
+    {{-- Globo de notificación mejorado --}}
+    @if($showNotificationBadge && $order->status !== 'signed')
+        <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow">
+            <span class="visually-hidden">Nuevo mensaje</span>
+        </span>
+    @endif
+</button>
                         @endif
                     </div>
                 </div>
