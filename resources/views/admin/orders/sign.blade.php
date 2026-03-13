@@ -4,7 +4,6 @@
 
 @section('header-actions')
     <div class="d-flex gap-2">
-        {{-- Botón para liberar la orden y volver al panel --}}
         <form action="{{ route('admin.orders.release', ['medical_order' => $order->id]) }}" method="POST">
             @csrf
             <input type="hidden" name="redirect_to" value="index">
@@ -79,50 +78,12 @@
                         <hr class="opacity-10 my-0">
                     </div>
 
-                    {{-- HISTORIAL DE CONVERSACIÓN / INTERACCIONES --}}
+                    {{-- COMPONENTE LIVEWIRE: Historial y Chat --}}
                     <div class="col-12">
-                        <label class="text-muted small text-uppercase fw-bold mb-2">
-                            <i class="bi bi-chat-right-text me-1"></i> Antecedentes y Consulta del Paciente
-                        </label>
-
-                        <div class="interaction-container p-3 rounded bg-light border">
-                            {{-- Si no hay interacciones pero hay descripción inicial --}}
-                            @if($order->interactions->count() === 0)
-                                <div class="d-flex align-items-start mb-2">
-                                    <div class="bg-white p-2 rounded shadow-sm border border-dashed flex-grow-1">
-                                        <small class="d-block text-primary fw-bold mb-1" style="font-size: 0.7rem;">SOLICITUD INICIAL</small>
-                                        @if($order->examType)
-                                            <h6 class="fw-bold text-dark mb-1">{{ $order->examType->name }}</h6>
-                                            <p class="mb-0 text-muted small">{{ $order->examType->description }}</p>
-                                        @else
-                                            <p class="mb-0 text-dark fst-italic">"{{ $order->custom_description }}"</p>
-                                        @endif
-                                    </div>
-                                </div>
-                            @else
-                                {{-- Listado de mensajes --}}
-                                @foreach($order->interactions as $interaction)
-                                    <div class="mb-3 d-flex flex-column {{ $interaction->sender_type === 'doctor' ? 'align-items-end' : 'align-items-start' }}">
-                                        <div class="p-2 rounded shadow-sm {{ $interaction->sender_type === 'doctor' ? 'bg-primary text-white ml-5' : 'bg-white text-dark mr-5 border' }}" style="max-width: 90%;">
-                                            <div class="d-flex justify-content-between gap-4 align-items-center mb-1">
-                                                <small class="fw-bold text-uppercase" style="font-size: 0.6rem;">
-                                                    {{ $interaction->sender_type === 'doctor' ? 'Tú (Médico)' : 'Paciente' }}
-                                                </small>
-                                                <small class="opacity-75" style="font-size: 0.6rem;">
-                                                    {{ $interaction->created_at->format('d/m H:i') }}
-                                                </small>
-                                            </div>
-                                            <div style="font-size: 0.9rem; line-height: 1.4;">
-                                                {!! nl2br(e($interaction->content)) !!}
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            @endif
-                        </div>
+                        @livewire('admin.order-interactions', ['order' => $order])
                     </div>
 
-                    {{-- Input de Contexto Clínico --}}
+                    {{-- Formulario de Firma --}}
                     <div class="col-12">
                         <div class="form-group">
                             <label class="text-primary fw-bold mb-2 small text-uppercase">
@@ -132,19 +93,10 @@
                                       form="signature-form"
                                       class="form-control border-primary shadow-sm"
                                       rows="4"
-                                      placeholder="Redacte aquí el diagnóstico y los exámenes solicitados (esto aparecerá en el PDF final)..."
+                                      placeholder="Redacte aquí el diagnóstico y los exámenes solicitados..."
                                       required>{{ old('clinical_context', $order->clinical_context) }}</textarea>
                             <div class="form-text small text-muted">
-                                <i class="bi bi-info-circle me-1"></i> Esta es la indicación técnica que verá el Químico Farmacéutico y el laboratorio.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12">
-                        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-0 mt-2">
-                            <i class="bi bi-shield-check fs-4 me-3"></i>
-                            <div class="small">
-                                Al confirmar, se guardará la indicación médica y se estampará tu <strong>firma digital con registro RNPI</strong>.
+                                <i class="bi bi-info-circle me-1"></i> Esta indicación aparecerá en el PDF firmado.
                             </div>
                         </div>
                     </div>
@@ -166,23 +118,18 @@
                     </div>
 
                     <div class="col-md-9 text-md-end text-center">
-                        {{-- Opción de Derivación --}}
                         @if(!$order->exam_type_id)
                             <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
                                 <i class="bi bi-person-gear me-1"></i> Derivar a Especialidad
                             </button>
                         @endif
 
-                        {{-- Botón de Rechazo --}}
                         <button type="button" class="btn btn-outline-danger px-3 me-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        {{-- Botón de Firma --}}
                         <form action="{{ route('admin.orders.sign.process', ['medical_order' => $order->id]) }}"
-                              method="POST"
-                              id="signature-form"
-                              class="d-inline">
+                              method="POST" id="signature-form" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-success btn-lg px-4 shadow">
                                 <i class="bi bi-vector-pen me-2"></i> Confirmar y Firmar
@@ -201,20 +148,10 @@
     </div>
 </div>
 
-{{-- MODALS (Rechazo y Derivación iguales a los anteriores) --}}
 @include('admin.orders.partials.modals-sign')
 
 <style>
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
-    .border-dashed { border-style: dashed !important; }
-    .interaction-container {
-        max-height: 300px;
-        overflow-y: auto;
-        background-color: #f8f9fa;
-    }
-    /* Estilo scrollbar suave */
-    .interaction-container::-webkit-scrollbar { width: 5px; }
-    .interaction-container::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
 </style>
 @endsection
