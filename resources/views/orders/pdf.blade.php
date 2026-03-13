@@ -20,13 +20,16 @@
         .contact-info { font-size: 10px; color: #6c757d; margin-top: 4px; }
 
         .header-right { text-align: right; }
+
+        /* Ajuste 50/50 y expansión del badge */
         .id-badge {
-            display: inline-block;
             background: #f8f9fa;
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             border: 1px solid #dee2e6;
             text-align: left;
+            width: 100%; /* Ocupa todo el ancho de su celda (50%) */
+            box-sizing: border-box;
         }
 
         .document-title { margin: 10px 50px 20px 50px; font-size: 20px; font-weight: 700; color: #212529; }
@@ -53,7 +56,7 @@
         }
         .exam-name { font-size: 15px; font-weight: 800; color: #0d6efd; }
 
-        /* BLOQUE DE VERIFICACIÓN SOLICITADO */
+        /* BLOQUE DE VERIFICACIÓN */
         .footer-wrapper {
             position: absolute;
             bottom: 0;
@@ -89,16 +92,25 @@
 <div class="header">
     <table class="header-table" width="100%">
         <tr>
-            <td>
+            <td width="50%" style="vertical-align: top;">
                 <div class="logo">Doctor911</div>
-                <div class="contact-info">doctor911.cl &nbsp;•&nbsp; contacto@doctor911.cl &nbsp;•&nbsp; +56 9 1234 5678</div>
+                <div class="contact-info">doctor911.cl &nbsp;•&nbsp; contacto@doctor911.cl</div>
+                <div class="contact-info">📞 +56 9 1234 5678</div>
             </td>
-            <td class="header-right">
+            <td width="50%" class="header-right" style="vertical-align: top;">
                 <div class="id-badge">
-                    <div class="label">Fecha Emisión</div>
-                    <div class="value">{{ $order->created_at->format('d/m/Y') }}</div>
-                    <div class="label">ID Seguimiento</div>
-                    <div class="value" style="color:#0d6efd; font-family: monospace;">{{ strtoupper(substr($order->id,0,12)) }}</div>
+                    <table width="100%">
+                        <tr>
+                            <td>
+                                <div class="label">Fecha Emisión</div>
+                                <div class="value">{{ $order->created_at->format('d/m/Y') }}</div>
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="label">ID Seguimiento</div>
+                                <div class="value" style="color:#0d6efd; font-family: monospace;">{{ strtoupper(substr($order->id,0,12)) }}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </td>
         </tr>
@@ -110,7 +122,7 @@
 <div class="section-container">
     <table class="section-table">
         <tr>
-            <td class="sidebar">Médico</td>
+            <td class="sidebar">Médico Emisor</td>
             <td class="content">
                 <div class="value" style="font-size: 14px; margin-bottom: 2px;">Dr. {{ $order->doctor->user->name }}</div>
                 <div style="color: #6c757d;">
@@ -124,7 +136,6 @@
     </table>
 </div>
 
-
 <div class="section-container">
     <table class="section-table">
         <tr>
@@ -132,7 +143,7 @@
             <td class="content">
                 <table width="100%">
                     <tr>
-                        <td width="50%"><div class="label">Nombre</div><div class="value">{{ strtoupper($order->patient->full_name) }}</div></td>
+                        <td width="50%"><div class="label">Nombre Completo</div><div class="value">{{ strtoupper($order->patient->full_name) }}</div></td>
                         <td><div class="label">RUT</div><div class="value">{{ $order->patient->rut }}</div></td>
                         <td><div class="label">Edad</div><div class="value">{{ $order->patient->age }} Años</div></td>
                     </tr>
@@ -150,15 +161,13 @@
                 <div class="exam-box">
                     <div class="exam-name">{{ $order->clinical_context }}</div>
                     <div style="color: #6c757d; font-size: 10px; margin-top: 5px; font-style: italic;">
-                        Válido para ser presentado en cualquier centro de salud en convenio.
+                        Documento válido para ser presentado en cualquier centro de salud o laboratorio en convenio.
                     </div>
                 </div>
             </td>
         </tr>
     </table>
 </div>
-
-
 
 <div class="footer-wrapper">
     <div class="verification-block">
@@ -168,7 +177,7 @@
                 <td class="verification-text">
                     <div class="verification-title">VERIFICACIÓN ELECTRÓNICA DE SEGURIDAD</div>
                     Este documento es una orden médica electrónica válida en todo el territorio nacional.
-                    Para verificar su autenticidad y firma electrónica, escanee el código QR o ingrese el ID del documento en <strong>doctor911.cl/validar</strong>.
+                    Para verificar su autenticidad, escanee el código QR o ingrese el ID del documento en <strong>doctor911.cl/validar</strong>.
                 </td>
             </tr>
         </table>
