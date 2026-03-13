@@ -30,7 +30,7 @@
 @foreach($faqs as $item)
     <li class="mb-2">
         {{-- Laravel ahora usará el slug automáticamente gracias a getRouteKeyName --}}
-        <a href="{{ route('legal.show', $item) }}" class="text-decoration-none text-reset">
+        <a href="{{ route('legal.show', $item->slug) }}" class="text-decoration-none text-reset">
             {{ $item->question }}
         </a>
     </li>

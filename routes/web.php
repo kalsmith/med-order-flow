@@ -36,10 +36,8 @@ Route::get('/v/{id}', [OrderValidationController::class, 'show'])
 
     // Rutas Legales (Términos, Privacidad, etc.)
 // Rutas Legales/Páginas de contenido usando Slug
-Route::get('/legal/{faq}', function (Faq $faq) {
-    // Si no está activa, 404. La categoría ya no importa.
-    if (!$faq->is_active) abort(404);
-
+Route::get('/legal/{slug}', function ($slug) {
+    $faq = Faq::where('slug', $slug)->where('is_active', true)->firstOrFail();
     return view('public.legal', compact('faq'));
 })->name('legal.show');
 

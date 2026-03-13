@@ -51,9 +51,9 @@ class Faq extends Model
     /**
  * Indica a Laravel que use la columna 'slug' para el Implicit Model Binding.
  */
-public function getRouteKeyName()
-{
-    return 'slug';
-}
+// public function getRouteKeyName()
+// {
+//     return 'slug';
+// }
 
 }
