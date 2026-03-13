@@ -9,23 +9,20 @@ class LandingController extends Controller
 {
     public function index()
     {
-        // 1. PACKS: Exámenes activos que tienen hijos (baterías de exámenes)
+        // 1. PACKS: Exámenes que son "Padres" (tienen registros en la tabla pivote como parent_id)
         $packs = ExamType::where('is_active', true)
             ->has('children')
-            ->with('children:id,name')
-            ->orderBy('base_price', 'asc')
+            ->with('children')
             ->get();
 
-        // 2. INDIVIDUALES: Exámenes activos que no son packs ni pertenecen a uno
+        // 2. INDIVIDUALES: Exámenes que NO tienen hijos
+        // Y que NO son hijos de otros packs (para que el Hemograma no salga repetido)
         $individuales = ExamType::where('is_active', true)
-            ->doesntHave('children')
-            ->doesntHave('parents')
+            ->doesntHave('children') // No es un pack
+            ->whereDoesntHave('parents') // No es parte de un pack
             ->orderBy('name', 'asc')
-            ->get(); // Quitamos el take() para que veas absolutamente todo lo cargado
+            ->get();
 
-        return view('welcome', [
-            'packs'        => $packs,
-            'individuales' => $individuales
-        ]);
+        return view('welcome', compact('packs', 'individuales'));
     }
 }
