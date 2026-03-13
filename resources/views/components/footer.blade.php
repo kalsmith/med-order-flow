@@ -57,7 +57,7 @@
         </div>
 
         <div class="border-top border-secondary pt-4 text-center">
-            <p class="small text-white-50 mb-0">© {{ date('Y') }} MedOrder Flow Chile. Todos los derechos reservados. Registrados en la Superintendencia de Salud.</p>
+            <p class="small text-white-50 mb-0">© {{ date('Y') }} MedOrder Flow Chile. Todos los derechos reservados.</p>
         </div>
     </div>
 </footer>
