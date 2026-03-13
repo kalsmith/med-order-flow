@@ -14,15 +14,13 @@ class Footer extends Component
         //
     }
 
-    public function render(): View|Closure|string
-    {
-        // Buscamos los datos aquí para que estén disponibles en todas las vistas
-        $faqs = Faq::active()
-            ->whereIn('category', ['faq', 'legal', 'como-funciona'])
-            ->orderBy('order', 'asc')
-            ->get()
-            ->groupBy('category');
+public function render(): View|Closure|string
+{
+    // Traemos todo lo activo sin importar la categoría
+    $faqs = Faq::active()
+        ->orderBy('order', 'asc')
+        ->get();
 
-        return view('components.footer', compact('faqs'));
-    }
+    return view('components.footer', compact('faqs'));
+}
 }

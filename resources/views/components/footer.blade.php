@@ -23,14 +23,14 @@
 <div class="col-6 col-lg-2">
     <h6 class="fw-bold mb-4 text-uppercase small text-primary">Soporte</h6>
     <ul class="list-unstyled small text-white-50">
+        {{-- Enlace estático a la sección de FAQs del home si quieres --}}
         <li class="mb-2"><a href="#faq-section" class="text-decoration-none text-reset">Preguntas Frecuentes</a></li>
-        <li class="mb-2"><a href="#como-funciona" class="text-decoration-none text-reset">Cómo funciona</a></li>
 
-        {{-- Enlaces a páginas legales independientes --}}
-        @foreach($faqs->get('legal', []) as $legal)
+        {{-- Renderiza TODO lo que esté activo en la tabla faqs --}}
+        @foreach($faqs as $item)
             <li class="mb-2">
-                <a href="{{ route('legal.show', $legal->id) }}" class="text-decoration-none text-reset">
-                    {{ $legal->question }}
+                <a href="{{ route('legal.show', $item->id) }}" class="text-decoration-none text-reset">
+                    {{ $item->question }}
                 </a>
             </li>
         @endforeach
