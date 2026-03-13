@@ -66,7 +66,7 @@ class MedicalOrderController extends Controller
     public function showSignForm(MedicalOrder $medical_order)
     {
         $order = $medical_order; // Mantenemos la variable interna por compatibilidad
-        $order->load(['patient', 'doctor.specialties', 'examType']);
+        $order->load(['patient', 'doctor.specialties', 'examType', 'interactions']);
         $user = Auth::user();
         $doctor = $user->doctor;
 

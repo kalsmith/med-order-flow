@@ -19,7 +19,7 @@
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
 
-        {{-- Alerta de tiempo restante (Corregida con ceil) --}}
+        {{-- Alerta de tiempo restante --}}
         @php
             $expiresAt = $order->claimed_at ? $order->claimed_at->addMinutes(20) : now()->addMinutes(20);
             $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
@@ -79,18 +79,45 @@
                         <hr class="opacity-10 my-0">
                     </div>
 
-                    {{-- Detalle del Requerimiento --}}
+                    {{-- HISTORIAL DE CONVERSACIÓN / INTERACCIONES --}}
                     <div class="col-12">
-                        <label class="text-muted small text-uppercase fw-bold">Motivo de Consulta (Usuario)</label>
-                        <div class="mt-2 p-3 bg-light rounded border border-dashed">
-                            @if($order->examType)
-                                <h6 class="fw-bold text-dark mb-1">{{ $order->examType->name }}</h6>
-                                <p class="mb-0 text-muted small">{{ $order->examType->description }}</p>
-                            @else
-                                <div class="d-flex align-items-start">
-                                    <i class="bi bi-chat-quote text-secondary me-2 mt-1"></i>
-                                    <p class="mb-0 text-dark fst-italic">"{{ $order->custom_description }}"</p>
+                        <label class="text-muted small text-uppercase fw-bold mb-2">
+                            <i class="bi bi-chat-right-text me-1"></i> Antecedentes y Consulta del Paciente
+                        </label>
+
+                        <div class="interaction-container p-3 rounded bg-light border">
+                            {{-- Si no hay interacciones pero hay descripción inicial --}}
+                            @if($order->interactions->count() === 0)
+                                <div class="d-flex align-items-start mb-2">
+                                    <div class="bg-white p-2 rounded shadow-sm border border-dashed flex-grow-1">
+                                        <small class="d-block text-primary fw-bold mb-1" style="font-size: 0.7rem;">SOLICITUD INICIAL</small>
+                                        @if($order->examType)
+                                            <h6 class="fw-bold text-dark mb-1">{{ $order->examType->name }}</h6>
+                                            <p class="mb-0 text-muted small">{{ $order->examType->description }}</p>
+                                        @else
+                                            <p class="mb-0 text-dark fst-italic">"{{ $order->custom_description }}"</p>
+                                        @endif
+                                    </div>
                                 </div>
+                            @else
+                                {{-- Listado de mensajes --}}
+                                @foreach($order->interactions as $interaction)
+                                    <div class="mb-3 d-flex flex-column {{ $interaction->sender_type === 'doctor' ? 'align-items-end' : 'align-items-start' }}">
+                                        <div class="p-2 rounded shadow-sm {{ $interaction->sender_type === 'doctor' ? 'bg-primary text-white ml-5' : 'bg-white text-dark mr-5 border' }}" style="max-width: 90%;">
+                                            <div class="d-flex justify-content-between gap-4 align-items-center mb-1">
+                                                <small class="fw-bold text-uppercase" style="font-size: 0.6rem;">
+                                                    {{ $interaction->sender_type === 'doctor' ? 'Tú (Médico)' : 'Paciente' }}
+                                                </small>
+                                                <small class="opacity-75" style="font-size: 0.6rem;">
+                                                    {{ $interaction->created_at->format('d/m H:i') }}
+                                                </small>
+                                            </div>
+                                            <div style="font-size: 0.9rem; line-height: 1.4;">
+                                                {!! nl2br(e($interaction->content)) !!}
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
                             @endif
                         </div>
                     </div>
@@ -108,7 +135,7 @@
                                       placeholder="Redacte aquí el diagnóstico y los exámenes solicitados (esto aparecerá en el PDF final)..."
                                       required>{{ old('clinical_context', $order->clinical_context) }}</textarea>
                             <div class="form-text small text-muted">
-                                <i class="bi bi-info-circle me-1"></i> Basado en los síntomas del paciente, defina la orden técnica.
+                                <i class="bi bi-info-circle me-1"></i> Esta es la indicación técnica que verá el Químico Farmacéutico y el laboratorio.
                             </div>
                         </div>
                     </div>
@@ -139,7 +166,7 @@
                     </div>
 
                     <div class="col-md-9 text-md-end text-center">
-                        {{-- Opción de Derivación (Solo para flujo Custom) --}}
+                        {{-- Opción de Derivación --}}
                         @if(!$order->exam_type_id)
                             <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
                                 <i class="bi bi-person-gear me-1"></i> Derivar a Especialidad
@@ -174,65 +201,20 @@
     </div>
 </div>
 
-{{-- MODAL DE RECHAZO --}}
-<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title fw-bold">Rechazar Requerimiento</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('admin.orders.reject', ['medical_order' => $order->id]) }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <p class="text-muted">Explique por qué rechaza esta orden (se enviará al paciente).</p>
-                    <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Motivo del rechazo..." required></textarea>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger px-4">Confirmar Rechazo</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-{{-- MODAL DE DERIVACIÓN (Solo para Custom) --}}
-@if(!$order->exam_type_id)
-<div class="modal fade" id="derivateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold">Derivar Solicitud</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.orders.derivate', ['medical_order' => $order->id]) }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <p class="small text-muted">Si esta solicitud personalizada no corresponde a tu área, selecciona la especialidad correcta para que otro profesional pueda atenderla.</p>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Asignar a Área:</label>
-                        <select name="specialty_id" class="form-select" required>
-                            <option value="">-- Seleccionar área --</option>
-                            @foreach(\App\Models\Specialty::all() as $spec)
-                                <option value="{{ $spec->id }}">{{ $spec->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary px-4">Confirmar Derivación</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
+{{-- MODALS (Rechazo y Derivación iguales a los anteriores) --}}
+@include('admin.orders.partials.modals-sign')
 
 <style>
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
     .border-dashed { border-style: dashed !important; }
+    .interaction-container {
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+    }
+    /* Estilo scrollbar suave */
+    .interaction-container::-webkit-scrollbar { width: 5px; }
+    .interaction-container::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
 </style>
 @endsection

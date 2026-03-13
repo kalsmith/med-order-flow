@@ -93,44 +93,47 @@ class MedicalOrder extends Model
     }
 
 
-// En app/Models/MedicalOrder.php
+    // En app/Models/MedicalOrder.php
 
 
-public function finalizePayment()
-{
-    // Definimos el nuevo estado según el tipo de orden
-    $newStatus = ($this->type === 'standard') ? 'signed' : 'paid';
+    public function finalizePayment()
+    {
+        // Definimos el nuevo estado según el tipo de orden
+        $newStatus = ($this->type === 'standard') ? 'signed' : 'paid';
 
-    $data = ['status' => $newStatus];
+        $data = ['status' => $newStatus];
 
-    // Si la orden es 'signed', marcamos la fecha
-    if ($newStatus === 'signed') {
-        $data['signed_at'] = now();
+        // Si la orden es 'signed', marcamos la fecha
+        if ($newStatus === 'signed') {
+            $data['signed_at'] = now();
+        }
+
+        $this->update($data);
+
+        Log::info("Orden {$this->id} actualizada a estado: {$newStatus}");
     }
 
-    $this->update($data);
+    /**
+     * Obtiene el nombre de la prestación de forma inteligente para el PDF
+     */
+    public function getDisplayNameAttribute()
+    {
+        // 1. Si el médico ya escribió algo en el contexto clínico (firma), eso manda.
+        if (!empty($this->clinical_context)) {
+            return $this->clinical_context;
+        }
 
-    Log::info("Orden {$this->id} actualizada a estado: {$newStatus}");
-}
+        // 2. Si es una orden personalizada y tiene descripción.
+        if ($this->type === 'custom' && !empty($this->custom_description)) {
+            return $this->custom_description;
+        }
 
-/**
- * Obtiene el nombre de la prestación de forma inteligente para el PDF
- */
-public function getDisplayNameAttribute()
-{
-    // 1. Si el médico ya escribió algo en el contexto clínico (firma), eso manda.
-    if (!empty($this->clinical_context)) {
-        return $this->clinical_context;
+        // 3. Si es estándar, buscamos el nombre en la relación del examen.
+        return $this->examType ? $this->examType->name : 'Consulta Médica General';
     }
 
-    // 2. Si es una orden personalizada y tiene descripción.
-    if ($this->type === 'custom' && !empty($this->custom_description)) {
-        return $this->custom_description;
+    public function interactions()
+    {
+        return $this->hasMany(MedicalOrderInteraction::class)->orderBy('created_at', 'asc');
     }
-
-    // 3. Si es estándar, buscamos el nombre en la relación del examen.
-    return $this->examType ? $this->examType->name : 'Consulta Médica General';
-}
-
-
 }
