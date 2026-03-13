@@ -3,91 +3,115 @@
 <head>
     <meta charset="utf-8">
     <style>
+        /* Configuraciones de página */
         @page { margin: 0; }
+
         body {
-            font-family: 'Helvetica', Arial, sans-serif;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* Simula el look de Roboto/Inter */
             margin: 0;
             font-size: 11px;
             color: #1f2937;
-            line-height: 1.5;
+            line-height: 1.4;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* BARRA SUPERIOR E IDENTIDAD */
-        .top-bar { height: 12px; background: #6366f1; }
+        /* BARRA SUPERIOR - Look moderno */
+        .top-bar {
+            height: 12px;
+            background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+        }
 
-        .header { padding: 40px 50px 20px 50px; }
+        .header { padding: 40px 50px 10px 50px; }
         .header-table { width: 100%; }
-        .logo { font-size: 28px; font-weight: 800; color: #1e1b4b; letter-spacing: -1px; }
 
-        /* CONTACTO DIGITAL */
-        .contact-info { font-size: 10px; color: #64748b; margin-top: 5px; }
-        .contact-info span { margin-right: 15px; }
+        /* Logo con tipografía pesada tipo Tech */
+        .logo {
+            font-size: 30px;
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: -1.5px;
+            margin: 0;
+        }
+
+        .contact-info { font-size: 10px; color: #94a3b8; margin-top: 8px; font-weight: 500; }
+        .contact-info span { margin-right: 12px; }
 
         .header-right { text-align: right; }
-        .meta-tag {
+        .meta-box {
             display: inline-block;
-            background: #f1f5f9;
-            padding: 8px 12px;
-            border-radius: 6px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
             text-align: left;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #f1f5f9;
         }
 
-        /* CUERPO DEL DOCUMENTO */
-        .title { margin: 10px 50px 25px 50px; font-size: 22px; font-weight: 800; color: #1e1b4b; text-transform: uppercase; }
+        /* CUERPO */
+        .title {
+            margin: 15px 50px 30px 50px;
+            font-size: 24px;
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: -0.5px;
+        }
 
-        .section { margin: 0 50px 30px 50px; }
-        .section-header {
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
+        .section { margin: 0 50px 35px 50px; }
+
+        /* Look PaperMed: Sidebar de color sutil */
+        .section-table { width: 100%; border-collapse: collapse; }
+        .section-sidebar {
+            width: 100px;
+            vertical-align: top;
+            border-right: 2px solid #f1f5f9;
+            padding-top: 5px;
         }
         .section-title {
-            font-size: 10px;
+            font-size: 9px;
             color: #6366f1;
             text-transform: uppercase;
             font-weight: 800;
-            letter-spacing: 0.8px;
+            letter-spacing: 1px;
         }
 
-        /* GRILLA DE DATOS */
-        .data-table { width: 100%; border-collapse: collapse; }
-        .label { font-size: 9px; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
-        .value { font-size: 13px; font-weight: 600; color: #111827; }
+        .section-content { padding-left: 30px; }
 
-        /* PRESTACIONES RESALTADAS */
-        .exam-card {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #6366f1;
+        /* DATOS */
+        .label { font-size: 8px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
+        .value { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 12px; }
+
+        /* PRESTACIONES */
+        .exam-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 5px;
         }
-        .exam-name { font-size: 16px; font-weight: 800; color: #1e1b4b; }
+        .exam-sub { color: #64748b; font-size: 11px; font-weight: 400; }
 
-        /* FIRMA ELECTRÓNICA QR */
+        /* VALIDACIÓN QR - Más elegante */
         .validation-area {
-            margin: 50px 50px 0 50px;
-            padding: 25px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            margin: 30px 50px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 15px;
+            border: 1px solid #f1f5f9;
         }
-        .qr-box { width: 90px; text-align: center; }
-        .validation-text { padding-left: 20px; vertical-align: middle; }
-        .cert-title { font-weight: 800; font-size: 11px; color: #1e1b4b; margin-bottom: 5px; }
 
-        /* FOOTER DINÁMICO (Al fondo) */
-        .footer-wrapper {
+        /* FOOTER FIJO ABAJO */
+        .footer-fixed {
             position: absolute;
             bottom: 0;
             width: 100%;
+            padding: 25px 0;
+            background: #fcfcfc;
+            border-top: 1px solid #f1f5f9;
         }
-        .footer-line { border-top: 1px solid #f1f5f9; margin: 0 50px; }
-        .footer-content {
-            padding: 20px 50px 30px 50px;
+        .footer-text {
             text-align: center;
-            font-size: 10px;
-            color: #94a3b8;
+            font-size: 9px;
+            color: #cbd5e1;
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
     </style>
 </head>
@@ -101,64 +125,73 @@
             <td>
                 <div class="logo">Doctor911</div>
                 <div class="contact-info">
-                    <span>🌐 www.doctor911.cl</span>
-                    <span>📧 contacto@doctor911.cl</span>
-                    <span>📞 +56 9 1234 5678</span>
+                    <span>doctor911.cl</span>
+                    <span>contacto@doctor911.cl</span>
+                    <span>+56 9 1234 5678</span>
                 </div>
             </td>
             <td class="header-right">
-                <div class="meta-tag">
-                    <span class="label">Emisión:</span> <span class="value">{{ $order->created_at->format('d/m/Y') }}</span><br>
-                    <span class="label">ID Orden:</span> <span class="value" style="font-family: monospace;">{{ strtoupper(substr($order->id,0,12)) }}</span>
+                <div class="meta-box">
+                    <div class="label">Fecha Emisión</div>
+                    <div class="value">{{ $order->created_at->format('d/m/Y') }}</div>
+                    <div class="label">ID Verificación</div>
+                    <div class="value" style="color:#6366f1">{{ strtoupper(substr($order->id,0,12)) }}</div>
                 </div>
             </td>
         </tr>
     </table>
 </div>
 
-<div class="title">Orden médica electrónica</div>
+<div class="title">Orden médica</div>
 
 <div class="section">
-    <div class="section-header"><span class="section-title">Datos del Paciente</span></div>
-    <table class="data-table">
+    <table class="section-table">
         <tr>
-            <td width="50%">
-                <div class="label">Nombre del Paciente</div>
-                <div class="value">{{ strtoupper($order->patient->full_name) }}</div>
-            </td>
-            <td width="25%">
-                <div class="label">R.U.T</div>
-                <div class="value">{{ $order->patient->rut }}</div>
-            </td>
-            <td width="25%">
-                <div class="label">Edad</div>
-                <div class="value">{{ $order->patient->age }} Años</div>
+            <td class="section-sidebar"><span class="section-title">Paciente</span></td>
+            <td class="section-content">
+                <table width="100%">
+                    <tr>
+                        <td width="60%">
+                            <div class="label">Nombre</div>
+                            <div class="value" style="font-size: 15px;">{{ strtoupper($order->patient->full_name) }}</div>
+                        </td>
+                        <td>
+                            <div class="label">RUT</div>
+                            <div class="value">{{ $order->patient->rut }}</div>
+                        </td>
+                        <td>
+                            <div class="label">Edad</div>
+                            <div class="value">{{ $order->patient->age }} Años</div>
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
 </div>
 
 <div class="section">
-    <div class="section-header"><span class="section-title">Exámenes Solicitados</span></div>
-    <div class="exam-card">
-        <div class="exam-name">{{ $order->clinical_context }}</div>
-        <div style="margin-top: 8px; color: #64748b; font-style: italic; font-size: 10px;">
-            Documento válido para ser presentado en laboratorios y centros de salud en convenio a nivel nacional.
-        </div>
-    </div>
+    <table class="section-table">
+        <tr>
+            <td class="section-sidebar"><span class="section-title">Prestaciones</span></td>
+            <td class="section-content">
+                <div class="exam-name">{{ $order->clinical_context }}</div>
+                <div class="exam-sub">Prestación autorizada para libre elección en centros de salud.</div>
+            </td>
+        </tr>
+    </table>
 </div>
 
 <div class="section">
-    <div class="section-header"><span class="section-title">Médico Emisor</span></div>
-    <table width="100%">
+    <table class="section-table">
         <tr>
-            <td>
-                <div class="value" style="font-size: 14px;">Dr. {{ $order->doctor->user->name }}</div>
-                <div style="color: #64748b; margin-top: 4px;">
+            <td class="section-sidebar"><span class="section-title">Emisor</span></td>
+            <td class="section-content">
+                <div class="value" style="font-size: 14px; margin-bottom: 4px;">Dr. {{ $order->doctor->user->name }}</div>
+                <div style="color: #64748b; font-weight: 500;">
                     RUT: {{ $order->doctor->rut }} | Reg. SIS: {{ $order->doctor->rnpi_number }}<br>
-                    Especialidad:
                     @foreach($order->doctor->specialties as $specialty)
-                        {{ $specialty->name }}{{ !$loop->last ? ' / ' : '' }}
+                        {{ strtoupper($specialty->name) }}{{ !$loop->last ? ' / ' : '' }}
                     @endforeach
                 </div>
             </td>
@@ -169,26 +202,21 @@
 <div class="validation-area">
     <table width="100%">
         <tr>
-            <td class="qr-box">
-                <img src="data:image/png;base64,{{ $qrCode }}" width="85">
-            </td>
-            <td class="validation-text">
-                <div class="cert-title">FIRMA ELECTRÓNICA AVANZADA</div>
-                <div style="color: #64748b; font-size: 9px; line-height: 1.4;">
-                    Este documento ha sido emitido y firmado electrónicamente mediante protocolos de seguridad digital.
-                    La integridad y validez legal de esta orden puede ser verificada escaneando el código QR
-                    o ingresando el ID de seguimiento en <strong>www.doctor911.cl/validar</strong>.
+            <td width="80"><img src="data:image/png;base64,{{ $qrCode }}" width="80"></td>
+            <td style="padding-left: 20px;">
+                <div style="font-weight: 800; font-size: 11px; color: #111827; margin-bottom: 4px;">VERIFICACIÓN ELECTRÓNICA AVANZADA</div>
+                <div style="color: #94a3b8; font-size: 9px; font-weight: 500;">
+                    Este documento cuenta con validez legal según la normativa vigente de telemedicina.
+                    Para validar, escanee el código o ingrese el ID en <strong>doctor911.cl/validar</strong>.
                 </div>
             </td>
         </tr>
     </table>
 </div>
 
-<div class="footer-wrapper">
-    <div class="footer-line"></div>
-    <div class="footer-content">
-        <strong>CODE TECH DIGITAL SPA</strong> · RUT 77.736.856-7 · Registro Superintendencia de Salud<br>
-        Documento generado automáticamente por el sistema MedOrderFlow v2.0
+<div class="footer-fixed">
+    <div class="footer-text">
+        <strong>CODE TECH DIGITAL SPA</strong> · Doctor911 · RUT 77.736.856-7 · www.doctor911.cl
     </div>
 </div>
 
