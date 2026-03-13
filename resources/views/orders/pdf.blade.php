@@ -3,27 +3,46 @@
 <head>
     <meta charset="utf-8">
     <style>
+        /* REGISTRO DE FUENTE ROBOTO */
+        @font-face {
+            font-family: 'Roboto';
+            src: url("{{ public_path('fonts/Roboto-Regular.ttf') }}") format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Roboto';
+            src: url("{{ public_path('fonts/Roboto-Bold.ttf') }}") format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Roboto';
+            src: url("{{ public_path('fonts/Roboto-Black.ttf') }}") format('truetype');
+            font-weight: 900;
+            font-style: normal;
+        }
+
         @page { margin: 0; }
 
         body {
-            font-family: 'Helvetica', Arial, sans-serif;
+            font-family: 'Roboto', sans-serif; /* ¡Adiós Helvetica! */
             margin: 0;
             font-size: 11px;
             color: #212529;
-            line-height: 1.5; /* Un poco más de aire al texto */
+            line-height: 1.5;
         }
 
-        /* IDENTIDAD VISUAL BOOTSTRAP */
         .top-bar { height: 8px; background-color: #0d6efd; }
         .header { padding: 40px 50px 20px 50px; }
-        .logo { font-size: 28px; font-weight: 800; color: #0d6efd; letter-spacing: -1px; }
+        .logo { font-size: 30px; font-weight: 900; color: #0d6efd; letter-spacing: -1.5px; }
         .contact-info { font-size: 10px; color: #6c757d; margin-top: 4px; }
 
         .header-right { text-align: right; }
 
         .id-badge {
             background: #f8f9fa;
-            padding: 15px; /* Más padding para que se vea importante */
+            padding: 15px;
             border-radius: 8px;
             border: 1px solid #dee2e6;
             text-align: left;
@@ -32,17 +51,18 @@
         }
 
         .document-title {
-            margin: 10px 50px 30px 50px; /* Más espacio bajo el título */
-            font-size: 22px;
-            font-weight: 700;
+            margin: 15px 50px 35px 50px;
+            font-size: 24px;
+            font-weight: 900;
             color: #212529;
+            letter-spacing: -0.5px;
         }
 
-        /* SECCIONES CON MÁS ESPACIO */
+        /* SECCIONES CON MÁS AIRE */
         .section-container {
-            margin: 0 50px 25px 50px; /* Aumentado el margen inferior entre secciones */
+            margin: 0 50px 30px 50px; /* Más espacio entre bloques */
             border-top: 1px solid #dee2e6;
-            padding-top: 18px; /* Más espacio después de la línea divisoria */
+            padding-top: 20px;
         }
 
         .section-table { width: 100%; border-collapse: collapse; }
@@ -52,24 +72,22 @@
             font-size: 10px;
             color: #0d6efd;
             text-transform: uppercase;
-            font-weight: 800;
-            padding-top: 2px;
+            font-weight: 900; /* Roboto Black para títulos de sección */
+            letter-spacing: 0.5px;
         }
         .content { padding-left: 20px; }
 
-        .label { font-size: 8px; color: #6c757d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .label { font-size: 8px; color: #6c757d; text-transform: uppercase; font-weight: 700; }
         .value { font-size: 13px; font-weight: 600; color: #212529; margin-bottom: 12px; }
 
-        /* EXAMEN RESALTADO */
         .exam-box {
             background-color: #f8f9fa;
-            padding: 20px;
+            padding: 22px;
             border-radius: 8px;
             border-left: 5px solid #0d6efd;
         }
-        .exam-name { font-size: 16px; font-weight: 800; color: #0d6efd; }
+        .exam-name { font-size: 17px; font-weight: 900; color: #0d6efd; }
 
-        /* BLOQUE DE VERIFICACIÓN */
         .footer-wrapper {
             position: absolute;
             bottom: 0;
@@ -86,7 +104,7 @@
 
         .qr-small { width: 75px; vertical-align: middle; }
         .verification-text { padding-left: 20px; vertical-align: middle; color: #495057; font-size: 10px; }
-        .verification-title { font-weight: 800; color: #0d6efd; margin-bottom: 5px; font-size: 11px; }
+        .verification-title { font-weight: 900; color: #0d6efd; margin-bottom: 5px; font-size: 11px; }
 
         .final-footer {
             border-top: 1px solid #dee2e6;
@@ -94,7 +112,7 @@
             text-align: center;
             font-size: 9px;
             color: #adb5bd;
-            font-weight: 600;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -173,7 +191,7 @@
             <td class="content">
                 <div class="exam-box">
                     <div class="exam-name">{{ $order->clinical_context }}</div>
-                    <div style="color: #6c757d; font-size: 10px; margin-top: 8px; font-style: italic;">
+                    <div style="color: #6c757d; font-size: 10px; margin-top: 10px; font-style: italic;">
                         Documento válido para ser presentado en cualquier centro de salud o laboratorio en convenio.
                     </div>
                 </div>
