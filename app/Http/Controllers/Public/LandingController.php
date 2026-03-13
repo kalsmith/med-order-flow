@@ -9,17 +9,18 @@ class LandingController extends Controller
 {
     public function index()
     {
-        // 1. PACKS: Exámenes que son "Padres" (tienen registros en la tabla pivote como parent_id)
+        // 1. PACKS: Exámenes que TIENEN hijos (la estructura del bundle)
         $packs = ExamType::where('is_active', true)
             ->has('children')
-            ->with('children')
+            ->with('children:id,name')
+            ->orderBy('base_price', 'asc')
             ->get();
 
-        // 2. INDIVIDUALES: Exámenes que NO tienen hijos
-        // Y que NO son hijos de otros packs (para que el Hemograma no salga repetido)
+        // 2. INDIVIDUALES: Exámenes que NO TIENEN hijos.
+        // Aquí NO filtramos por "parents", así que si el Hemograma (ID 7)
+        // está en un pack, igual aparecerá aquí porque él mismo no es un contenedor.
         $individuales = ExamType::where('is_active', true)
-            ->doesntHave('children') // No es un pack
-            ->whereDoesntHave('parents') // No es parte de un pack
+            ->doesntHave('children')
             ->orderBy('name', 'asc')
             ->get();
 
