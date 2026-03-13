@@ -10,27 +10,29 @@ class OrderChat extends Component
     public MedicalOrder $order;
     public $newMessage = '';
 
-    protected $rules = [
-        'newMessage' => 'required|string|max:500',
-    ];
-
-    public function sendMessage()
+    // Esta función solo sirve para que Livewire refresque el modelo
+    // y detecte si llegaron mensajes nuevos del médico.
+    public function refreshMessages()
     {
-        $this->validate([
-            'newMessage' => 'required|string|max:1000'
-        ]);
-
-        // Usamos los nombres de columna correctos según tu modelo
-        $this->order->interactions()->create([
-            'sender_type' => 'patient',
-            'type'        => 'text',      // Agregamos el tipo ya que está en tu fillable
-            'content'     => $this->newMessage, // Cambiado de 'message' a 'content'
-        ]);
-
-        $this->newMessage = '';
         $this->order->load('interactions');
     }
 
+    public function sendMessage()
+    {
+        $this->validate(['newMessage' => 'required|string|max:1000']);
+
+        $this->order->interactions()->create([
+            'sender_type' => 'patient',
+            'type'        => 'text',
+            'content'     => $this->newMessage,
+        ]);
+
+        $this->newMessage = '';
+        $this->refreshMessages();
+
+        // Notificamos al navegador para que baje el scroll
+        $this->dispatch('scroll-bottom');
+    }
 
     public function render()
     {
