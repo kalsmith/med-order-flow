@@ -16,9 +16,9 @@
             <h1 class="fw-bold mb-4 text-primary">{{ $faq->question }}</h1>
             <hr class="mb-5">
 
-            <div class="lh-lg text-muted" style="font-size: 1.1rem;">
-                {!! nl2br(e($faq->answer)) !!}
-            </div>
+<div class="lh-lg text-muted faq-content" style="font-size: 1.1rem;">
+    {!! $faq->answer !!}
+</div>
 
             <div class="mt-5 pt-4 border-top">
                 <a href="/" class="btn btn-outline-primary rounded-pill px-4">
