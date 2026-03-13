@@ -35,8 +35,11 @@ Route::get('/v/{id}', [OrderValidationController::class, 'show'])
     ->name('validate.order');
 
     // Rutas Legales (Términos, Privacidad, etc.)
+// Rutas Legales/Páginas de contenido usando Slug
 Route::get('/legal/{faq}', function (Faq $faq) {
-    if ($faq->category !== 'legal' || !$faq->is_active) abort(404);
+    // Si no está activa, 404. La categoría ya no importa.
+    if (!$faq->is_active) abort(404);
+
     return view('public.legal', compact('faq'));
 })->name('legal.show');
 

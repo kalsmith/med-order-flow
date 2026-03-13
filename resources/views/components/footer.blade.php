@@ -27,13 +27,14 @@
         <li class="mb-2"><a href="#faq-section" class="text-decoration-none text-reset">Preguntas Frecuentes</a></li>
 
         {{-- Renderiza TODO lo que esté activo en la tabla faqs --}}
-        @foreach($faqs as $item)
-            <li class="mb-2">
-                <a href="{{ route('legal.show', $item->id) }}" class="text-decoration-none text-reset">
-                    {{ $item->question }}
-                </a>
-            </li>
-        @endforeach
+@foreach($faqs as $item)
+    <li class="mb-2">
+        {{-- Laravel ahora usará el slug automáticamente gracias a getRouteKeyName --}}
+        <a href="{{ route('legal.show', $item) }}" class="text-decoration-none text-reset">
+            {{ $item->question }}
+        </a>
+    </li>
+@endforeach
     </ul>
 </div>
 
