@@ -4,33 +4,7 @@
 
 @push('styles')
 <style>
-    body {
-        background-color: #f8faff;
-        background-image: radial-gradient(#d1d9e6 0.5px, transparent 0.5px);
-        background-size: 20px 20px;
-    }
 
-    .card-confirm {
-        border: none;
-        border-radius: 28px;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.06);
-        overflow: hidden;
-        background: white;
-    }
-
-    /* Estilo para los inputs dentro del componente Livewire */
-    .form-control, .form-select {
-        border: 1px solid #e2e8f0;
-        padding: 12px 16px;
-        border-radius: 12px;
-        transition: all 0.2s;
-    }
-    .form-control:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
-    }
-
-    .filter-grayscale { filter: grayscale(1); opacity: 0.5; }
 </style>
 @endpush
 

@@ -3,70 +3,7 @@
 @section('title', 'Completar Perfil - MedOrder Flow')
 
 @push('styles')
-<style>
-    .card-profile {
-        border: none;
-        border-radius: 28px;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.06);
-        overflow: hidden;
-        background: white;
-    }
-    .bg-gradient-blue {
-        background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
-    }
-    .user-info-box {
-        background: #f8fafc;
-        border-radius: 20px;
-        border: 1px solid #e2e8f0;
-    }
 
-    /* Inputs más modernos */
-    .form-label { font-size: 0.75rem; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
-    .form-control, .form-select {
-        border-radius: 14px;
-        padding: 12px 16px;
-        border-color: #e2e8f0;
-        font-size: 0.95rem;
-    }
-    .form-control:focus, .form-select:focus {
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.08);
-        border-color: #0d6efd;
-    }
-
-    .input-group-text {
-        border-radius: 14px 0 0 14px;
-        border: 1px solid #e2e8f0;
-        border-right: none;
-        background: #f8fafc;
-        color: #64748b;
-        font-weight: 600;
-    }
-    .input-group > .form-control {
-        border-radius: 0 14px 14px 0;
-    }
-
-    .btn-save {
-        border-radius: 18px;
-        font-weight: 700;
-        padding: 14px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(13, 110, 253, 0.2); }
-
-    .badge-step {
-        background: rgba(255,255,255,0.15);
-        color: white;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
-        margin-right: 10px;
-        border: 1px solid rgba(255,255,255,0.3);
-    }
-</style>
 @endpush
 
 @section('content')

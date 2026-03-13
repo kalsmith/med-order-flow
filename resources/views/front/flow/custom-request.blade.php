@@ -4,18 +4,7 @@
 
 @push('styles')
 <style>
-    body { background-color: #f8faff; }
-    .card-custom { border: none; border-radius: 28px; box-shadow: 0 25px 50px rgba(0,0,0,0.06); overflow: hidden; background: white; }
-    .bg-gradient-blue { background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%); }
 
-    /* Estilos para el flujo de Livewire */
-    .form-control:focus { box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1); }
-    .btn-send { border-radius: 16px; font-weight: 700; padding: 16px; transition: all 0.3s; }
-
-    /* Grid de selección de pacientes */
-    .patient-card { cursor: pointer; border-radius: 20px; border: 2px solid #f1f5f9; transition: all 0.2s; background: white; }
-    .patient-card.active { border-color: var(--primary-color); background-color: #eff6ff; }
-    .patient-card:hover { border-color: #d1e3ff; }
 </style>
 @endpush
 
