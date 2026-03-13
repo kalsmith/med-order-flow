@@ -9,30 +9,48 @@ class OrderInteractions extends Component
 {
     public MedicalOrder $order;
     public $message = '';
+    public $lastMessageCount = 0;
 
-    protected $rules = [
-        'message' => 'required|string|min:5|max:1000',
-    ];
+    public function mount()
+    {
+        $this->lastMessageCount = $this->order->interactions()->count();
+    }
+
+    public function refreshMessages()
+    {
+        $this->order->load('interactions');
+        $currentCount = $this->order->interactions->count();
+
+        if ($currentCount > $this->lastMessageCount) {
+            $this->dispatch('new-messages-received');
+            $this->lastMessageCount = $currentCount;
+        }
+    }
 
     public function sendMessage()
     {
-        $this->validate();
+        if (empty(trim($this->message))) return;
+
+        $this->validate([
+            'message' => 'required|string|max:1000',
+        ]);
 
         $this->order->interactions()->create([
             'user_id' => auth()->id(),
             'content' => $this->message,
             'sender_type' => 'doctor',
+            'type' => 'text'
         ]);
 
-        // Opcional: Cambiar estado a "esperando respuesta"
-        // $this->order->update(['status' => 'pending_info']);
-
         $this->message = '';
-        $this->dispatch('message-sent'); // Para notificaciones frontend
+        $this->refreshMessages();
+        $this->dispatch('scroll-bottom');
     }
 
     public function render()
     {
-        return view('livewire.admin.order-interactions');
+        return view('livewire.admin.order-interactions', [
+            'interactions' => $this->order->interactions()->orderBy('created_at', 'asc')->get()
+        ]);
     }
 }
