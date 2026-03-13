@@ -85,14 +85,22 @@
     </section>
 
     {{-- PRODUCTOS --}}
+
+
+    {{-- PRODUCTOS --}}
     <section id="packs" class="py-5 bg-light rounded-5 mx-2 shadow-inner">
         <div class="container">
+            {{-- 1. PACKS PREVENTIVOS --}}
             <h3 class="fw-bold mb-4"><i class="bi bi-collection-fill text-primary"></i> Packs Preventivos</h3>
             <div class="row g-4 mb-5">
                 @foreach($packs as $pack)
                 <div class="col-lg-4 col-md-6">
                     <div class="card card-pack p-4 shadow-sm border-0 h-100 rounded-4">
-                        <div class="mb-3"><span class="badge bg-primary rounded-pill px-3 py-2">RECOMENDADO</span></div>
+                        <div class="mb-3">
+                            <span class="badge {{ $loop->first ? 'bg-primary' : 'bg-secondary bg-opacity-10 text-secondary' }} rounded-pill px-3 py-2">
+                                {{ $loop->first ? 'MÁS SOLICITADO' : 'PACK FAMILIAR' }}
+                            </span>
+                        </div>
                         <h4 class="fw-bold mb-3">{{ $pack->name }}</h4>
                         <div class="flex-grow-1 mb-4">
                             <div class="d-flex flex-wrap gap-2">
@@ -112,38 +120,46 @@
                 @endforeach
             </div>
 
-            <div class="row g-5">
-                <div id="frecuentes" class="col-lg-7">
-                    <h3 class="fw-bold mb-4"><i class="bi bi-search text-primary"></i> Frecuentes</h3>
-                    <div class="row g-3">
-                        @foreach($individuales as $exam)
-                        <div class="col-md-6">
-                            <div class="card h-100 shadow-sm border-0 p-3 rounded-4">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="text-truncate" style="max-width: 60%">
-                                        <h6 class="fw-bold mb-1 text-truncate">{{ $exam->name }}</h6>
-                                        <span class="text-primary fw-bold small">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
-                                    </div>
+            {{-- 2. BANNER ORDEN PERSONALIZADA (Alternativa si no encuentran pack) --}}
+            <div class="card bg-dark text-white border-0 shadow-lg p-4 p-md-5 rounded-5 mb-5 overflow-hidden position-relative">
+                <div class="row align-items-center position-relative" style="z-index: 2;">
+                    <div class="col-md-8 mb-4 mb-md-0">
+                        <h2 class="fw-bold mb-3">¿No encuentras el examen que buscas?</h2>
+                        <p class="lead opacity-75 mb-0">Carga tu lista de exámenes y un médico colegiado emitirá una orden personalizada a tu medida.</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="mb-3">
+                            <span class="fs-4">Desde</span>
+                            <span class="display-6 fw-bold text-primary"> $9.990</span>
+                        </div>
+                        <a href="{{ route('order.flow', ['type' => 'personalizada']) }}" class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill shadow">Solicitar a Medida</a>
+                    </div>
+                </div>
+                {{-- Decoración sutil de fondo --}}
+                <i class="bi bi-clipboard2-pulse position-absolute text-white opacity-10" style="font-size: 10rem; right: -20px; bottom: -30px; transform: rotate(-15deg);"></i>
+            </div>
+
+            {{-- 3. EXÁMENES INDIVIDUALES --}}
+            <div id="frecuentes">
+                <h3 class="fw-bold mb-4"><i class="bi bi-search text-primary"></i> Exámenes Frecuentes</h3>
+                <div class="row g-3">
+                    @foreach($individuales as $exam)
+                    <div class="col-lg-3 col-md-4 col-sm-6">
+                        <div class="card h-100 shadow-sm border-0 p-3 rounded-4">
+                            <div class="d-flex flex-column h-100">
+                                <h6 class="fw-bold mb-2 text-dark">{{ $exam->name }}</h6>
+                                <div class="mt-auto d-flex justify-content-between align-items-center">
+                                    <span class="text-primary fw-bold">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
                                     <a href="{{ route('order.flow', ['type' => 'exam', 'id' => $exam->id]) }}" class="btn btn-outline-primary btn-sm px-3 rounded-pill">Pedir</a>
                                 </div>
                             </div>
                         </div>
-                        @endforeach
                     </div>
-                </div>
-
-                <div class="col-lg-5">
-                    <div class="card bg-primary text-white border-0 shadow-lg p-4 rounded-5 h-100">
-                        <h2 class="fw-bold mb-3">Orden Personalizada</h2>
-                        <p class="opacity-90 mb-4">Dinos qué necesitas y un médico evaluará tu caso para emitir la orden pertinente.</p>
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <span>Valor base</span>
-                            <span class="fs-2 fw-extrabold">$9.990</span>
-                        </div>
-                        <a href="{{ route('order.flow', ['type' => 'personalizada']) }}" class="btn btn-light w-100 py-3 fw-bold text-primary">Solicitar a Medida</a>
-                    </div>
+                    @endforeach
                 </div>
             </div>
         </div>
     </section>
+
+
 @endsection
