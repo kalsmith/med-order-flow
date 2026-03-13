@@ -40,7 +40,7 @@
                     </div>
 
                     {{-- Componente Livewire --}}
-                    @livewire('order-checkout-form', ['examTypeId' => $exam_type->id])
+                    @livewire('order-checkout', ['examTypeId' => $exam_type->id])
 
                 </div>
             </div>
