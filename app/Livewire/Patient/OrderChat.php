@@ -29,8 +29,6 @@ class OrderChat extends Component
 
         $this->newMessage = '';
         $this->refreshMessages();
-
-        // Notificamos al navegador para que baje el scroll
         $this->dispatch('scroll-bottom');
     }
 
