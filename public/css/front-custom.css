@@ -1,236 +1,254 @@
-/* Variables y Base */
+/* ========================================
+1. VARIABLES Y BASE
+========================================
+*/
 :root {
---primary-color: #0d6efd;
+    --primary-color: #0d6efd;
     --primary-hover: #004dc7;
+    --success-color: #198754;
     --soft-bg: #f8faff;
+    --border-color: #e2e8f0;
+}
+
+html, body {
+    height: 100%;
 }
 
 body {
-font-family: 'Inter', sans-serif;
+    font-family: 'Inter', sans-serif;
     scroll-behavior: smooth;
     background-color: #ffffff;
     color: #212529;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* <-- Cambia min-vh-100 por min-height: 100vh */
 }
 
+/* Empuja el footer al final */
+main {
+    flex-grow: 1;
+}
+
+.fw-800 {
+    font-weight: 800 !important;
+}
+
+/* ========================================
+2. COMPONENTES DE NAVEGACIÓN Y ESTRUCTURA
+========================================
+*/
 .navbar {
-background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
 
-/* Hero Section */
 .hero-section {
-padding: 100px 0 80px;
+    padding: 100px 0 80px;
     background: radial-gradient(circle at 100% 0%, #eef5ff 0%, #ffffff 40%);
 }
 
 .hero-title {
-font-weight: 800;
+    font-weight: 800;
     letter-spacing: -2px;
     line-height: 1.1;
 }
 
-/* Cards de Packs */
-.card-pack {
-border: 1px solid #eef2f7;
+/* ========================================
+3. BOTONES Y ACCIONES
+========================================
+*/
+.btn-primary, .btn-success, .btn-save, .btn-send {
+    border-radius: 12px !important;
+    padding: 12px 24px;
+    font-weight: 700;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:hover, .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+4. TARJETAS (CARDS) Y LISTADO DE ÓRDENES
+========================================
+*/
+.card-order {
+    border: none;
+    border-radius: 20px;
+    background: #ffffff;
+    transition: all 0.25s ease;
+}
+
+.card-order:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.06) !important;
+}
+
+.card-order .card-body {
+    padding: 2.5rem !important;
+}
+
+/* Estilos de Packs y Especiales */
+.card-pack, .card-profile, .card-confirm, .card-custom {
+    border: 1px solid #eef2f7;
     border-radius: 28px;
-    transition: all 0.3s ease;
     background: white;
     overflow: hidden;
-    height: 100%;
+    transition: all 0.3s ease;
 }
 
-.card-pack:hover {
-transform: translateY(-10px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
-    border-color: #d1e3ff;
-}
-
-.pack-badge {
-background: #eef2ff;
-    color: #4338ca;
-    font-size: 0.7rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    padding: 5px 12px;
-    border-radius: 20px;
-}
-
-/* Chips de Exámenes */
-.exam-chip {
-display: inline-flex;
-    align-items: center;
-    padding: 6px 14px;
-    background: #f8fafc;
-    border: 1px solid #f1f5f9;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    color: #475569;
-    margin: 3px;
-    font-weight: 500;
-}
-
-.exam-chip i {
-color: #10b981; margin-right: 6px;
-}
-
-/* Especializada (Azul) */
 .card-special {
-background: linear-gradient(135deg, #0d6efd 0%, #004dc7 100%);
+    background: linear-gradient(135deg, #0d6efd 0%, #004dc7 100%);
     color: white;
     border-radius: 28px;
     padding: 2.5rem;
     box-shadow: 0 20px 40px rgba(13, 110, 253, 0.2);
 }
 
-.card-profile {
-border: none;
-        border-radius: 28px;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.06);
-        overflow: hidden;
-        background: white;
+/* ========================================
+5. ESTADOS, BADGES Y ETIQUETAS
+========================================
+*/
+/* Badges de Estado */
+.badge-status-signed {
+    background-color: #d1e7dd !important;
+    color: #0f5132 !important;
+    border-radius: 10px;
+    padding: 0.6em 1.2em;
 }
 
-.bg-gradient-blue {
-background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
+.badge-status-pending {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    border-radius: 10px;
+    padding: 0.6em 1.2em;
 }
 
-.user-info-box {
-background: #f8fafc;
-        border-radius: 20px;
-        border: 1px solid #e2e8f0;
+/* ID y Tags */
+.badge-id {
+    background: #f8f9fa !important;
+    color: #212529 !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    font-size: 0.75rem !important;
 }
 
-/* Inputs más modernos */
-    .form-label {
-font-size: 0.75rem; letter-spacing: 0.5px; margin-bottom: 0.5rem;
+.patient-tag {
+    font-size: 0.75rem;
+    background: #f0f7ff;
+    color: #0056b3;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Info Boxes */
+.info-box {
+    border-radius: 16px;
+    border-left: 4px solid !important;
+}
+
+.bg-waiting {
+    background-color: #f0f7ff;
+    border-color: #0d6efd !important;
+}
+
+/* ========================================
+6. FORMULARIOS E INPUTS
+========================================
+*/
+.form-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
 }
 
 .form-control, .form-select {
-border-radius: 14px;
-        padding: 12px 16px;
-        border-color: #e2e8f0;
-        font-size: 0.95rem;
+    border-radius: 14px;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    font-size: 0.95rem;
+    transition: all 0.2s;
 }
 
 .form-control:focus, .form-select:focus {
-box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.08);
-        border-color: #0d6efd;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.08);
+    border-color: var(--primary-color);
 }
 
 .input-group-text {
-border-radius: 14px 0 0 14px;
-        border: 1px solid #e2e8f0;
-        border-right: none;
-        background: #f8fafc;
-        color: #64748b;
-        font-weight: 600;
+    border-radius: 14px 0 0 14px;
+    border: 1px solid var(--border-color);
+    border-right: none;
+    background: #f8fafc;
+    color: #64748b;
 }
 
-.input-group > .form-control {
-border-radius: 0 14px 14px 0;
+/* ========================================
+7. FOOTER Y MISCELÁNEOS
+========================================
+*/
+footer {
+    margin-top: auto;
 }
 
-.btn-save {
-border-radius: 18px;
-        font-weight: 700;
-        padding: 14px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+footer a {
+    transition: all 0.3s ease;
 }
 
-.btn-save:hover {
-transform: translateY(-2px); box-shadow: 0 8px 15px rgba(13, 110, 253, 0.2);
+footer a:hover {
+    color: var(--primary-color) !important;
+    padding-left: 5px;
 }
 
-.badge-step {
-background: rgba(255,255,255,0.15);
-        color: white;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
-        margin-right: 10px;
-        border: 1px solid rgba(255,255,255,0.3);
+.empty-state {
+    padding: 5rem 2rem;
+    background: white;
+    border-radius: 24px;
+    text-align: center;
 }
 
-.card-confirm {
-border: none;
-        border-radius: 28px;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.06);
-        overflow: hidden;
-        background: white;
+/* --- Estilos para Mi Círculo --- */
+
+/* Contenedor de lista de pacientes (asumiendo que Livewire usa tarjetas) */
+.circle-item-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
 }
 
-/* Stepper simple para indicar progreso */
-    .step-indicator {
-display: flex;
-        justify-content: center;
-        gap: 1rem;
-        margin-bottom: 2rem;
+.circle-item-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
 }
 
-.step-dot {
-width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background-color: #dee2e6;
+/* Avatar circular para pacientes */
+.patient-avatar {
+    width: 48px;
+    height: 48px;
+    background: var(--soft-bg);
+    color: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
 }
 
-.step-dot.active {
-background-color: var(--bs-primary);
-        transform: scale(1.3);
+/* Estilo específico para la caja de aviso en Mi Círculo */
+.bg-waiting {
+    background-color: #f0f7ff !important;
+    border-left: 4px solid var(--primary-color) !important;
 }
 
-.form-control:focus {
-border-color: var(--bs-primary);
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+/* Animación para el componente Livewire al cargar/actualizar */
+[wire\:loading] {
+    opacity: 0.8;
 }
-
-.price-box {
-background-color: #f1f5f9;
-        border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 20px;
-}
-
-/* Estilo para los inputs dentro del componente Livewire */
-    .form-control, .form-select {
-border: 1px solid #e2e8f0;
-        padding: 12px 16px;
-        border-radius: 12px;
-        transition: all 0.2s;
-}
-
-.filter-grayscale {
-filter: grayscale(1); opacity: 0.5;
-}
-
-.card-custom {
-border: none; border-radius: 28px; box-shadow: 0 25px 50px rgba(0,0,0,0.06); overflow: hidden; background: white;
-}
-
-/* Estilos para el flujo de Livewire */
-    .form-control:focus {
-box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
-}
-
-.btn-send {
-border-radius: 16px; font-weight: 700; padding: 16px; transition: all 0.3s;
-}
-
-/* Grid de selección de pacientes */
-    .patient-card {
-cursor: pointer; border-radius: 20px; border: 2px solid #f1f5f9; transition: all 0.2s; background: white;
-}
-
-.patient-card.active {
-border-color: var(--primary-color); background-color: #eff6ff;
-}
-
-.patient-card:hover {
-border-color: #d1e3ff;
-}
-

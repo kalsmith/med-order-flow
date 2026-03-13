@@ -12,14 +12,7 @@
     <link rel="stylesheet" href="{{ asset('css/front-custom.css') }}">
 
     <style>
-        :root { --primary-color: #0d6efd; }
-        body { font-family: 'Inter', sans-serif; color: #334155; }
-        .fw-800 { font-weight: 800; }
-        .navbar { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
-        .btn-primary { border-radius: 12px; padding: 10px 24px; }
-        /* Transiciones suaves para links del footer */
-        footer a { transition: all 0.3s ease; }
-        footer a:hover { color: var(--primary-color) !important; padding-left: 5px; }
+
     </style>
 
     @stack('styles')
