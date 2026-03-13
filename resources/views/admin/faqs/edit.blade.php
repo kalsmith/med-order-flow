@@ -86,30 +86,43 @@
     {{-- Ruta corregida para storage (Asegúrate de haber corrido php artisan storage:link) --}}
     <script src="{{ asset('assets/ckeditor/ckeditor.js') }}"></script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Inicialización según la versión de CKEditor que tengas en storage
-            if (typeof ClassicEditor !== 'undefined') {
-                ClassicEditor
-                    .create(document.querySelector('#editor'), {
-                        toolbar: {
-                            items: [
-                                'heading', '|', 'bold', 'italic', 'link', '|',
-                                'bulletedList', 'numberedList', '|',
-                                'insertTable', 'blockQuote', '|',
-                                'undo', 'redo'
-                            ]
-                        }
-                    })
-                    .catch(error => { console.error(error); });
-            }
-            else if (typeof CKEDITOR !== 'undefined') {
-                CKEDITOR.replace('editor', {
-                    height: 400,
-                    // Evita que CKEditor elimine clases de Bootstrap si las pegas
-                    allowedContent: true
-                });
-            }
-        });
-    </script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Inicialización para CKEditor 5 (si llegaras a usarlo)
+        if (typeof ClassicEditor !== 'undefined') {
+            ClassicEditor
+                .create(document.querySelector('#editor'), {
+                    toolbar: {
+                        items: [
+                            'heading', '|', 'bold', 'italic', 'link', '|',
+                            'bulletedList', 'numberedList', '|',
+                            'insertTable', 'blockQuote', '|',
+                            'undo', 'redo'
+                        ]
+                    }
+                })
+                .catch(error => { console.error(error); });
+        }
+
+        // Inicialización para CKEditor 4 (La que estás usando actualmente)
+        else if (typeof CKEDITOR !== 'undefined') {
+            CKEDITOR.replace('editor', {
+                height: 400,
+
+                // 1. Evita que el editor borre estilos o clases de Bootstrap
+                allowedContent: true,
+
+                // 2. DESACTIVA el codificado de tildes y caracteres especiales
+                // Esto hará que en la BD se guarde "médica" y no "m&eacute;dica"
+                entities: false,
+                basicEntities: false,
+                entities_latin: false,
+                entities_greek: false,
+
+                // 3. Configuración adicional de pegado (Opcional pero recomendada)
+                forcePasteAsPlainText: false, // Permite mantener negritas al pegar
+            });
+        }
+    });
+</script>
 @endpush
