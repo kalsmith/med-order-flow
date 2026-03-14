@@ -70,6 +70,9 @@ class FlowService
         }
     }
 
+
+
+
     public function handleWebhook($token)
     {
         Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
@@ -102,11 +105,17 @@ class FlowService
                 if ($order->type === 'standard' || $order->type === 'medical_purchase') {
                     $processStatus = $this->processMedicalOrder($order);
 
-                    // Si el proceso de firma falla críticamente y decides que prefieres reembolsar
-                    // en lugar de dejar en revisión manual, llamarías a requestRefund aquí.
                     if (!$processStatus) {
-                        Log::error("WEBHOOK: Proceso médico falló. La orden queda en revisión/reembolso.");
-                        // Opcional: $this->requestRefund($order, $gatewayTrx, $statusResponse->flowOrder);
+                        Log::error("WEBHOOK: Proceso médico falló. Iniciando reembolso vía RefundService.");
+
+                        // USAMOS EL NUEVO SERVICIO
+                        $refundService = app(RefundService::class);
+                        $refundResult = $refundService->createRefund($order, $statusResponse->flowOrder);
+
+                        if (!$refundResult) {
+                            // Si el reembolso falla en la API, al menos marcamos la orden para revisión
+                            $order->update(['status' => 'manual_review']);
+                        }
                     }
                 } else {
                     $order->update(['status' => 'paid']);
@@ -121,6 +130,7 @@ class FlowService
             throw $e;
         }
     }
+
 
     private function processMedicalOrder(Order $order)
     {
@@ -154,14 +164,12 @@ class FlowService
 
         } catch (\Exception $e) {
             Log::error("Error en processMedicalOrder: " . $e->getMessage());
+            // Lo dejamos en manual_review temporalmente antes de que handleWebhook decida el reembolso
             $order->update(['status' => 'manual_review']);
-            return false; // Retornamos false para que el webhook sepa que hubo un problema
+            return false;
         }
     }
 
-    /**
-     * Registro de Reembolso (Mismo que tenías antes, adaptado)
-     */
     public function requestRefund(Order $order, GatewayTransaction $gatewayTrx, $flowTrxId = null)
     {
         $endpoint = $this->urlBase . '/refund/create';
@@ -173,26 +181,29 @@ class FlowService
             'receiverEmail'         => $order->patient->user->email,
             'amount'                => (int)$order->amount,
             'urlCallBack'           => route('flow.refund.webhook'),
+            'flowTrxId'             => $flowTrxId ?? $gatewayTrx->flow_order_id,
         ];
-
-        if ($flowTrxId) {
-            $params['flowTrxId'] = $flowTrxId;
-        } else {
-            $params['commerceTrxId'] = $gatewayTrx->buy_order;
-        }
 
         $params['s'] = $this->makeSignature($params);
 
         try {
+            Log::info("Enviando solicitud de reembolso a Flow...");
             $response = Http::asForm()->post($endpoint, $params);
+
             if ($response->successful()) {
-                $order->update(['status' => 'refund_pending']);
-                Log::info("Reembolso solicitado con éxito para Orden: " . $order->id);
+                $res = $response->object();
+                $order->update([
+                    'flow_refund_id' => $res->token,
+                    'status'         => 'refund_pending'
+                ]);
+                Log::info("Reembolso solicitado con éxito: " . $res->token);
                 return true;
             }
+
+            Log::error("Flow Refund API rechazó la solicitud: " . $response->body());
             return false;
         } catch (\Exception $e) {
-            Log::error("Error solicitando reembolso: " . $e->getMessage());
+            Log::error("Excepción en requestRefund: " . $e->getMessage());
             return false;
         }
     }
