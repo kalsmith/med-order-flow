@@ -12,7 +12,6 @@
             </div>
         </div>
 
-        {{-- Pestañas de Navegación --}}
         <ul class="nav nav-tabs border-bottom-0 px-2">
             <li class="nav-item">
                 <button wire:click="setTab('available')"
@@ -34,30 +33,20 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light-subtle">
                     <tr>
-                        <th class="ps-4 py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Paciente</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Examen / Tipo</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Fecha</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Estado</th>
-                        <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Acciones</th>
+                        <th class="ps-4 py-3 text-uppercase small fw-bold text-muted">Paciente</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted">Examen / Tipo</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted">Fecha</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted">Estado</th>
+                        <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $myDoctorId = auth()->user()->doctor->id ?? null;
-                    @endphp
+                    @php $meId = strval(auth()->user()->doctor->id ?? ''); @endphp
 
                     @forelse($orders as $order)
                         @php
-                            // Casting manual para evitar errores de tipo int/string
                             $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
-                            $meId = strval($myDoctorId);
-
-                            // Lógica de estados
-                            $isClaimedByOther = $orderDocId &&
-                                               $orderDocId !== $meId &&
-                                               $order->claimed_at &&
-                                               $order->claimed_at->gt(now()->subMinutes(20));
-
+                            $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->claimed_at?->gt(now()->subMinutes(20));
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
                         @endphp
                         <tr>
@@ -70,6 +59,9 @@
                                     <span class="badge border" style="background-color: #f3e8ff; color: #6b21a8; border-color: #d8b4fe;">
                                         <i class="bi bi-stars me-1"></i> Especial (Custom)
                                     </span>
+                                    @if($isClaimedByMe && $order->interactions_count > 0)
+                                        <div class="small text-info mt-1"><i class="bi bi-chat-text me-1"></i> {{ $order->interactions_count }} mensajes</div>
+                                    @endif
                                 @else
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium">
                                         {{ $order->examType->name ?? 'Estándar' }}
@@ -77,8 +69,8 @@
                                 @endif
                             </td>
                             <td>
-                                <div class="fw-medium text-dark" style="font-size: 0.85rem;">{{ $order->created_at->format('d/m/Y') }}</div>
-                                <div class="text-muted small" style="font-size: 0.75rem;">{{ $order->created_at->format('H:i') }} hrs</div>
+                                <div class="fw-medium text-dark small">{{ $order->created_at->format('d/m/Y') }}</div>
+                                <div class="text-muted small" style="font-size: 0.7rem;">{{ $order->created_at->format('H:i') }} hrs</div>
                             </td>
                             <td>
                                 @if($order->status === 'signed')
@@ -102,7 +94,7 @@
                             <td class="text-end pe-4">
                                 @if($order->status !== 'signed')
                                     @if($isClaimedByOther)
-                                        <button class="btn btn-sm btn-light border text-muted" disabled title="Bloqueado por otro profesional">
+                                        <button class="btn btn-sm btn-light border text-muted" disabled>
                                             <i class="bi bi-lock-fill"></i>
                                         </button>
                                     @else
@@ -114,15 +106,10 @@
                                     @endif
                                 @else
                                     <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
-                                        {{-- Ver Detalles --}}
-                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
-                                           class="btn btn-sm btn-white border border-end-0" title="Ver Detalles">
+                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-white border border-end-0">
                                             <i class="bi bi-eye text-primary"></i>
                                         </a>
-                                        {{-- Descargar PDF --}}
-                                        <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}"
-                                           target="_blank"
-                                           class="btn btn-sm btn-white border" title="Descargar PDF">
+                                        <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-sm btn-white border">
                                             <i class="bi bi-file-pdf text-danger"></i>
                                         </a>
                                     </div>
@@ -145,11 +132,3 @@
         {{ $orders->links() }}
     </div>
 </div>
-
-<style>
-    .btn-white { background-color: #fff; color: #374151; transition: all 0.2s; }
-    .btn-white:hover { background-color: #f9fafb; color: #000; }
-    .nav-tabs .nav-link.active { color: #0d6efd !important; border-bottom: 3px solid #0d6efd !important; }
-    .table-hover tbody tr:hover { background-color: #f8fafc; }
-    .badge { font-size: 0.75rem; padding: 0.4em 0.8em; }
-</style>

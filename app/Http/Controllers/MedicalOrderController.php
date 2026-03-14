@@ -15,55 +15,58 @@ class MedicalOrderController extends Controller
     /**
      * Listado de órdenes: Inteligente según el Rol con liberación de bloqueos.
      */
-    public function index()
-    {
-        $user = Auth::user();
+public function index()
+{
+    $user = Auth::user();
 
-        // 1. Garbage Collector: Liberamos órdenes cuyo "claimed_at" expiró (20 minutos)
-        Order::whereIn('status', ['pending', 'paid'])
-            ->whereNotNull('claimed_at')
-            ->where('claimed_at', '<', now()->subMinutes(20))
-            ->update([
-                'doctor_id' => null,
-                'claimed_at' => null
-            ]);
+    // 1. Garbage Collector: Liberamos órdenes cuyo "claimed_at" expiró (20 minutos)
+    Order::whereIn('status', ['pending', 'paid'])
+        ->whereNotNull('claimed_at')
+        ->where('claimed_at', '<', now()->subMinutes(20))
+        ->update([
+            'doctor_id' => null,
+            'claimed_at' => null
+        ]);
 
-        // 2. Query Base con Eager Loading (Usando la nueva relación 'prescriptions')
-        $query = Order::with(['patient' => function($q) {
-            $q->withTrashed();
-        }, 'doctor.user', 'examType', 'prescriptions']);
+    // 2. Query Base: Cargamos interacciones y la receta activa específicamente
+    $query = Order::with([
+        'patient' => fn($q) => $q->withTrashed(),
+        'doctor.user',
+        'examType',
+        'activePrescription', // Usamos tu relación definida con latestOfMany
+    ])->withCount('interactions'); // Agregamos conteo de mensajes
 
-        // 3. Lógica de filtrado para Doctores
-        if ($user->hasRole('doctor')) {
-            $doctor = $user->doctor;
+    // 3. Lógica de filtrado para Doctores
+    if ($user->hasRole('doctor')) {
+        $doctor = $user->doctor;
 
-            $query->where(function($q) use ($doctor) {
-                // A. Órdenes ya tomadas por este doctor (en cualquier estado relevante)
-                $q->where('doctor_id', $doctor->id)
-                  ->whereIn('status', ['paid', 'pending', 'signed'])
+        $query->where(function($q) use ($doctor) {
+            // A. Órdenes ya tomadas por este doctor
+            $q->where('doctor_id', $doctor->id)
+              ->whereIn('status', ['paid', 'pending', 'signed'])
 
-                // B. O órdenes pagadas de su especialidad disponibles
-                ->orWhere(function($sq) use ($doctor) {
-                    $sq->whereNull('doctor_id')
-                       ->where('status', 'paid')
-                       ->whereHas('examType', function($eq) use ($doctor) {
-                           $eq->where('specialty_id', $doctor->specialty_id);
-                       });
-                })
+            // B. O órdenes pagadas de su especialidad disponibles
+            ->orWhere(function($sq) use ($doctor) {
+                $sq->whereNull('doctor_id')
+                   ->where('status', 'paid')
+                   ->whereHas('examType', function($eq) use ($doctor) {
+                       $eq->where('specialty_id', $doctor->specialty_id);
+                   });
+            })
 
-                // C. O solicitudes especiales (custom) pagadas disponibles
-                ->orWhere(function($sq) {
-                    $sq->whereNull('doctor_id')
-                       ->where('type', 'custom')
-                       ->where('status', 'paid');
-                });
+            // C. O solicitudes especiales (custom) pagadas disponibles
+            ->orWhere(function($sq) {
+                $sq->whereNull('doctor_id')
+                   ->where('type', 'custom')
+                   ->where('status', 'paid');
             });
-        }
-
-        $orders = $query->latest()->paginate(10);
-
-        return view('admin.orders.index', compact('orders'));
+        });
     }
+
+    $orders = $query->latest()->paginate(10);
+
+    return view('admin.orders.index', compact('orders'));
+}
 
     /**
      * Muestra el formulario de firma y bloquea la orden.

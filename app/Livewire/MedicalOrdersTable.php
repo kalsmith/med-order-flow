@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Order; // <--- Cambiado de MedicalOrder a Order
+use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 
 class MedicalOrdersTable extends Component
@@ -21,13 +21,13 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
-public function render()
+    public function render()
     {
         $user = Auth::user();
         $doctor = $user->doctor;
         $myDoctorId = $doctor->id ?? null;
 
-        // 1. Garbage Collector (Se mantiene igual, funciona bien)
+        // 1. Garbage Collector
         Order::whereIn('status', ['pending', 'paid'])
             ->whereNotNull('claimed_at')
             ->where('claimed_at', '<', now()->subMinutes(20))
@@ -36,34 +36,38 @@ public function render()
                 'claimed_at' => null
             ]);
 
-        $query = Order::with(['patient', 'examType', 'doctor.user']);
+        // 2. Query Base con relaciones necesarias para la vista
+        $query = Order::with([
+            'patient' => fn($q) => $q->withTrashed(),
+            'examType',
+            'doctor.user',
+            'activePrescription' // Importante para ver el estado de firma
+        ])->withCount('interactions'); // Para el semáforo del chat
 
         if ($this->tab === 'available') {
             $query->where('status', 'paid')
-                  ->where(function($q) use ($myDoctorId, $doctor) {
-                      // A. Lo que ya tomé yo
-                      $q->where('doctor_id', $myDoctorId)
-                        // B. O lo que nadie ha tomado pero es de MI especialidad
-                        ->orWhere(function($sq) use ($doctor) {
-                            $sq->whereNull('doctor_id')
-                               ->whereHas('examType', function($eq) use ($doctor) {
-                                   $eq->where('specialty_id', $doctor->specialty_id);
-                               });
-                        })
-                        // C. O solicitudes especiales (custom) sin doctor
-                        ->orWhere(function($sq) {
-                            $sq->whereNull('doctor_id')
-                               ->where('type', 'custom');
-                        });
-                  })
-                  // Seguridad: Si alguien la tomó pero ya pasaron 20 min, vuelve a estar disponible
-                  ->where(function($sq) use ($myDoctorId) {
-                      $sq->where('doctor_id', $myDoctorId)
+                ->where(function($q) use ($myDoctorId, $doctor) {
+                    // A. Lo que ya tomé yo
+                    $q->where('doctor_id', $myDoctorId)
+                    // B. O lo que nadie ha tomado pero es de MI especialidad
+                    ->orWhere(function($sq) use ($doctor) {
+                        $sq->whereNull('doctor_id')
+                           ->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id));
+                    })
+                    // C. O solicitudes especiales (custom) sin doctor
+                    ->orWhere(function($sq) {
+                        $sq->whereNull('doctor_id')
+                           ->where('type', 'custom');
+                    });
+                })
+                // Seguridad: Si alguien la tomó pero expiró, está disponible
+                ->where(function($sq) use ($myDoctorId) {
+                    $sq->where('doctor_id', $myDoctorId)
                         ->orWhereNull('doctor_id')
                         ->orWhere('claimed_at', '<', now()->subMinutes(20));
-                  });
+                });
         } else {
-            // Historial: Solo lo que yo firmé
+            // Historial: Solo lo que yo ya firmé
             $query->where('status', 'signed')
                   ->where('doctor_id', $myDoctorId);
         }
@@ -72,7 +76,4 @@ public function render()
             'orders' => $query->latest()->paginate(10)
         ]);
     }
-
-
-
 }
