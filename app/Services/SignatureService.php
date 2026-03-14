@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 class SignatureService
 {
-    protected $forceFailure = true;
+    protected $forceFailure = false;
 
     /**
      * Firma la prescripción médica (antes vinculada a MedicalOrder)

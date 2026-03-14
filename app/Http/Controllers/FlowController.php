@@ -56,11 +56,13 @@ class FlowController extends Controller
 
         if ($order && ($order->status === 'refund_pending' || $order->status === 'manual_review')) {
             $config = [
-                'status'  => 'warning',
-                'title'   => 'Procesando Documentación',
-                'message' => 'Tu pago fue recibido correctamente, pero estamos terminando de generar tu documentación médica. Estará disponible en unos minutos.',
-                'action'  => route('patient.orders')
-            ];
+            'status'  => 'error',
+            'title'   => 'Inconveniente con la Orden',
+            'message' => 'Tu pago fue recibido, pero tuvimos un problema técnico al generar tu documentación. ' .
+                         'Por este motivo, se ha solicitado un REEMBOLSO TOTAL de forma automática. ' .
+                         'La gestión y el tiempo de devolución son responsabilidad de la pasarela de pagos (Flow).',
+            'action'  => route('patient.orders')
+        ];
         } else {
             $config = match ($flowStatusCode) {
                 2 => [
