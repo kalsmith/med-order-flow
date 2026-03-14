@@ -128,7 +128,7 @@
         <tr>
             <td width="60%">
                 {{-- Logo Oficial PideTuExamen.cl --}}
-                <img src="{{ public_path('assets/logo/logo.png') }}" class="logo-img">
+                <img src="https://med-order-flow.soltys.cl/assets/logo/logo.png" class="logo-img">
                 <div class="contact-info">
                     pidetuexamen.cl &bull; contacto@pidetuexamen.cl<br>
                     <span>TEL:</span> +56 9 1234 5678
