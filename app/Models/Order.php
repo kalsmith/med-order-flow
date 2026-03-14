@@ -97,4 +97,22 @@ class Order extends Model
         }
         return $this->examType ? $this->examType->name : 'Consulta Médica General';
     }
+
+    /**
+     * Relación con las prescripciones (historial)
+     */
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class, 'order_id');
+    }
+
+    /**
+     * Relación con la prescripción actual/firmada (útil para el PDF)
+     */
+    public function prescription(): HasOne
+    {
+        return $this->hasOne(Prescription::class, 'order_id')->latestOfMany();
+    }
+
+
 }
