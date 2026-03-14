@@ -85,8 +85,7 @@ class FlowService
     // En app/Services/FlowService.php
 
 
-
-    public function handleWebhook($token)
+public function handleWebhook($token)
 {
     Log::info("=== [WEBHOOK FLOW START] ===");
     Log::info("TOKEN RECIBIDO: " . $token);
@@ -103,16 +102,15 @@ class FlowService
             'optional' => $paymentData['optional'] ?? 'EMPTY'
         ]);
 
-        // 2. BÚSQUEDA AGRESIVA DE LA TRANSACCIÓN Y LA ORDEN
-        // No usamos findOrFail directo en Order porque commerceOrder NO es el UUID.
-        Log::info("BUSCANDO TRANSACCIÓN: Usando buy_order = " . $paymentData['commerceOrder']);
+        // 2. BÚSQUEDA DE LA TRANSACCIÓN Y LA ORDEN
+        Log::info("BUSCANDO TRANSACCIÓN: Usando buy_order = " . ($paymentData['commerceOrder'] ?? 'NULL'));
 
-        $gatewayTrx = GatewayTransaction::where('buy_order', $paymentData['commerceOrder'])
+        $gatewayTrx = GatewayTransaction::where('buy_order', $paymentData['commerceOrder'] ?? null)
             ->orWhere('token', $token)
             ->first();
 
         if (!$gatewayTrx) {
-            Log::error("CRITICAL: No existe GatewayTransaction para buy_order: " . $paymentData['commerceOrder']);
+            Log::error("CRITICAL: No existe GatewayTransaction para token: " . $token);
             throw new \Exception("Transacción de pasarela no encontrada.");
         }
 
@@ -125,29 +123,45 @@ class FlowService
             throw new \Exception("Orden comercial no encontrada.");
         }
 
-        // 3. Extraer Metadata con fallback
-        $examTypeId = $paymentData['optional']['exam_type_id'] ?? null;
-        $orderType = $paymentData['optional']['type'] ?? 'standard';
+        // 3. EXTRACCIÓN DE METADATA BLINDADA
+        // Rescatamos la metadata que TÚ guardaste localmente al crear el pago.
+        // Esto evita el error si Flow devuelve "optional": "EMPTY"
+        $localMetadata = $gatewayTrx->metadata ?? [];
 
-        Log::info("METADATA EXTRAÍDA:", ['exam_id' => $examTypeId, 'type' => $orderType]);
+        $examTypeId = $localMetadata['exam_type_id'] ?? ($paymentData['optional']['exam_type_id'] ?? null);
+        $orderType = $localMetadata['type'] ?? ($paymentData['optional']['type'] ?? 'standard');
 
+        Log::info("METADATA PROCESADA:", [
+            'exam_id' => $examTypeId,
+            'type' => $orderType,
+            'source' => isset($gatewayTrx->metadata) ? 'local_db' : 'flow_response'
+        ]);
+
+        // 4. TRANSACCIÓN DE BASE DE DATOS
         return DB::transaction(function () use ($order, $gatewayTrx, $paymentData, $token, $examTypeId, $orderType) {
 
             Log::info("DENTRO DE TRANSACCIÓN: Actualizando gateway_trx y registrando contabilidad.");
 
+            // Actualizar estado de la transacción de pasarela
             $gatewayTrx->update([
                 'status' => 'authorized',
                 'raw_response' => json_encode($paymentData)
             ]);
 
+            // Registro contable
             $this->registerTransaction($gatewayTrx, $order, $token, (object)$paymentData);
 
             if ($orderType === 'standard') {
                 Log::info("FLUJO STANDARD: Iniciando creación de prescripción.");
 
+                if (!$examTypeId) {
+                    throw new \Exception("Error: Se requiere exam_type_id para flujo standard.");
+                }
+
                 $exam = ExamType::findOrFail($examTypeId);
                 Log::info("EXAMEN ENCONTRADO: " . $exam->name . " (Especialidad: " . $exam->specialty_id . ")");
 
+                // Asignación de Médico por rotación
                 $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
 
                 if (!$doctor) {
@@ -157,6 +171,7 @@ class FlowService
 
                 Log::info("MÉDICO ASIGNADO: " . $doctor->id . " (RUT: " . $doctor->rut . ")");
 
+                // Crear Prescripción (Receta)
                 $prescription = Prescription::create([
                     'id' => (string) \Illuminate\Support\Str::uuid(),
                     'order_id' => $order->id,
@@ -169,33 +184,35 @@ class FlowService
                 $doctor->update(['last_assigned_at' => now()]);
                 Log::info("PRESCRIPCIÓN CREADA: " . $prescription->id);
 
-                // FIRMA
+                // PROCESO DE FIRMA
                 try {
                     Log::info("LLAMANDO A SIGNATURE SERVICE...");
                     $signatureService = app(\App\Services\SignatureService::class);
                     $signatureResult = $signatureService->sign($prescription);
 
-                    if ($signatureResult->success) {
-                        $order->update(['status' => 'completed']);
+                    if ($signatureResult && $signatureResult->success) {
+                        $order->update(['status' => 'paid']); // O 'completed' según tu lógica
                         Log::info("=== WEBHOOK FINALIZADO EXITOSAMENTE ===");
                     } else {
-                        throw new \Exception("SignatureService reportó fallo.");
+                        throw new \Exception("SignatureService reportó fallo en la firma.");
                     }
                 } catch (\Exception $e) {
-                    Log::error("FALLO EN FIRMA: " . $e->getMessage());
+                    Log::error("FALLO EN FIRMA AUTOMÁTICA: " . $e->getMessage());
+                    // Aquí podrías decidir si marcar la orden como 'manual_review' en vez de 'failed'
                     $order->update(['status' => 'failed']);
                     throw $e;
                 }
 
             } else {
-                Log::info("FLUJO CUSTOM: Creando prescripción pendiente.");
+                // Flujo para exámenes custom o de revisión manual
+                Log::info("FLUJO CUSTOM: Creando prescripción pendiente de revisión.");
                 Prescription::create([
                     'id' => (string) \Illuminate\Support\Str::uuid(),
                     'order_id' => $order->id,
                     'status' => 'pending',
                     'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
                 ]);
-                $order->update(['status' => 'completed']);
+                $order->update(['status' => 'paid']);
             }
 
             return true;
@@ -205,10 +222,10 @@ class FlowService
         Log::error("=== [WEBHOOK FLOW FATAL ERROR] ===");
         Log::error("MENSAJE: " . $e->getMessage());
         Log::error("TRACE: " . $e->getTraceAsString());
+        // Importante: re-lanzar para que Flow sepa que hubo un error y re-intente si es necesario
         throw $e;
     }
 }
-
     /**
      * Registra el movimiento contable interno.
      */
