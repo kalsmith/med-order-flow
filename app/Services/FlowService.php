@@ -84,91 +84,130 @@ class FlowService
 
     // En app/Services/FlowService.php
 
-public function handleWebhook($token)
+
+
+    public function handleWebhook($token)
 {
-    Log::info("WEBHOOK: Recibido token $token");
+    Log::info("=== [WEBHOOK FLOW START] ===");
+    Log::info("TOKEN RECIBIDO: " . $token);
 
-    // 1. Obtener datos del pago desde Flow usando el nombre de método correcto
-    // Cambié getPaymentData por getPaymentStatus
-    $statusResponse = $this->getPaymentStatus($token);
+    try {
+        // 1. Obtener datos de Flow
+        $statusResponse = $this->getPaymentStatus($token);
+        $paymentData = (array) $statusResponse;
 
-    // Convertimos a array si es un objeto para facilitar el acceso a la metadata
-    $paymentData = (array) $statusResponse;
-
-    // 2. Encontrar la Orden Comercial y la Transacción de Pasarela
-    $order = Order::findOrFail($paymentData['commerceOrder']);
-    $gatewayTrx = GatewayTransaction::where('token', $token)->firstOrFail();
-
-    // 3. Extraer Metadata (Flow lo pone en 'optional')
-    $examTypeId = $paymentData['optional']['exam_type_id'] ?? null;
-    $orderType = $paymentData['optional']['type'] ?? 'standard';
-
-    return DB::transaction(function () use ($order, $gatewayTrx, $paymentData, $token, $examTypeId, $orderType) {
-
-        // ACTUALIZAR TRANSACCIÓN DE PASARELA
-        $gatewayTrx->update([
-            'status' => 'authorized',
-            'raw_response' => json_encode($paymentData)
+        Log::info("DATOS FLOW (Decoded):", [
+            'commerceOrder' => $paymentData['commerceOrder'] ?? 'MISSING',
+            'status' => $paymentData['status'] ?? 'UNKNOWN',
+            'amount' => $paymentData['amount'] ?? '0',
+            'optional' => $paymentData['optional'] ?? 'EMPTY'
         ]);
 
-        // REGISTRAR MOVIMIENTO CONTABLE INTERNO
-        // Pasamos (object)$paymentData para que registerTransaction no falle
-        $this->registerTransaction($gatewayTrx, $order, $token, (object)$paymentData);
+        // 2. BÚSQUEDA AGRESIVA DE LA TRANSACCIÓN Y LA ORDEN
+        // No usamos findOrFail directo en Order porque commerceOrder NO es el UUID.
+        Log::info("BUSCANDO TRANSACCIÓN: Usando buy_order = " . $paymentData['commerceOrder']);
 
-        if ($orderType === 'standard') {
-            Log::info("WEBHOOK: Flujo STANDARD");
+        $gatewayTrx = GatewayTransaction::where('buy_order', $paymentData['commerceOrder'])
+            ->orWhere('token', $token)
+            ->first();
 
-            $exam = ExamType::findOrFail($examTypeId);
-            $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
-
-            if (!$doctor) {
-                throw new \Exception("No hay médicos disponibles para la especialidad.");
-            }
-
-            $prescription = Prescription::create([
-                'id' => (string) Str::uuid(),
-                'order_id' => $order->id,
-                'doctor_id' => $doctor->id,
-                'exam_type_id' => $exam->id,
-                'status' => 'active',
-                'verification_code' => strtoupper(Str::random(8)),
-            ]);
-
-            $doctor->update(['last_assigned_at' => now()]);
-
-            // FIRMA
-            try {
-                $signatureService = app(\App\Services\SignatureService::class);
-                $signatureResult = $signatureService->sign($prescription);
-
-                if ($signatureResult->success) {
-                    $order->update(['status' => 'completed']);
-                    Log::info("WEBHOOK: Proceso y Contabilidad completados exitosamente.");
-                } else {
-                    throw new \Exception("Fallo en el servicio de firma.");
-                }
-            } catch (\Exception $e) {
-                Log::error("WEBHOOK: Error en firma: " . $e->getMessage());
-                $order->update(['status' => 'failed']);
-                throw $e;
-            }
-
-        } else {
-            // Flujo CUSTOM
-            Prescription::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
-                'order_id' => $order->id,
-                'status' => 'pending',
-                'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
-            ]);
-
-            $order->update(['status' => 'completed']);
+        if (!$gatewayTrx) {
+            Log::error("CRITICAL: No existe GatewayTransaction para buy_order: " . $paymentData['commerceOrder']);
+            throw new \Exception("Transacción de pasarela no encontrada.");
         }
 
-        return true;
-    });
-}
+        Log::info("TRANSACCIÓN ENCONTRADA: ID " . $gatewayTrx->id . " vinculada a UUID: " . $gatewayTrx->payable_id);
 
+        $order = Order::find($gatewayTrx->payable_id);
+
+        if (!$order) {
+            Log::error("CRITICAL: La orden UUID " . $gatewayTrx->payable_id . " no existe en la tabla orders.");
+            throw new \Exception("Orden comercial no encontrada.");
+        }
+
+        // 3. Extraer Metadata con fallback
+        $examTypeId = $paymentData['optional']['exam_type_id'] ?? null;
+        $orderType = $paymentData['optional']['type'] ?? 'standard';
+
+        Log::info("METADATA EXTRAÍDA:", ['exam_id' => $examTypeId, 'type' => $orderType]);
+
+        return DB::transaction(function () use ($order, $gatewayTrx, $paymentData, $token, $examTypeId, $orderType) {
+
+            Log::info("DENTRO DE TRANSACCIÓN: Actualizando gateway_trx y registrando contabilidad.");
+
+            $gatewayTrx->update([
+                'status' => 'authorized',
+                'raw_response' => json_encode($paymentData)
+            ]);
+
+            $this->registerTransaction($gatewayTrx, $order, $token, (object)$paymentData);
+
+            if ($orderType === 'standard') {
+                Log::info("FLUJO STANDARD: Iniciando creación de prescripción.");
+
+                $exam = ExamType::findOrFail($examTypeId);
+                Log::info("EXAMEN ENCONTRADO: " . $exam->name . " (Especialidad: " . $exam->specialty_id . ")");
+
+                $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+
+                if (!$doctor) {
+                    Log::error("ERROR ROTACIÓN: No hay médicos para especialidad " . $exam->specialty_id);
+                    throw new \Exception("No hay médicos disponibles para la especialidad.");
+                }
+
+                Log::info("MÉDICO ASIGNADO: " . $doctor->id . " (RUT: " . $doctor->rut . ")");
+
+                $prescription = Prescription::create([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'order_id' => $order->id,
+                    'doctor_id' => $doctor->id,
+                    'exam_type_id' => $exam->id,
+                    'status' => 'active',
+                    'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
+                ]);
+
+                $doctor->update(['last_assigned_at' => now()]);
+                Log::info("PRESCRIPCIÓN CREADA: " . $prescription->id);
+
+                // FIRMA
+                try {
+                    Log::info("LLAMANDO A SIGNATURE SERVICE...");
+                    $signatureService = app(\App\Services\SignatureService::class);
+                    $signatureResult = $signatureService->sign($prescription);
+
+                    if ($signatureResult->success) {
+                        $order->update(['status' => 'completed']);
+                        Log::info("=== WEBHOOK FINALIZADO EXITOSAMENTE ===");
+                    } else {
+                        throw new \Exception("SignatureService reportó fallo.");
+                    }
+                } catch (\Exception $e) {
+                    Log::error("FALLO EN FIRMA: " . $e->getMessage());
+                    $order->update(['status' => 'failed']);
+                    throw $e;
+                }
+
+            } else {
+                Log::info("FLUJO CUSTOM: Creando prescripción pendiente.");
+                Prescription::create([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'order_id' => $order->id,
+                    'status' => 'pending',
+                    'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
+                ]);
+                $order->update(['status' => 'completed']);
+            }
+
+            return true;
+        });
+
+    } catch (\Exception $e) {
+        Log::error("=== [WEBHOOK FLOW FATAL ERROR] ===");
+        Log::error("MENSAJE: " . $e->getMessage());
+        Log::error("TRACE: " . $e->getTraceAsString());
+        throw $e;
+    }
+}
 
     /**
      * Registra el movimiento contable interno.
