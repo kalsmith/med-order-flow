@@ -40,27 +40,32 @@
                     </div>
                 </div>
 
-                <div class="d-flex flex-wrap gap-2">
-                    @if($order->status == 'paid')
-                        <button class="btn btn-primary btn-sm rounded-pill px-3">
-                            <i class="bi bi-download me-1"></i> Descargar Orden
-                        </button>
-                    @endif
+<div class="d-flex flex-wrap gap-2">
+    @if($canDownload)
+        <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Descargar Orden
+        </button>
+    @elseif($order->status === 'paid')
+        {{-- Si ya pagó pero la receta no está firmada (está en 'active' u otro) --}}
+        <span class="badge bg-light text-primary border py-2 px-3 rounded-pill">
+            <i class="bi bi- hourglass-split me-1"></i> Procesando firma médica
+        </span>
+    @endif
 
-                    @if($canShowChat)
-                        <button class="btn btn-info btn-sm rounded-pill px-3 text-white"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#chat-collapse-{{ $order->id }}"
-                                aria-expanded="false">
-                            <i class="bi bi-chat-dots-fill me-1"></i> Consultar al Médico
-                        </button>
-                    @elseif($order->type === 'custom')
-                        <span class="badge bg-light text-muted border py-2 px-3 rounded-pill">
-                            <i class="bi bi-clock me-1"></i> Esperando contacto del médico
-                        </span>
-                    @endif
-                </div>
+    @if($canShowChat)
+        <button class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#chat-collapse-{{ $order->id }}"
+                aria-expanded="false">
+            <i class="bi bi-chat-dots-fill me-1"></i> Consultar al Médico
+        </button>
+    @elseif($order->type === 'custom')
+        <span class="badge bg-light text-muted border py-2 px-3 rounded-pill">
+            <i class="bi bi-clock me-1"></i> Esperando contacto del médico
+        </span>
+    @endif
+</div>
 
                 @if($canShowChat)
                     <div class="collapse mt-3" id="chat-collapse-{{ $order->id }}" wire:ignore>

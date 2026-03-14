@@ -17,17 +17,19 @@ class OrderItem extends Component
 
     public function render()
     {
-        // 1. Condición: Tipo personalizado
+        // 1. Lógica para el Chat
         $isCustom = $this->order->type === 'custom';
-
-        // 2. Condición: El médico ya escribió al menos una vez
         $hasDoctorMessage = $this->order->interactions
             ->where('sender_type', 'doctor')
             ->isNotEmpty();
 
-        // Enviamos la variable a la vista
+        // 2. Lógica para el Botón de Descarga
+        // Verificamos si la receta activa tiene el status 'signed'
+        $isSigned = $this->order->activePrescription && $this->order->activePrescription->status === 'signed';
+
         return view('livewire.patient.order-item', [
-            'canShowChat' => $isCustom && $hasDoctorMessage
+            'canShowChat' => $isCustom && $hasDoctorMessage,
+            'canDownload' => $this->order->status === 'paid' && $isSigned
         ]);
     }
 }
