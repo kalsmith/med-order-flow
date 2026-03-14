@@ -10,7 +10,7 @@
 
             @forelse($orders as $order)
                 {{-- Pasamos cada orden al componente hijo --}}
-                @livewire('patient.order-item', ['order' => $order], key('order-'.$order->id))
+                {{-- @livewire('patient.order-item', ['order' => $order], key('order-'.$order->id)) --}}
             @empty
                 <div class="card border-0 shadow-sm rounded-4 py-5 text-center">
                     <div class="card-body">
