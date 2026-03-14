@@ -26,7 +26,8 @@ class Prescription extends Model
         'verification_code',
         'clinical_context',
         'void_reason',
-        'signed_at'
+        'signed_at',
+        'type', // <--- Asegúrate de que esté aquí
     ];
 
     protected $casts = [

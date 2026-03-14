@@ -17,11 +17,15 @@
                 </div>
 
                 <h2 class="fw-800 text-dark mb-0" style="letter-spacing: -1.2px; font-size: 1.85rem;">
-                    {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
+                    {{ $order->type === 'custom' ? ($order->custom_description ?? 'Solicitud Especial') : ($order->examType->name ?? 'Examen General') }}
                 </h2>
 
-                {{-- Spinner si está pagada pero el médico aún no toma acción (no hay interacción ni receta) --}}
-                @if($order->status === 'paid' && !$activePrescription && $order->interactions->count() === 0)
+                {{-- Spinner: Pagado pero aún sin firma (o médico no ha tomado la orden custom) --}}
+                @php
+                    $isWaitingDoctor = $order->status === 'paid' && (!$activePrescription || $activePrescription->status !== 'signed');
+                @endphp
+
+                @if($isWaitingDoctor)
                     <div class="mt-4 p-3 info-box bg-light d-inline-flex align-items-center rounded-3 border">
                         <div class="spinner-border spinner-border-sm text-primary me-3" role="status"></div>
                         <div>
@@ -45,9 +49,10 @@
                                 'completed' => ['class' => 'bg-success-subtle text-success', 'label' => 'FINALIZADA'],
                                 'rejected'=> ['class' => 'bg-danger-subtle text-danger', 'label' => 'RECHAZADA'],
                             ];
-                            // Si hay prescripción activa, forzamos etiqueta de "LISTA" para el paciente
-                            $label = $activePrescription ? 'LISTA PARA DESCARGA' : ($statusConfig[$order->status]['label'] ?? strtoupper($order->status));
-                            $class = $activePrescription ? 'bg-success-subtle text-success' : ($statusConfig[$order->status]['class'] ?? 'bg-secondary-subtle');
+
+                            $isSigned = $activePrescription && $activePrescription->status === 'signed';
+                            $label = $isSigned ? 'LISTA PARA DESCARGA' : ($statusConfig[$order->status]['label'] ?? strtoupper($order->status));
+                            $class = $isSigned ? 'bg-success-subtle text-success' : ($statusConfig[$order->status]['class'] ?? 'bg-secondary-subtle');
                         @endphp
 
                         <span class="badge {{ $class }} mb-2 fw-bold px-3 py-2" style="font-size: 0.7rem;">
@@ -61,9 +66,9 @@
                         </div>
                     </div>
 
-                    {{-- Botones --}}
+                    {{-- Botones Dinámicos --}}
                     <div class="order-lg-2 d-flex flex-column gap-2">
-                        @if($activePrescription)
+                        @if($isSigned)
                             <a href="{{ route('prescriptions.download', $activePrescription->id) }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 px-4 shadow-sm fw-bold">
                                 <i class="bi bi-file-earmark-pdf-fill fs-5"></i> Descargar Orden
                             </a>
@@ -73,14 +78,7 @@
                             </a>
                         @endif
 
-                        @php
-                            $isCustom = $order->type === 'custom';
-                            $hasMessages = $order->interactions->count() > 0;
-                            // Se puede chatear si no está pendiente de pago
-                            $shouldShowChat = ($order->status !== 'pending');
-                        @endphp
-
-                        @if($shouldShowChat)
+                        @if($order->status !== 'pending')
                             <button class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2 py-2 px-4 position-relative"
                                     type="button"
                                     data-bs-toggle="collapse"
@@ -89,10 +87,10 @@
 
                                 <i class="bi bi-chat-left-text"></i>
                                 <span>
-                                    {{ $activePrescription ? 'Ver Historial' : ($hasMessages ? 'Ver Mensajes' : 'Consultar Médico') }}
+                                    {{ $isSigned ? 'Ver Historial' : ($order->interactions->count() > 0 ? 'Ver Mensajes' : 'Consultar Médico') }}
                                 </span>
 
-                                @if($showNotificationBadge && !$activePrescription)
+                                @if($showNotificationBadge && !$isSigned)
                                     <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow">
                                         <span class="visually-hidden">Nuevo mensaje</span>
                                     </span>
@@ -105,11 +103,10 @@
         </div>
 
         {{-- SECCIÓN DE CHAT COLLAPSE --}}
-        @if($shouldShowChat)
-            <div class="collapse {{ ($showNotificationBadge && !$activePrescription) ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
+        @if($order->status !== 'pending')
+            <div class="collapse {{ ($showNotificationBadge && !$isSigned) ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
                 <div class="chat-wrapper-custom mt-4 pt-4 border-top">
-                    {{-- Cambiado a order-chat y pasamos la Order --}}
-                    @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
+                    {{-- @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id)) --}}
                 </div>
             </div>
         @endif

@@ -57,21 +57,10 @@ class PatientOrderController extends Controller
      * Paso 2: Crear la orden en la base de datos y saltar al pago.
      */
 
-
 public function index()
 {
-    $patientIds = auth()->user()->patients()->pluck('id');
-
-    // Buscamos las Órdenes (Comerciales) que tienen Prescripciones (Médicas)
-    // Usamos Order porque es lo que el paciente "pagó"
-    $orders = Order::with(['examType', 'patient', 'activePrescription'])
-        ->whereNotIn('status', ['refund_pending', 'refunded', 'failed'])
-        ->with(['activePrescription.doctor', 'examType', 'patient'])
-        ->latest()
-        ->paginate(10);
-
-    // IMPORTANTE: Renderizar a una vista de PACIENTE, no de ADMIN
-    return view('patient.orders.index', compact('orders'));
+    // Cero consultas. Solo servimos el contenedor.
+    return view('patient.orders.index');
 }
 
 
