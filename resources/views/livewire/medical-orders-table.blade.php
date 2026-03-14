@@ -35,35 +35,40 @@
                 <thead class="bg-light-subtle">
                     <tr>
                         <th class="ps-4 py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Paciente</th>
-                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Examen</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Examen / Tipo</th>
                         <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Fecha</th>
                         <th class="py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Estado</th>
                         <th class="text-end pe-4 py-3 text-uppercase small fw-bold text-muted" style="font-size: 0.75rem;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
+                    @php
+                        $myDoctorId = auth()->user()->doctor->id ?? null;
+                    @endphp
+
                     @forelse($orders as $order)
                         @php
-                            $myDoctorId = auth()->user()->doctor->id ?? null;
+                            // Casting manual para evitar errores de tipo int/string
+                            $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
+                            $meId = strval($myDoctorId);
 
-                            // Bloqueada por otro: Tiene doctor, no soy yo, y el reclamo es reciente (< 20 min)
-                            $isClaimedByOther = $order->doctor_id &&
-                                               $order->doctor_id !== $myDoctorId &&
+                            // Lógica de estados
+                            $isClaimedByOther = $orderDocId &&
+                                               $orderDocId !== $meId &&
                                                $order->claimed_at &&
                                                $order->claimed_at->gt(now()->subMinutes(20));
 
-                            // Es mía: Yo soy el doctor asignado y está pagada (pendiente de firma)
-                            $isClaimedByMe = $order->doctor_id === $myDoctorId && $order->status === 'paid';
+                            $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
                         @endphp
                         <tr>
                             <td class="ps-4">
-                                <div class="fw-bold text-dark">{{ $order->patient->full_name }}</div>
-                                <div class="text-muted small">{{ $order->patient->rut }}</div>
+                                <div class="fw-bold text-dark">{{ $order->patient->full_name ?? 'N/A' }}</div>
+                                <div class="text-muted small">{{ $order->patient->rut ?? '' }}</div>
                             </td>
                             <td>
                                 @if($order->type === 'custom')
                                     <span class="badge border" style="background-color: #f3e8ff; color: #6b21a8; border-color: #d8b4fe;">
-                                        <i class="bi bi-stars me-1"></i> Especial
+                                        <i class="bi bi-stars me-1"></i> Especial (Custom)
                                     </span>
                                 @else
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium">
@@ -97,25 +102,24 @@
                             <td class="text-end pe-4">
                                 @if($order->status !== 'signed')
                                     @if($isClaimedByOther)
-                                        <button class="btn btn-sm btn-light border text-muted" disabled title="Siendo revisada por otro médico">
+                                        <button class="btn btn-sm btn-light border text-muted" disabled title="Bloqueado por otro profesional">
                                             <i class="bi bi-lock-fill"></i>
                                         </button>
                                     @else
-                                        {{-- Botón dinámico: Firmar o Continuar --}}
                                         <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
                                            class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3 rounded-pill shadow-sm fw-bold">
                                             <i class="bi {{ $isClaimedByMe ? 'bi-play-fill' : 'bi-vector-pen' }} me-1"></i>
-                                            {{ $isClaimedByMe ? 'Continuar' : 'Firmar' }}
+                                            {{ $isClaimedByMe ? 'Continuar' : 'Atender' }}
                                         </a>
                                     @endif
                                 @else
-                                    {{-- Grupo de acciones para órdenes firmadas --}}
                                     <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
+                                        {{-- Ver Detalles --}}
                                         <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
                                            class="btn btn-sm btn-white border border-end-0" title="Ver Detalles">
                                             <i class="bi bi-eye text-primary"></i>
                                         </a>
-                                        {{-- Ruta al PDF (asegúrate de que exista en tu web.php) --}}
+                                        {{-- Descargar PDF --}}
                                         <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}"
                                            target="_blank"
                                            class="btn btn-sm btn-white border" title="Descargar PDF">
@@ -147,4 +151,5 @@
     .btn-white:hover { background-color: #f9fafb; color: #000; }
     .nav-tabs .nav-link.active { color: #0d6efd !important; border-bottom: 3px solid #0d6efd !important; }
     .table-hover tbody tr:hover { background-color: #f8fafc; }
+    .badge { font-size: 0.75rem; padding: 0.4em 0.8em; }
 </style>

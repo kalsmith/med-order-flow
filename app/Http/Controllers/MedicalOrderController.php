@@ -3,19 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\ExamType;
-use App\Models\GatewayTransaction;
+use App\Models\Prescription;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Services\FlowService;
 
 class MedicalOrderController extends Controller
 {
     /**
-     * Listado de órdenes: Inteligente según el Rol.
+     * Listado de órdenes: Inteligente según el Rol con liberación de bloqueos.
      */
     public function index()
     {
@@ -33,14 +31,14 @@ class MedicalOrderController extends Controller
         // 2. Query Base con Eager Loading
         $query = Order::with(['patient' => function($q) {
             $q->withTrashed();
-        }, 'doctor.user', 'examType', 'interactions']);
+        }, 'doctor.user', 'examType', 'prescriptions']);
 
         // 3. Lógica de filtrado para Doctores
         if ($user->hasRole('doctor')) {
             $doctor = $user->doctor;
 
             $query->where(function($q) use ($doctor) {
-                // Órdenes ya tomadas por este doctor (ID de tabla doctors)
+                // Órdenes ya tomadas por este doctor
                 $q->where('doctor_id', $doctor->id)
                   ->whereIn('status', ['paid', 'pending', 'signed'])
 
@@ -49,7 +47,6 @@ class MedicalOrderController extends Controller
                     $sq->whereNull('doctor_id')
                        ->where('status', 'paid')
                        ->whereHas('examType', function($eq) use ($doctor) {
-                           // Asumiendo que doctor tiene specialty_id
                            $eq->where('specialty_id', $doctor->specialty_id);
                        });
                 })
@@ -69,7 +66,7 @@ class MedicalOrderController extends Controller
     }
 
     /**
-     * Muestra el formulario de firma y bloquea la orden para el médico.
+     * Muestra el formulario de firma y bloquea la orden.
      */
     public function showSignForm(Order $order)
     {
@@ -80,10 +77,10 @@ class MedicalOrderController extends Controller
             return redirect()->back()->with('error', 'No tienes un perfil médico asociado.');
         }
 
-        // VALIDACIÓN DE BLOQUEO CORREGIDA (Comparando doctor_id)
+        // VALIDACIÓN DE BLOQUEO (Usando strval para evitar conflictos int/string)
         if (
             $order->doctor_id &&
-            $order->doctor_id !== $doctor->id &&
+            strval($order->doctor_id) !== strval($doctor->id) &&
             $order->claimed_at &&
             $order->claimed_at->gt(now()->subMinutes(20))
         ) {
@@ -91,23 +88,21 @@ class MedicalOrderController extends Controller
                              ->with('error', 'Esta orden está siendo revisada por otro profesional.');
         }
 
-        // Tomamos la orden: Actualizamos doctor_id con el ID del DOCTOR (no el del usuario)
+        // Tomamos/Renovamos la orden para el médico actual
         $order->update([
             'doctor_id' => $doctor->id,
             'claimed_at' => now()
         ]);
 
-        Log::info("Médico ID: {$doctor->id} (User: {$user->id}) tomó la orden {$order->id}.");
+        Log::info("Médico ID: {$doctor->id} tomó la orden {$order->id} para revisión.");
 
-        $order->load(['patient', 'doctor.user', 'examType', 'interactions']);
+        $order->load(['patient', 'doctor.user', 'examType', 'prescriptions']);
         return view('admin.orders.sign', compact('order'));
     }
 
     /**
-     * Procesa la firma digital y finaliza el ciclo médico.
+     * Procesa la firma digital actualizando la Prescripción y la Orden.
      */
-
-
     public function processSignature(Request $request, Order $order)
     {
         $request->validate([
@@ -117,56 +112,60 @@ class MedicalOrderController extends Controller
         $user = Auth::user();
         $doctor = $user->doctor;
 
-        // CORRECCIÓN DE SEGURIDAD: Forzamos a string para evitar discrepancias de tipos (int vs string)
+        // Verificación de seguridad de identidad
         if (strval($order->doctor_id) !== strval($doctor->id)) {
-            Log::error("Fallo de permiso en firma", [
-                'order_doctor' => $order->doctor_id,
-                'my_doctor' => $doctor->id,
-                'order_type' => gettype($order->doctor_id),
-                'doctor_type' => gettype($doctor->id)
-            ]);
-            return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permiso para firmar esta orden o el bloqueo expiró.');
+            Log::error("Fallo de permiso en firma", ['order_doctor' => $order->doctor_id, 'my_doctor' => $doctor->id]);
+            return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permiso para firmar esta orden.');
         }
 
         try {
             DB::transaction(function () use ($order, $doctor, $request, $user) {
-                // 1. Finalizar la orden
+
+                // 1. Actualizar la Prescripción (El documento clínico real)
+                $prescription = $order->prescriptions()->where('status', 'active')->first();
+
+                if ($prescription) {
+                    $prescription->update([
+                        'status' => 'signed',
+                        'signed_at' => now(),
+                        'clinical_context' => $request->clinical_context,
+                        'doctor_id' => $doctor->id
+                    ]);
+                } else {
+                    // Fallback: Si no existe, se crea para no perder la información
+                    $order->prescriptions()->create([
+                        'doctor_id' => $doctor->id,
+                        'exam_type_id' => $order->exam_type_id,
+                        'status' => 'signed',
+                        'signed_at' => now(),
+                        'clinical_context' => $request->clinical_context,
+                    ]);
+                }
+
+                // 2. Finalizar la Orden (Estado administrativo)
                 $order->update([
-                    'status'           => 'signed',
-                    'signed_at'        => now(),
-                    'clinical_context' => $request->clinical_context,
-                    'claimed_at'       => null // Liberamos el bloqueo temporal
+                    'status'     => 'signed',
+                    'claimed_at' => null // Liberamos bloqueo
                 ]);
 
-                // 2. Actualizar rotación del médico (vital para el motor de asignación)
+                // 3. Actualizar rotación del médico
                 $doctor->update([
                     'last_assigned_at' => now()
                 ]);
 
-                // 3. Vincular la transacción al usuario médico para sus pagos
+                // 4. Vincular transacción al médico para pagos
                 Transaction::where('reference_id', $order->id)
                     ->update(['receiver_id' => $user->id]);
             });
 
-            Log::info("Orden {$order->id} firmada con éxito por Doctor ID: {$doctor->id}");
-
-            return redirect()->route('admin.doctor.panel')->with('success', 'Orden firmada exitosamente. El documento ha sido generado.');
+            Log::info("Orden {$order->id} firmada exitosamente por Doctor {$doctor->id}");
+            return redirect()->route('admin.doctor.panel')->with('success', 'Orden firmada exitosamente.');
 
         } catch (\Exception $e) {
-            Log::error("Error crítico en processSignature: " . $e->getMessage());
+            Log::error("Error en processSignature: " . $e->getMessage());
             return redirect()->back()->with('error', 'Error al procesar la firma electrónica.');
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     /**
      * Rechazar orden.
@@ -176,9 +175,7 @@ class MedicalOrderController extends Controller
         $user = auth()->user();
         $doctor = $user->doctor;
 
-        // Si no es admin y no es el dueño del bloqueo, rechazar
-        if (!$user->hasRole('admin') && (!$doctor || $order->doctor_id !== $doctor->id)) {
-            Log::error("Fallo de permiso en rechazo", ['user' => $user->id, 'order_doc' => $order->doctor_id]);
+        if (!$user->hasRole('admin') && (!$doctor || strval($order->doctor_id) !== strval($doctor->id))) {
             return redirect()->back()->with('error', 'No tienes permiso sobre esta orden.');
         }
 
@@ -191,37 +188,12 @@ class MedicalOrderController extends Controller
                 'claimed_at' => null,
             ]);
 
-            Log::info("Orden {$order->id} rechazada por médico ID: " . ($doctor->id ?? 'Admin'));
-
+            Log::info("Orden {$order->id} rechazada.");
             return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada correctamente.');
         } catch (\Exception $e) {
             Log::error("Error en rejectOrder: " . $e->getMessage());
             return redirect()->back()->with('error', 'Error al procesar el rechazo.');
         }
-    }
-
-    /**
-     * Deriva la orden.
-     */
-    public function derivateOrder(Request $request, Order $order)
-    {
-        $request->validate([
-            'specialty_id' => 'required|exists:specialties,id'
-        ]);
-
-        $doctor = auth()->user()->doctor;
-
-        if ($doctor && $order->doctor_id === $doctor->id) {
-            $order->update([
-                'doctor_id' => null,
-                'claimed_at' => null,
-                // Aquí podrías actualizar una columna specialty_id en 'orders' si la tienes
-            ]);
-
-            return redirect()->route('admin.doctor.panel')->with('info', 'Orden derivada exitosamente.');
-        }
-
-        return redirect()->back()->with('error', 'No tienes permiso para derivar esta orden.');
     }
 
     /**
@@ -232,54 +204,15 @@ class MedicalOrderController extends Controller
         $user = auth()->user();
         $doctor = $user->doctor;
 
-        // Puede liberar el dueño del bloqueo o un admin
-        if ($user->hasRole('admin') || ($doctor && $order->doctor_id === $doctor->id)) {
+        if ($user->hasRole('admin') || ($doctor && strval($order->doctor_id) === strval($doctor->id))) {
             $order->update([
                 'doctor_id' => null,
                 'claimed_at' => null
             ]);
 
-            Log::info("Orden {$order->id} liberada manualmente.");
             return redirect()->route('admin.doctor.panel')->with('success', 'Orden liberada correctamente.');
         }
 
-        return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permisos para liberar esta orden.');
+        return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permisos.');
     }
 }
-
-
-    // public function create()
-    // {
-    //     $doctor = Auth::user()->doctor;
-    //     if (!$doctor) return redirect()->back()->with('error', 'Perfil médico no encontrado.');
-
-    //     $exams = ExamType::where('specialty_id', $doctor->specialty_id)
-    //         ->orWhereHas('specialty', fn($q) => $q->where('name', 'LIKE', '%General%'))
-    //         ->where('is_active', true)
-    //         ->get();
-
-    //     return view('admin.orders.create', compact('exams'));
-    // }
-
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'patient_id' => 'required|exists:patients,id',
-    //         'exam_type_id' => 'required|exists:exam_types,id',
-    //         'amount' => 'required|numeric|min:0',
-    //     ]);
-
-    //     $doctor = Auth::user()->doctor;
-
-    //     MedicalOrder::create([
-    //         'patient_id' => $request->patient_id,
-    //         'doctor_id' => $doctor->id,
-    //         'exam_type_id' => $request->exam_type_id,
-    //         'amount' => $request->amount,
-    //         'status' => 'pending',
-    //         'claimed_at' => now(),
-    //         'verification_code' => MedicalOrder::generateUniqueVerificationCode(),
-    //     ]);
-
-    //     return redirect()->route('admin.orders.index')->with('success', 'Orden médica generada.');
-    // }
