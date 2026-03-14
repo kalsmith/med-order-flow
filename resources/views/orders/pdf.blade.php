@@ -97,6 +97,17 @@
             font-size: 9px;
             color: #b2bec3;
         }
+        /* Añadimos estilo para la firma */
+    .signature-container {
+        margin-top: 10px;
+        text-align: left;
+    }
+    .signature-img {
+        max-height: 70px;
+        max-width: 180px;
+        display: block;
+    }
+
     </style>
 </head>
 <body>
@@ -140,13 +151,28 @@
         <tr>
             <td class="section-title">Médico Emisor</td>
             <td>
-                <div class="value" style="font-size: 15px; margin-bottom: 4px;">Dr. {{ $order->doctor->user->name }}</div>
+                <div class="value" style="font-size: 15px; margin-bottom: 4px;">
+                    {{ $order->doctor->prefix }} {{ $order->doctor->user->name }}
+                </div>
+
                 <div style="color: #636e72; font-size: 10px;">
                     RUT: {{ $order->doctor->rut }} | Registro SIS: {{ $order->doctor->rnpi_number }}<br>
                     <span style="color: #0d6efd; font-weight: bold;">
                         {{ strtoupper($order->doctor->specialties->pluck('name')->implode(' / ')) }}
                     </span>
                 </div>
+
+                {{-- Sección de Firma Digital --}}
+                @if($order->doctor->signature_path)
+                    <div class="signature-container">
+                        {{-- Nota: Para dompdf es mejor usar public_path o el base64 si es storage --}}
+                        <img src="{{ public_path('storage/' . $order->doctor->signature_path) }}" class="signature-img">
+                    </div>
+                @else
+                    <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
+                        Documento firmado electrónicamente
+                    </div>
+                @endif
             </td>
         </tr>
     </table>
