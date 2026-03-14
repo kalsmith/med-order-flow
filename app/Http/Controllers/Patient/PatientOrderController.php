@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamType;
 use App\Models\MedicalOrder;
 use App\Models\Doctor;
+use App\Models\Order;
 use App\Models\Patient;
 use App\Services\OrderPdfService;
 use Illuminate\Http\Request;
@@ -55,123 +56,95 @@ class PatientOrderController extends Controller
      * Paso 2: Crear la orden en la base de datos y saltar al pago.
      */
 
-public function store(Request $request)
-{
-    Log::info("=== INICIO PROCESO DE ORDEN ===", ['payload' => $request->all()]);
 
-    if (!$request->has('type')) {
-        $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
+    public function index()
+    {
+        $patientIds = auth()->user()->patients()->pluck('id');
+
+        // El paciente quiere ver sus "Recetas/Órdenes Médicas" (Prescriptions)
+        // ya que la Order comercial no le interesa mucho verla si no es para pagar.
+        $prescriptions = Prescription::whereHas('order', function($q) use ($patientIds) {
+                $q->whereIn('patient_id', $patientIds);
+            })
+            ->with(['examType', 'order.patient', 'doctor'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('patient.orders.index', compact('prescriptions'));
     }
-    // 1. Validación
-    try {
+
+
+
+public function store(Request $request)
+    {
+        Log::info("=== INICIO PROCESO DE COMPRA ===", ['payload' => $request->all()]);
+
+        // Normalizamos el tipo de flujo
+        if (!$request->has('type')) {
+            $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
+        }
+
+        // 1. VALIDACIÓN
         $request->validate([
             'patient_id'   => 'required|exists:patients,id',
             'exam_type_id' => 'required_unless:type,custom|exists:exam_types,id',
             'custom_description' => 'required_if:type,custom|min:10'
         ]);
-        Log::info("1. Validación aprobada.");
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error("Fallo en validación:", ['errors' => $e->errors()]);
-        throw $e;
-    }
 
-    try {
-        $order = DB::transaction(function () use ($request) {
+        try {
+            $order = DB::transaction(function () use ($request) {
+                $patient = Patient::findOrFail($request->patient_id);
+                $orderType = $request->type;
 
-            $patient = Patient::findOrFail($request->patient_id);
-            //Log::info("2. Paciente encontrado:", ['id' => $patient->id, 'nombre' => $patient->full_name]);
-
-            // DETERMINAR FLUJO
-            if ($request->type === 'custom') {
-                //Log::info("3. Entrando a FLUJO CUSTOM.");
-
-                $examId = null;
-                $amount = 9990;
-                $orderType = 'custom';
-                $description = $request->custom_description;
-                $doctor = null; // En custom, queda libre para el pool
-
-                //Log::info("4. Parámetros Custom listos. Doctor asignado: NULL (Pool abierto).");
-            } else {
-                //Log::info("3. Entrando a FLUJO ESTÁNDAR.");
-
-                $exam = ExamType::findOrFail($request->exam_type_id);
-                $examId = $exam->id;
-                $amount = $exam->base_price;
-                $orderType = 'standard';
-                $description = null;
-
-                //Log::info("4. Buscando doctor por especialidad...", ['specialty_id' => $exam->specialty_id]);
-                $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
-
-                if (!$doctor) {
-                    //Log::error("ERROR: No se encontró doctor para la especialidad.");
-                    throw new \Exception('No hay médicos disponibles para esta especialidad.');
+                // Determinamos precio y datos del examen
+                if ($orderType === 'custom') {
+                    $amount = 9990; // Precio fijo custom
+                    $examId = null;
+                } else {
+                    $exam = ExamType::findOrFail($request->exam_type_id);
+                    $amount = $exam->base_price;
+                    $examId = $exam->id;
                 }
-                //Log::info("5. Doctor asignado por rotación:", ['id' => $doctor->id]);
-            }
 
-            // 3. CREAR LA ORDEN
-            //Log::info("6. Intentando crear registro en MedicalOrder...");
-            $newOrder = MedicalOrder::create([
-                'id'                => (string) Str::uuid(),
-                'patient_id'        => $patient->id,
-                'doctor_id'         => $doctor ? $doctor->id : null, // IMPORTANTE: Permitir null
-                'exam_type_id'      => $examId,
-                'custom_description'=> $description,
-                'status'            => 'pending',
-                'type'              => $orderType,
-                'amount'            => $amount,
-                'verification_code' => strtoupper(Str::random(8)),
+                // 2. CREAR LA ORDEN COMERCIAL (La "boleta")
+                // No asignamos doctor aquí, solo registramos qué se quiere comprar.
+                $newOrder = Order::create([
+                    'id'         => (string) Str::uuid(),
+                    'patient_id' => $patient->id,
+                    'amount'     => $amount,
+                    'status'     => 'pending',
+                ]);
+
+                Log::info("Orden Comercial Creada:", ['id' => $newOrder->id]);
+
+                return [
+                    'order' => $newOrder,
+                    'exam_id' => $examId,
+                    'type' => $orderType
+                ];
+            });
+
+            // 3. REDIRIGIR AL CHECKOUT PASANDO METADATA
+            // Pasamos el exam_id y el type para que FlowService los guarde en la metadata de la transacción
+            return redirect()->route('checkout.process', [
+                'order' => $order['order']->id,
+                'exam_type_id' => $order['exam_id'],
+                'type' => $order['type']
             ]);
 
-            //Log::info("7. ORDEN CREADA EXITOSAMENTE:", ['order_id' => $newOrder->id]);
-
-            // 4. ACTUALIZAR TURNO (Solo si hay doctor)
-            if ($doctor) {
-                //Log::info("8. Actualizando turno del doctor.");
-                $doctor->update(['last_assigned_at' => now()]);
-            } else {
-                //Log::info("8. Sin doctor que actualizar (es flujo custom).");
-            }
-
-            return $newOrder;
-        });
-
-        //Log::info("=== FIN PROCESO EXITOSO - REDIRIGIENDO AL PAGO ===");
-        return redirect()->route('checkout.process', ['order' => $order->id]);
-
-    } catch (\Exception $e) {
-        Log::error("!!! EXCEPCIÓN EN STORE !!!", [
-            'mensaje' => $e->getMessage(),
-            'linea'   => $e->getLine(),
-            'archivo' => $e->getFile()
-        ]);
-        return back()->with('error', 'Error al procesar la orden: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            Log::error("Error en PatientOrderController@store: " . $e->getMessage());
+            return back()->with('error', 'No pudimos procesar tu solicitud.');
+        }
     }
-}
+
+
+
 
 
     /**
      * Listado de órdenes del paciente.
      */
-public function index()
-{
-    // 1. Obtenemos los IDs de TODOS los pacientes asociados a este usuario
-    $patientIds = auth()->user()->patients()->pluck('id');
-
-    if ($patientIds->isEmpty()) {
-        return redirect()->route('home')->with('error', 'No se encontraron perfiles de paciente.');
-    }
-
-    // 2. Buscamos órdenes donde el patient_id esté en esa lista de IDs
-    $orders = MedicalOrder::whereIn('patient_id', $patientIds)
-        ->with(['examType.specialty', 'patient']) // Cargamos 'patient' para saber de quién es la orden
-        ->orderBy('created_at', 'desc')
-        ->paginate(10);
-
-    return view('patient.orders.index', compact('orders'));
-}
 
 public function download($orderId, OrderPdfService $pdfService)
 {
@@ -197,22 +170,157 @@ public function download($orderId, OrderPdfService $pdfService)
     return $pdf->download($fileName);
 }
 
-    public function showSuccess(MedicalOrder $order = null)
-{
-    // Si no viene orden (por si alguien entra manual), lo mandamos a la lista
-    if (!$order) {
-        return redirect()->route('patient.orders');
+
+public function showSuccess(Order $order = null)
+    {
+        if (!$order) return redirect()->route('patient.orders');
+
+        if ((string)$order->patient->user_id !== (string)auth()->id()) {
+            abort(403);
+        }
+
+        $order->load(['patient.user', 'prescriptions']);
+
+        return view('payments.payment-success', compact('order'));
     }
 
-    // Seguridad: Verificar que la orden sea del usuario logueado
-    if ((string)$order->patient->user_id !== (string)auth()->id()) {
-        abort(403);
-    }
 
-    // Cargamos relaciones para el comprobante
-    $order->load(['patient.user', 'paymentTransaction']);
 
-return view('payments.payment-success', compact('order'));
-}
 
 }
+
+
+
+//     public function showSuccess(MedicalOrder $order = null)
+// {
+//     // Si no viene orden (por si alguien entra manual), lo mandamos a la lista
+//     if (!$order) {
+//         return redirect()->route('patient.orders');
+//     }
+
+//     // Seguridad: Verificar que la orden sea del usuario logueado
+//     if ((string)$order->patient->user_id !== (string)auth()->id()) {
+//         abort(403);
+//     }
+
+//     // Cargamos relaciones para el comprobante
+//     $order->load(['patient.user', 'paymentTransaction']);
+
+// return view('payments.payment-success', compact('order'));
+// }
+
+
+// public function store(Request $request)
+// {
+//     Log::info("=== INICIO PROCESO DE ORDEN ===", ['payload' => $request->all()]);
+
+//     if (!$request->has('type')) {
+//         $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
+//     }
+//     // 1. Validación
+//     try {
+//         $request->validate([
+//             'patient_id'   => 'required|exists:patients,id',
+//             'exam_type_id' => 'required_unless:type,custom|exists:exam_types,id',
+//             'custom_description' => 'required_if:type,custom|min:10'
+//         ]);
+//         Log::info("1. Validación aprobada.");
+//     } catch (\Illuminate\Validation\ValidationException $e) {
+//         Log::error("Fallo en validación:", ['errors' => $e->errors()]);
+//         throw $e;
+//     }
+
+//     try {
+//         $order = DB::transaction(function () use ($request) {
+
+//             $patient = Patient::findOrFail($request->patient_id);
+//             //Log::info("2. Paciente encontrado:", ['id' => $patient->id, 'nombre' => $patient->full_name]);
+
+//             // DETERMINAR FLUJO
+//             if ($request->type === 'custom') {
+//                 //Log::info("3. Entrando a FLUJO CUSTOM.");
+
+//                 $examId = null;
+//                 $amount = 9990;
+//                 $orderType = 'custom';
+//                 $description = $request->custom_description;
+//                 $doctor = null; // En custom, queda libre para el pool
+
+//                 //Log::info("4. Parámetros Custom listos. Doctor asignado: NULL (Pool abierto).");
+//             } else {
+//                 //Log::info("3. Entrando a FLUJO ESTÁNDAR.");
+
+//                 $exam = ExamType::findOrFail($request->exam_type_id);
+//                 $examId = $exam->id;
+//                 $amount = $exam->base_price;
+//                 $orderType = 'standard';
+//                 $description = null;
+
+//                 //Log::info("4. Buscando doctor por especialidad...", ['specialty_id' => $exam->specialty_id]);
+//                 $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+
+//                 if (!$doctor) {
+//                     //Log::error("ERROR: No se encontró doctor para la especialidad.");
+//                     throw new \Exception('No hay médicos disponibles para esta especialidad.');
+//                 }
+//                 //Log::info("5. Doctor asignado por rotación:", ['id' => $doctor->id]);
+//             }
+
+//             // 3. CREAR LA ORDEN
+//             Log::info("6. Intentando crear registro en MedicalOrder...");
+//             $newOrder = MedicalOrder::create([
+//                 'id'                => (string) Str::uuid(),
+//                 'patient_id'        => $patient->id,
+//                 'doctor_id'         => $doctor ? $doctor->id : null, // IMPORTANTE: Permitir null
+//                 'exam_type_id'      => $examId,
+//                 'custom_description'=> $description,
+//                 'status'            => 'pending',
+//                 'type'              => $orderType,
+//                 'amount'            => $amount,
+//                 'verification_code' => strtoupper(Str::random(8)),
+//             ]);
+
+//             Log::info("7. ORDEN CREADA EXITOSAMENTE:", ['order_id' => $newOrder->id]);
+
+//             // 4. ACTUALIZAR TURNO (Solo si hay doctor)
+//             if ($doctor) {
+//                 //Log::info("8. Actualizando turno del doctor.");
+//                 $doctor->update(['last_assigned_at' => now()]);
+//             } else {
+//                 //Log::info("8. Sin doctor que actualizar (es flujo custom).");
+//             }
+
+//             return $newOrder;
+//         });
+
+//         Log::info("=== FIN PROCESO EXITOSO - REDIRIGIENDO AL PAGO ===");
+//         return redirect()->route('checkout.process', ['order' => $order->id]);
+
+//     } catch (\Exception $e) {
+//         Log::error("!!! EXCEPCIÓN EN STORE !!!", [
+//             'mensaje' => $e->getMessage(),
+//             'linea'   => $e->getLine(),
+//             'archivo' => $e->getFile()
+//         ]);
+//         return back()->with('error', 'Error al procesar la orden: ' . $e->getMessage());
+//     }
+// }
+
+
+// public function index()
+// {
+//     // 1. Obtenemos los IDs de TODOS los pacientes asociados a este usuario
+//     $patientIds = auth()->user()->patients()->pluck('id');
+
+//     if ($patientIds->isEmpty()) {
+//         return redirect()->route('home')->with('error', 'No se encontraron perfiles de paciente.');
+//     }
+
+//     // 2. Buscamos órdenes donde el patient_id esté en esa lista de IDs
+//     $orders = MedicalOrder::whereIn('patient_id', $patientIds)
+//         ->with(['examType.specialty', 'patient']) // Cargamos 'patient' para saber de quién es la orden
+//         ->orderBy('created_at', 'desc')
+//         ->paginate(10);
+
+//     return view('patient.orders.index', compact('orders'));
+// }

@@ -165,7 +165,9 @@ Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle
         // Cuando el controlador de la orden termina, redirige aquí.
         Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
 
-        Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])->name('checkout.process');
+        Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])
+            ->name('checkout.process')
+            ->where('order', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ÉXITO
         Route::get('/pago-exitoso/{order?}', [PatientOrderController::class, 'showSuccess'])->name('payment.success');

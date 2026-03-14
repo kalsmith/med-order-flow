@@ -47,4 +47,15 @@ class Order extends Model
     {
         return $this->hasOne(Prescription::class)->where('status', 'active');
     }
+
+    public function getIncrementing()
+    {
+        return false;
+    }
+
+    public function getKeyType()
+    {
+        return 'string';
+    }
+
 }
