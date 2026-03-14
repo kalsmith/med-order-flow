@@ -22,7 +22,6 @@
             <div class="bg-success py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                {{-- CORRECCIÓN: Ruta unificada admin.doctors.store --}}
                 <form action="{{ route('admin.doctors.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
@@ -35,13 +34,18 @@
                             <hr class="mt-0 opacity-10">
                         </div>
 
+                        {{-- Nombre con Selector de Prefijo --}}
                         <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted">Nombre Completo</label>
+                            <label class="form-label fw-bold small text-muted">Nombre del Profesional</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
-                                <input type="text" name="name" class="form-control border-start-0 ps-0 @error('name') is-invalid @enderror"
-                                       value="{{ old('name') }}" required placeholder="Ej: Dr. Alejandro Silva">
+                                <select name="prefix" class="form-select bg-light fw-bold border-end-0 @error('prefix') is-invalid @enderror" style="max-width: 90px;">
+                                    <option value="Dr." {{ old('prefix') == 'Dr.' ? 'selected' : '' }}>Dr.</option>
+                                    <option value="Dra." {{ old('prefix') == 'Dra.' ? 'selected' : '' }}>Dra.</option>
+                                </select>
+                                <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                                       value="{{ old('name') }}" required placeholder="Nombre y Apellidos">
                             </div>
+                            <small class="text-muted" style="font-size: 0.7rem;">Selecciona Dr. o Dra. según corresponda.</small>
                         </div>
 
                         <div class="col-md-5">
@@ -58,10 +62,10 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
                                 <input type="email" name="email" class="form-control border-start-0 ps-0 @error('email') is-invalid @enderror"
-                                       value="{{ old('email') }}" required placeholder="correo@institucion.cl">
+                                       value="{{ old('email') }}" required placeholder="correo@pidetuexamen.cl">
                             </div>
                             <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">
-                                <i class="bi bi-info-circle me-1"></i> Se utilizará para el inicio de sesión. La contraseña inicial será el RUT sin puntos ni guion.
+                                <i class="bi bi-info-circle me-1"></i> La contraseña inicial será el RUT (sin puntos ni guion).
                             </small>
                         </div>
 
@@ -85,10 +89,11 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Firma Digital (Sello)</label>
                             <input type="file" name="signature" class="form-control @error('signature') is-invalid @enderror" accept="image/png, image/jpeg">
+                            <small class="text-muted" style="font-size: 0.7rem;">Imagen transparente (PNG) recomendada.</small>
                         </div>
 
                         <div class="col-md-12">
-                            <label class="form-label fw-bold small text-muted">Especialidades</label>
+                            <label class="form-label fw-bold small text-muted">Especialidades Asignadas</label>
                             <div class="p-3 border rounded bg-light">
                                 <div class="row">
                                     @foreach($specialties as $specialty)
@@ -112,10 +117,10 @@
                         <div class="col-12 mt-5 pt-3 border-top">
                             <div class="d-flex justify-content-between align-items-center">
                                 <a href="{{ route('admin.doctors.index') }}" class="btn btn-link text-muted text-decoration-none small">
-                                    <i class="bi bi-x-circle me-1"></i> Cancelar y volver
+                                    <i class="bi bi-x-circle me-1"></i> Cancelar
                                 </a>
-                                <button type="submit" class="btn btn-success px-5 shadow">
-                                    <i class="bi bi-check-circle me-2"></i>Guardar Profesional
+                                <button type="submit" class="btn btn-success px-5 shadow fw-bold">
+                                    <i class="bi bi-check-circle me-2"></i>Registrar Médico
                                 </button>
                             </div>
                         </div>

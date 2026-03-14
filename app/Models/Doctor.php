@@ -23,6 +23,7 @@ class Doctor extends Model
         'signature_path',
         'is_active',
         'last_assigned_at', // <-- Nuevo campo para el motor de rotación
+        'prefix'
     ];
 
     protected $casts = [

@@ -10,7 +10,7 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-md-9 col-lg-8">
+    <div class="col-md-10 col-lg-8">
 
         {{-- Alertas de Error --}}
         @if ($errors->any())
@@ -24,6 +24,7 @@
         @endif
 
         <div class="card shadow-sm border-0 overflow-hidden">
+            {{-- Indicador visual superior (Azul para edición) --}}
             <div class="bg-primary py-1"></div>
 
             <div class="card-body p-4 p-md-5">
@@ -32,33 +33,28 @@
                     @method('PUT')
 
                     <div class="row g-4">
-                        {{-- Sección: Información Personal --}}
+                        {{-- Sección: Identidad --}}
                         <div class="col-12">
                             <h6 class="text-primary text-uppercase fw-bold small mb-3">
-                                <i class="bi bi-person-badge me-2"></i>Información Personal
+                                <i class="bi bi-person-badge me-2"></i>Información Personal y de Cuenta
                             </h6>
                             <hr class="mt-0 opacity-10">
                         </div>
 
-                        <div class="col-md-12">
-                            <label class="form-label fw-bold small text-muted">Nombre Completo</label>
+                        {{-- Nombre con Selector de Prefijo --}}
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold small text-muted">Nombre del Profesional</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
-                                <input type="text" name="name" class="form-control border-start-0 ps-0 @error('name') is-invalid @enderror"
-                                       value="{{ old('name', $doctor->user->name) }}" required>
+                                <select name="prefix" class="form-select bg-light fw-bold border-end-0 @error('prefix') is-invalid @enderror" style="max-width: 90px;">
+                                    <option value="Dr." {{ old('prefix', $doctor->prefix) == 'Dr.' ? 'selected' : '' }}>Dr.</option>
+                                    <option value="Dra." {{ old('prefix', $doctor->prefix) == 'Dra.' ? 'selected' : '' }}>Dra.</option>
+                                </select>
+                                <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                                       value="{{ old('name', $doctor->user->name) }}" required placeholder="Nombre y Apellidos">
                             </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Correo Electrónico</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
-                                <input type="email" name="email" class="form-control border-start-0 ps-0 @error('email') is-invalid @enderror"
-                                       value="{{ old('email', $doctor->user->email) }}" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
+                        <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted">RUT</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-text text-muted"></i></span>
@@ -67,7 +63,16 @@
                             </div>
                         </div>
 
-                        {{-- SECCIÓN NUEVA: Seguridad (Password) --}}
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small text-muted">Correo Electrónico</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+                                <input type="email" name="email" class="form-control border-start-0 ps-0 @error('email') is-invalid @enderror"
+                                       value="{{ old('email', $doctor->user->email) }}" required>
+                            </div>
+                        </div>
+
+                        {{-- SECCIÓN: Seguridad --}}
                         <div class="col-12 mt-5">
                             <h6 class="text-primary text-uppercase fw-bold small mb-3">
                                 <i class="bi bi-shield-lock me-2"></i>Seguridad y Acceso
@@ -105,14 +110,17 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">N° Registro RNPI</label>
-                            <input type="text" name="rnpi_number" class="form-control @error('rnpi_number') is-invalid @enderror"
-                                   value="{{ old('rnpi_number', $doctor->rnpi_number) }}">
+                            <label class="form-label fw-bold small text-muted">N° Registro SIS (RNPI)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash text-muted"></i></span>
+                                <input type="text" name="rnpi_number" class="form-control border-start-0 ps-0 @error('rnpi_number') is-invalid @enderror"
+                                       value="{{ old('rnpi_number', $doctor->rnpi_number) }}">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Estado del Médico</label>
-                            <select name="is_active" id="is_active_select" class="form-select">
+                            <select name="is_active" id="is_active_select" class="form-select border-primary-subtle fw-bold">
                                 <option value="1" {{ old('is_active', $doctor->is_active) == 1 ? 'selected' : '' }}>🟢 Activo / Vigente</option>
                                 <option value="0" {{ old('is_active', $doctor->is_active) == 0 ? 'selected' : '' }}>🔴 Inactivo</option>
                             </select>
@@ -120,19 +128,22 @@
 
                         <div class="col-md-12">
                             <label class="form-label fw-bold small text-muted">Especialidades Asignadas</label>
-                            <div class="row p-3 border rounded bg-light mx-0">
-                                @foreach($specialties as $specialty)
-                                    <div class="col-md-4 col-6 mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="specialties[]"
-                                                   value="{{ $specialty->id }}" id="spec_{{ $specialty->id }}"
-                                                   {{ (is_array(old('specialties')) && in_array($specialty->id, old('specialties'))) || $doctor->specialties->contains($specialty->id) ? 'checked' : '' }}>
-                                            <label class="form-check-label small" for="spec_{{ $specialty->id }}">
-                                                {{ $specialty->name }}
-                                            </label>
+                            <div class="p-3 border rounded bg-light">
+                                <div class="row">
+                                    @foreach($specialties as $specialty)
+                                        <div class="col-md-4 col-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="specialties[]"
+                                                       value="{{ $specialty->id }}" id="spec_{{ $specialty->id }}"
+                                                       {{ (is_array(old('specialties')) && in_array($specialty->id, old('specialties'))) || $doctor->specialties->contains($specialty->id) ? 'checked' : '' }}>
+                                                <label class="form-check-label small" for="spec_{{ $specialty->id }}">
+                                                    {{ $specialty->name }}
+                                                </label>
+                                            </div>
                                         </div>
-                                    </div>
-                                @endforeach
+                                    @endforeach
+                                </div>
+                                @error('specialties') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
                             </div>
                         </div>
 
@@ -147,6 +158,7 @@
                                 </div>
                                 <div class="flex-grow-1">
                                     <input type="file" name="signature" id="signature-input" class="form-control form-control-sm" accept="image/png, image/jpeg">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Suba un archivo nuevo para reemplazar el actual.</small>
                                 </div>
                             </div>
                         </div>
@@ -157,8 +169,8 @@
                                 <button type="button" class="btn btn-link text-danger text-decoration-none small p-0" onclick="confirmDeactivation()">
                                     <i class="bi bi-slash-circle me-1"></i> Desactivar Médico
                                 </button>
-                                <button type="submit" class="btn btn-primary px-5 shadow">
-                                    <i class="bi bi-save me-2"></i> Actualizar Perfil
+                                <button type="submit" class="btn btn-primary px-5 shadow fw-bold">
+                                    <i class="bi bi-save me-2"></i> Guardar Cambios
                                 </button>
                             </div>
                         </div>
@@ -170,6 +182,7 @@
 </div>
 
 <script>
+    // Vista previa de la firma al seleccionar archivo
     document.getElementById('signature-input').onchange = function (evt) {
         const [file] = this.files;
         if (file) {
@@ -177,9 +190,11 @@
         }
     }
 
+    // Confirmación rápida para desactivar
     function confirmDeactivation() {
         if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo?')) {
             document.getElementById('is_active_select').value = "0";
+            alert('Estado cambiado a Inactivo. Recuerde presionar "Guardar Cambios" para aplicar.');
         }
     }
 </script>
