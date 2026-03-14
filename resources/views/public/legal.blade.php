@@ -10,7 +10,7 @@
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb small">
                     <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none">Inicio</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Legal</li>
+                    <li class="breadcrumb-item active" aria-current="page">Faq</li>
                 </ol>
             </nav>
 
