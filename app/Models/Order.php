@@ -19,6 +19,8 @@ class Order extends Model
         'status',
         'flow_order_id',
         'flow_refund_id',
+        'exam_type_id', // <--- AGREGAR
+        'type',         // <--- AGREGAR
     ];
 
     // Configuración de Spatie para auditar cambios comerciales
