@@ -108,7 +108,9 @@ class MedicalOrderController extends Controller
     /**
      * Procesa la firma digital actualizando la Prescripción y la Orden.
      */
-    public function processSignature(Request $request, Order $order)
+
+
+public function processSignature(Request $request, Order $order)
     {
         $request->validate([
             'clinical_context' => 'required|string|min:10'
@@ -118,57 +120,54 @@ class MedicalOrderController extends Controller
         $doctor = $user->doctor;
 
         // Verificación de propiedad del bloqueo
-        if (strval($order->doctor_id) !== strval($doctor->id)) {
+        if (!$doctor || strval($order->doctor_id) !== strval($doctor->id)) {
             return redirect()->route('admin.doctor.panel')->with('error', 'La sesión de revisión ha expirado o pertenece a otro médico.');
         }
 
         try {
             DB::transaction(function () use ($order, $doctor, $request, $user) {
 
-                // 1. Gestionar la Prescripción (Prescription)
-                // Buscamos si ya existe una activa para esta orden, si no, creamos una.
-                $prescription = $order->prescriptions()
-                    ->whereIn('status', ['active', 'pending'])
-                    ->first();
-
-                if ($prescription) {
-                    $prescription->update([
-                        'status' => 'signed',
-                        'signed_at' => now(),
-                        'clinical_context' => $request->clinical_context,
-                        'doctor_id' => $doctor->id
-                    ]);
-                } else {
-                    $order->prescriptions()->create([
+                // 1. Gestionar la Prescripción (El documento clínico legal)
+                // Se marca como 'signed' porque es el acto médico.
+                $order->prescriptions()->updateOrCreate(
+                    ['status' => 'active'], // Buscamos la que estaba en proceso
+                    [
                         'doctor_id' => $doctor->id,
                         'exam_type_id' => $order->exam_type_id,
-                        'status' => 'signed',
+                        'status' => 'signed', // <--- Estado clínico
                         'signed_at' => now(),
                         'clinical_context' => $request->clinical_context,
-                    ]);
-                }
+                    ]
+                );
 
-                // 2. Finalizar el estado de la Orden
+                // 2. Finalizar el estado de la Orden (La transacción comercial/plata)
+                // Usamos 'completed' para evitar el error de ENUM si 'signed' no existe en esta tabla.
                 $order->update([
-                    'status'     => 'signed',
-                    'claimed_at' => null // Liberamos el bloqueo definitivamente
+                    'status'     => 'completed', // Cambia a 'signed' SOLO si lo agregaste al ENUM de orders
+                    'claimed_at' => null         // Liberamos el bloqueo
                 ]);
 
-                // 3. Registrar última actividad del médico para rotación automática si aplica
+                // 3. Registrar última actividad del médico
                 $doctor->update(['last_assigned_at' => now()]);
 
-                // 4. Vincular la transacción al médico que realizó el trabajo para liquidación de honorarios
+                // 4. Vincular la transacción al médico para su pago/honorario
                 Transaction::where('reference_id', $order->id)
                     ->update(['receiver_id' => $user->id]);
             });
+
+            Log::info("Firma exitosa: Orden {$order->id} completada por Doctor {$doctor->id}");
 
             return redirect()->route('admin.doctor.panel')->with('success', 'Orden firmada y finalizada correctamente.');
 
         } catch (\Exception $e) {
             Log::error("Error crítico en firma de Orden {$order->id}: " . $e->getMessage());
-            return redirect()->back()->with('error', 'Hubo un problema al procesar la firma. Por favor, intente de nuevo.');
+            return redirect()->back()->with('error', 'Error de base de datos al procesar la firma.');
         }
     }
+
+
+
+
 
     /**
      * Rechazar orden por motivos clínicos o técnicos.
