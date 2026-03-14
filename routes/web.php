@@ -78,7 +78,6 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
 | 3. PANEL DE GESTIÓN (STAFF)
 |--------------------------------------------------------------------------
 */
-
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -88,19 +87,20 @@ Route::middleware([
 
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
-// 1. RUTAS ESPECÍFICAS DEL DOCTOR
-Route::middleware(['role:doctor'])->group(function () {
-    Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
+    // 1. RUTAS ESPECÍFICAS DEL DOCTOR (Prioridad alta)
+    Route::middleware(['role:doctor'])->group(function () {
+        Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
 
-        // Usamos {order} para que coincida con el modelo App\Models\Order
-        // y normalizamos los nombres de las rutas para que coincidan con tus vistas
-        Route::prefix('ordenes')->name('orders.')->group(function () {
+        // Agrupamos las acciones clínicas. Usamos un prefijo único si es necesario,
+        // pero lo importante es que el parámetro sea {order}
+        Route::prefix('ordenes-clinicas')->name('orders.')->group(function () {
             Route::get('/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('sign.form');
             Route::post('/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('sign.process');
             Route::post('/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('reject');
             Route::post('/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('release');
             Route::post('/{order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('derivate');
-});
+        });
+    });
 
     // 2. ADMINISTRACIÓN
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
@@ -108,15 +108,16 @@ Route::middleware(['role:doctor'])->group(function () {
         Route::resource('medicos', DoctorController::class)->names('doctors');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
 
-        // Nueva ruta para FAQs
-    Route::resource('preguntas-frecuentes', FaqController::class)
-        ->names('faqs')
-        ->parameters(['preguntas-frecuentes' => 'faq']);
+        Route::resource('preguntas-frecuentes', FaqController::class)
+            ->names('faqs')
+            ->parameters(['preguntas-frecuentes' => 'faq']);
 
-
-
-        // El resource se encarga de index, show, edit, update, destroy
-        Route::resource('ordenes', MedicalOrderController::class)->names('orders')->except(['create', 'store']);
+        // El resource administrativo.
+        // Para evitar que pise las rutas del doctor, lo dejamos al final.
+        Route::resource('ordenes', MedicalOrderController::class)
+            ->names('orders')
+            ->parameters(['ordenes' => 'order']) // Forzamos que el parámetro sea {order}
+            ->except(['create', 'store']);
     });
 
     // 3. CONTABILIDAD
@@ -125,7 +126,6 @@ Route::middleware(['role:doctor'])->group(function () {
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
     });
 });
-
 /*
 |--------------------------------------------------------------------------
 | 4. PORTAL DE PACIENTES & PAGOS
