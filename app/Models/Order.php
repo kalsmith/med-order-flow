@@ -119,4 +119,7 @@ class Order extends Model
         }
         return $this->examType ? $this->examType->name : 'Consulta Médica General';
     }
+
+
+
 }

@@ -3,62 +3,66 @@
 namespace App\Livewire\Patient;
 
 use Livewire\Component;
-use App\Models\Order; // <--- Cambiado a Order
+use App\Models\Order;
+use App\Models\MedicalOrderInteraction;
 
 class OrderChat extends Component
 {
-    public Order $order; // <--- Cambiado a Order
+    public Order $order;
     public $newMessage = '';
     public $lastMessageCount = 0;
 
-    public function mount()
+    // Escuchamos eventos si es necesario, por ejemplo desde otros componentes
+    protected $listeners = ['echo:orders,MessageSent' => 'refreshMessages'];
+
+    public function mount(Order $order)
     {
+        $this->order = $order;
         $this->lastMessageCount = $this->order->interactions()->count();
     }
 
     public function refreshMessages()
     {
-        $this->order->load('interactions');
-        $currentCount = $this->order->interactions->count();
+        $currentCount = $this->order->interactions()->count();
 
         if ($currentCount > $this->lastMessageCount) {
+            $this->order->load('interactions');
             $lastMessage = $this->order->interactions->last();
 
+            // Si el doctor respondió, notificamos al componente padre (la lista)
             if($lastMessage && $lastMessage->sender_type === 'doctor') {
                 $this->dispatch('refresh-order-item');
             }
 
             $this->dispatch('new-messages-received');
             $this->lastMessageCount = $currentCount;
+            $this->dispatch('scroll-bottom');
         }
     }
 
     public function sendMessage()
     {
-        if (empty(trim($this->newMessage))) return;
-
         $this->validate(['newMessage' => 'required|string|max:1000']);
 
-        // Eloquent usará automáticamente 'order_id' gracias a la relación definida en el modelo Order
         $this->order->interactions()->create([
             'sender_type' => 'patient',
-            'type'        => 'text',
-            'content'     => $this->newMessage,
+            'type'        => 'message', // Ajustado a tu migración que usa 'message' por defecto
+            'content'     => trim($this->newMessage),
         ]);
 
         $this->newMessage = '';
-        $this->order->load('interactions');
-        $this->lastMessageCount = $this->order->interactions->count();
+        $this->lastMessageCount++;
 
         $this->dispatch('scroll-bottom');
     }
 
     public function render()
     {
-        $messages = $this->order->interactions()->orderBy('created_at', 'asc')->get();
+        $messages = $this->order->interactions()
+            ->orderBy('created_at', 'asc')
+            ->get();
 
-        // Lógica de negocio: El paciente responde si hay previo del doctor
-        $canPatientReply = $messages->where('sender_type', 'doctor')->count() > 0;
+        $canPatientReply = $messages->where('sender_type', 'doctor')->isNotEmpty();
 
         return view('livewire.patient.order-chat', [
             'messages' => $messages,
