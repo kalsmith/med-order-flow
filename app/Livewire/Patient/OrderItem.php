@@ -7,11 +7,12 @@ use App\Models\Order;
 
 class OrderItem extends Component
 {
-    public $order; // Sin tipado estricto para evitar errores de hidratación
+    public $order;
 
     public function mount(Order $order)
     {
-        $this->order = $order;
+        // Cargamos las relaciones para evitar consultas extra en el loop
+        $this->order = $order->loadMissing(['examType', 'activePrescription']);
     }
 
     public function render()
