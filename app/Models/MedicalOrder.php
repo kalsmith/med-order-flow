@@ -136,4 +136,18 @@ class MedicalOrder extends Model
     {
         return $this->hasMany(MedicalOrderInteraction::class)->orderBy('created_at', 'asc');
     }
+
+    /**
+     * Obtiene los componentes si el exam_type es un pack/perfil
+     */
+    public function getExamComponentsAttribute()
+    {
+        // Si no hay tipo de examen, devolvemos colección vacía
+        if (!$this->examType) return collect();
+
+        // Retornamos los hijos (componentes del pack)
+        return $this->examType->children;
+    }
+
+
 }

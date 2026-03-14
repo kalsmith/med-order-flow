@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        /* Optimización de fuentes para dompdf */
+        /* Optimización de fuentes */
         @font-face {
             font-family: 'Roboto';
             src: url("{{ public_path('fonts/Roboto-Regular.ttf') }}") format('truetype');
@@ -20,7 +20,7 @@
         body {
             font-family: 'Roboto', Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 0 0 180px 0; /* Reserva espacio para el footer absoluto */
+            padding: 0 0 180px 0;
             font-size: 11px;
             color: #2d3436;
             line-height: 1.4;
@@ -31,7 +31,6 @@
         .header { padding: 45px 50px 25px 50px; }
         .logo { font-size: 28px; font-weight: bold; color: #0d6efd; letter-spacing: -1px; }
 
-        /* Estilo para los datos de contacto sin depender de emojis */
         .contact-info { font-size: 10px; color: #636e72; margin-top: 5px; }
         .contact-info span { color: #0d6efd; font-weight: bold; }
 
@@ -50,7 +49,7 @@
         }
 
         .section {
-            margin: 0 50px 25px 50px;
+            margin: 0 50px 20px 50px;
             border-top: 1px solid #edf2f7;
             padding-top: 15px;
         }
@@ -67,6 +66,7 @@
         .label { font-size: 8px; color: #b2bec3; text-transform: uppercase; font-weight: bold; }
         .value { font-size: 12px; font-weight: bold; color: #2d3436; margin-bottom: 10px; }
 
+        /* Estilos para Prestaciones y Packs */
         .prestacion-card {
             background-color: #f1f7ff;
             border-left: 4px solid #0d6efd;
@@ -74,12 +74,26 @@
             border-radius: 4px;
         }
 
-        /* Footer fijo mejorado */
+        .exam-item {
+            margin-bottom: 5px;
+            padding-bottom: 3px;
+            border-bottom: 1px dotted #d1e1f5;
+            display: block;
+        }
+
+        .exam-code {
+            color: #0d6efd;
+            font-weight: bold;
+            font-size: 9px;
+            margin-right: 5px;
+        }
+
+        /* Footer */
         .footer-fixed {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 160px; /* Altura fija para evitar traslape */
+            height: 160px;
         }
 
         .qr-container {
@@ -97,17 +111,9 @@
             font-size: 9px;
             color: #b2bec3;
         }
-        /* Añadimos estilo para la firma */
-    .signature-container {
-        margin-top: 10px;
-        text-align: left;
-    }
-    .signature-img {
-        max-height: 70px;
-        max-width: 180px;
-        display: block;
-    }
 
+        .signature-container { margin-top: 10px; text-align: left; }
+        .signature-img { max-height: 75px; max-width: 180px; display: block; }
     </style>
 </head>
 <body>
@@ -154,18 +160,15 @@
                 <div class="value" style="font-size: 15px; margin-bottom: 4px;">
                     {{ $order->doctor->prefix }} {{ $order->doctor->user->name }}
                 </div>
-
                 <div style="color: #636e72; font-size: 10px;">
                     RUT: {{ $order->doctor->rut }} | Registro SIS: {{ $order->doctor->rnpi_number }}<br>
                     <span style="color: #0d6efd; font-weight: bold;">
-                        {{ strtoupper($order->doctor->specialties->pluck('name')->implode(' / ')) }}
+                        {{ strtoupper($order->doctor->specialties->pluck('name')->join(' / ')) }}
                     </span>
                 </div>
 
-                {{-- Sección de Firma Digital --}}
                 @if($order->doctor->signature_path)
                     <div class="signature-container">
-                        {{-- Nota: Para dompdf es mejor usar public_path o el base64 si es storage --}}
                         <img src="{{ public_path('storage/' . $order->doctor->signature_path) }}" class="signature-img">
                     </div>
                 @else
@@ -185,8 +188,8 @@
             <td>
                 <table width="100%">
                     <tr>
-                        <td width="50%"><div class="label">Nombre</div><div class="value">{{ strtoupper($order->patient->full_name) }}</div></td>
-                        <td width="30%"><div class="label">RUT</div><div class="value">{{ $order->patient->rut }}</div></td>
+                        <td width="55%"><div class="label">Nombre</div><div class="value">{{ strtoupper($order->patient->full_name) }}</div></td>
+                        <td width="25%"><div class="label">RUT</div><div class="value">{{ $order->patient->rut }}</div></td>
                         <td><div class="label">Edad</div><div class="value">{{ $order->patient_age_at_order ?? $order->patient->age }} años</div></td>
                     </tr>
                 </table>
@@ -198,20 +201,54 @@
 <div class="section">
     <table width="100%">
         <tr>
-            <td class="section-title">Prestaciones</td>
+            <td class="section-title">Análisis Solicitados</td>
             <td>
                 <div class="prestacion-card">
-                    <div class="value" style="font-size: 15px; color: #0d6efd; margin-bottom: 5px;">
-                        {{ $order->display_name }} {{-- <-- Usando el Accessor que definimos --}}
+                    {{-- Título Principal --}}
+                    <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 8px; border-bottom: 1px solid #cce0ff; padding-bottom: 5px;">
+                        {{ $order->display_name }}
                     </div>
-                    <div style="color: #636e72; font-style: italic; font-size: 9px;">
-                        Documento válido para laboratorios y centros de salud en todo Chile.
+
+                    {{-- Desglose si es Pack/Perfil --}}
+                    @if($order->examType && $order->examType->children->isNotEmpty())
+                        <div style="margin-top: 10px;">
+                            @foreach($order->examType->children as $child)
+                                <div class="exam-item">
+                                    <span class="exam-code">[{{ $child->code_fonasa ?? 'S/C' }}]</span>
+                                    <span style="font-size: 11px; font-weight: bold;">{{ $child->name }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        {{-- Si no es pack, solo mostramos el código del examen individual si tiene --}}
+                        @if($order->examType && $order->examType->code_fonasa)
+                            <div style="font-size: 11px; font-weight: bold;">
+                                Código Fonasa: {{ $order->examType->code_fonasa }}
+                            </div>
+                        @endif
+                    @endif
+
+                    <div style="color: #636e72; font-style: italic; font-size: 9px; margin-top: 15px;">
+                        Nota: Solicitar la toma de muestras bajo las condiciones de ayuno y preparación estándar.
                     </div>
                 </div>
             </td>
         </tr>
     </table>
 </div>
+
+@if($order->clinical_context)
+<div class="section">
+    <table width="100%">
+        <tr>
+            <td class="section-title">Observaciones</td>
+            <td style="font-size: 11px; color: #2d3436;">
+                {{ $order->clinical_context }}
+            </td>
+        </tr>
+    </table>
+</div>
+@endif
 
 <div class="footer-fixed">
     <div class="qr-container">
@@ -223,7 +260,7 @@
                 <td style="padding-left: 15px; vertical-align: middle;">
                     <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
                     <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
-                        Escanee el código para confirmar la autenticidad del documento o ingrese el código
+                        Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
                         <strong>{{ $order->verification_code }}</strong> en doctor911.cl/validar.
                     </div>
                 </td>
@@ -231,7 +268,8 @@
         </table>
     </div>
     <div class="legal-footer">
-        CODE TECH DIGITAL SPA • RUT 77.736.856-7 • SANTIAGO, CHILE
+        CODE TECH DIGITAL SPA • RUT 77.736.856-7 • SANTIAGO, CHILE<br>
+        Documento Electrónico generado por Doctor911
     </div>
 </div>
 

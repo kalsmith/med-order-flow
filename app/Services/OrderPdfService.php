@@ -20,7 +20,8 @@ class OrderPdfService
             'patient',
             'doctor.user',
             'doctor.specialties',
-            'examType'
+            'examType',
+            'examType.children', // <--- FUNDAMENTAL para ver el detalle del pack
         ]);
 
         // 2. GENERACIÓN DE QR:
