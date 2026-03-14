@@ -71,9 +71,7 @@ class FlowService
     }
 
 
-
-
-    public function handleWebhook($token)
+public function handleWebhook($token)
     {
         Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
 
@@ -101,24 +99,35 @@ class FlowService
                 // 2. Registro Contable
                 $this->registerTransaction($gatewayTrx, $order, $token, $statusResponse);
 
-                // 3. Lógica de Negocio
+                // 3. Lógica de Negocio según el tipo de orden
                 if ($order->type === 'standard' || $order->type === 'medical_purchase') {
+                    // FLUJO ESTÁNDAR: Asignación y Firma automática
                     $processStatus = $this->processMedicalOrder($order);
 
                     if (!$processStatus) {
-                        Log::error("WEBHOOK: Proceso médico falló. Iniciando reembolso vía RefundService.");
+                        Log::error("WEBHOOK: Proceso médico automático falló. Iniciando reembolso.");
 
-                        // USAMOS EL NUEVO SERVICIO
                         $refundService = app(RefundService::class);
                         $refundResult = $refundService->createRefund($order, $statusResponse->flowOrder);
 
                         if (!$refundResult) {
-                            // Si el reembolso falla en la API, al menos marcamos la orden para revisión
-                            $order->update(['status' => 'manual_review']);
+                            $order->update([
+                                'status' => 'manual_review',
+                                'flow_order_id' => $statusResponse->flowOrder
+                            ]);
                         }
                     }
                 } else {
-                    $order->update(['status' => 'paid']);
+                    // FLUJO CUSTOM: Generamos la prescripción "en blanco" para reserva de Correlativo/Código
+                    // No llamamos a SignatureService porque requiere revisión humana.
+                    $this->createPendingPrescription($order);
+
+                    $order->update([
+                        'status' => 'paid',
+                        'flow_order_id' => $statusResponse->flowOrder
+                    ]);
+
+                    Log::info("WEBHOOK: Orden personalizada preparada para revisión médica.", ['order_id' => $order->id]);
                 }
 
                 Log::info("=== [FLOW WEBHOOK SUCCESS] ===", ['order_id' => $order->id]);
@@ -129,6 +138,24 @@ class FlowService
             Log::error("ERROR FATAL WEBHOOK: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Crea una prescripción inicial para órdenes personalizadas.
+     * Esto asegura que el paciente tenga un número de orden y código desde el pago.
+     */
+    private function createPendingPrescription(Order $order)
+    {
+        return Prescription::create([
+            'id'                => (string) Str::uuid(),
+            'order_id'          => $order->id,
+            'doctor_id'         => null, // Se asignará cuando un médico la "tome"
+            'exam_type_id'      => $order->exam_type_id,
+            'type'              => 'custom',
+            'status'            => 'active', // Estado "pendiente de firma/revisión"
+            'clinical_context'  => $order->clinical_context,
+            // El correlative_number y verification_code se generan en el boot del modelo Prescription
+        ]);
     }
 
 
