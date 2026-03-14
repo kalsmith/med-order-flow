@@ -4,27 +4,27 @@
 
             {{-- LADO IZQUIERDO: Información --}}
             <div class="col-lg-7">
-<div class="d-flex align-items-center mb-3 flex-wrap gap-2">
-    <span class="badge bg-light text-dark border px-3 py-2">
-        ID: {{ strtoupper(substr($order->id, 0, 8)) }}
-    </span>
-    <span class="text-muted small mx-2">
-        <i class="bi bi-calendar3 me-1"></i>
-        {{-- Uso de condicional para evitar el error format() on null --}}
-        {{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'Sin fecha' }}
-    </span>
-    <span class="badge bg-primary-subtle text-primary text-uppercase px-3">
-        <i class="bi bi-person-circle me-1"></i> {{ $order->patient->full_name ?? 'TITULAR' }}
-    </span>
-</div>
+                <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
+                    <span class="badge bg-light text-dark border px-3 py-2">
+                        ID: {{ $order->id ? strtoupper(substr($order->id, 0, 8)) : '---' }}
+                    </span>
+                    <span class="text-muted small mx-2">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        {{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'Sin fecha' }}
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary text-uppercase px-3">
+                        <i class="bi bi-person-circle me-1"></i> {{ $order->patient->full_name ?? 'TITULAR' }}
+                    </span>
+                </div>
 
                 <h2 class="fw-800 text-dark mb-0" style="letter-spacing: -1.2px; font-size: 1.85rem;">
-                    {{ $order->type === 'custom' ? ($order->custom_description ?? 'Solicitud Especial') : ($order->examType->name ?? 'Examen General') }}
+                    {{ $order->display_name }}
                 </h2>
 
-                {{-- Spinner: Pagado pero aún sin firma (o médico no ha tomado la orden custom) --}}
+                {{-- Spinner: Pagado pero aún sin firma --}}
                 @php
-                    $isWaitingDoctor = $order->status === 'paid' && (!$activePrescription || $activePrescription->status !== 'signed');
+                    $isSigned = $activePrescription && $activePrescription->status === 'signed';
+                    $isWaitingDoctor = $order->status === 'paid' && !$isSigned;
                 @endphp
 
                 @if($isWaitingDoctor)
@@ -46,13 +46,14 @@
                     <div class="order-lg-1">
                         @php
                             $statusConfig = [
-                                'pending' => ['class' => 'bg-warning-subtle text-warning-emphasis', 'label' => 'PENDIENTE PAGO'],
-                                'paid'    => ['class' => 'bg-info-subtle text-info-emphasis', 'label' => 'EN PROCESO'],
-                                'completed' => ['class' => 'bg-success-subtle text-success', 'label' => 'FINALIZADA'],
-                                'rejected'=> ['class' => 'bg-danger-subtle text-danger', 'label' => 'RECHAZADA'],
+                                'pending'        => ['class' => 'bg-warning-subtle text-warning-emphasis', 'label' => 'PENDIENTE PAGO'],
+                                'paid'           => ['class' => 'bg-info-subtle text-info-emphasis', 'label' => 'EN PROCESO'],
+                                'completed'      => ['class' => 'bg-success-subtle text-success', 'label' => 'FINALIZADA'],
+                                'rejected'       => ['class' => 'bg-danger-subtle text-danger', 'label' => 'RECHAZADA'],
+                                'refund_pending' => ['class' => 'bg-dark-subtle text-dark', 'label' => 'REEMBOLSO EN TRÁMITE'],
+                                'refunded'       => ['class' => 'bg-light text-muted', 'label' => 'REEMBOLSADA'],
                             ];
 
-                            $isSigned = $activePrescription && $activePrescription->status === 'signed';
                             $label = $isSigned ? 'LISTA PARA DESCARGA' : ($statusConfig[$order->status]['label'] ?? strtoupper($order->status));
                             $class = $isSigned ? 'bg-success-subtle text-success' : ($statusConfig[$order->status]['class'] ?? 'bg-secondary-subtle');
                         @endphp
@@ -63,7 +64,7 @@
 
                         <div class="d-block">
                             <span class="fw-800 text-dark" style="font-size: 2.8rem; letter-spacing: -2px; line-height: 1;">
-                                $ {{ number_format($order->amount, 0, ',', '.') }}
+                                $ {{ number_format($order->amount ?? 0, 0, ',', '.') }}
                             </span>
                         </div>
                     </div>
@@ -108,7 +109,7 @@
         @if($order->status !== 'pending')
             <div class="collapse {{ ($showNotificationBadge && !$isSigned) ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
                 <div class="chat-wrapper-custom mt-4 pt-4 border-top">
-                    {{-- @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id)) --}}
+                    @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
                 </div>
             </div>
         @endif

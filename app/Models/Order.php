@@ -12,6 +12,10 @@ use Spatie\Activitylog\LogOptions;
 
 class Order extends Model
 {
+    /**
+     * HasUuids: Fundamental para que Livewire reconozca el ID char(36).
+     * LogsActivity: Para auditoría de cambios.
+     */
     use HasUuids, LogsActivity;
 
     protected $keyType = 'string';
@@ -19,7 +23,7 @@ class Order extends Model
 
     protected $fillable = [
         'patient_id',
-        'doctor_id',           // Solo para bloqueo (lock)
+        'doctor_id',
         'exam_type_id',
         'amount',
         'status',
@@ -28,15 +32,18 @@ class Order extends Model
         'flow_refund_id',
         'claimed_at',
         'custom_description',
-        'clinical_context',    // Contexto inicial del paciente
-        // 'rejection_reason',  <-- Esto ahora debería vivir en Prescriptions o Interactions
-        // 'verification_code', <-- ELIMINADO: Ahora es de la tabla Prescriptions
+        'clinical_context',
     ];
 
+    /**
+     * El casting a 'datetime' de created_at evita el error "format() on null"
+     * al asegurar que siempre sea un objeto Carbon.
+     */
     protected $casts = [
         'amount' => 'integer',
         'claimed_at' => 'datetime',
-        'created_at' => 'datetime', // Fuerza a que siempre sea un objeto Carbon
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -44,16 +51,15 @@ class Order extends Model
         parent::boot();
         static::creating(function ($model) {
             if (!$model->status) $model->status = 'pending';
-
-            // ELIMINADA toda la lógica de verification_code de aquí
         });
     }
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['status', 'doctor_id']) // Reducido a lo administrativo
+            ->logOnly(['status', 'doctor_id'])
             ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn(string $eventName) => "La orden comercial ha sido {$eventName}");
     }
 
@@ -75,7 +81,7 @@ class Order extends Model
     }
 
     /**
-     * Relación con las prescripciones (historial clínico)
+     * Relación con las prescripciones (documentos médicos generados)
      */
     public function prescriptions(): HasMany
     {
@@ -83,7 +89,16 @@ class Order extends Model
     }
 
     /**
-     * Trae la prescripción firmada o la más reciente
+     * Relación con el chat/mensajería.
+     * Usamos el modelo MedicalOrderInteraction definido anteriormente.
+     */
+    public function interactions(): HasMany
+    {
+        return $this->hasMany(MedicalOrderInteraction::class, 'order_id');
+    }
+
+    /**
+     * Obtiene la prescripción activa/firmada más reciente.
      */
     public function activePrescription(): HasOne
     {
@@ -92,19 +107,16 @@ class Order extends Model
             ->latestOfMany();
     }
 
-    // --- LÓGICA DE PRESENTACIÓN ---
+    // --- ACCESSORS / LÓGICA DE PRESENTACIÓN ---
 
+    /**
+     * Retorna el nombre legible de lo solicitado.
+     */
     public function getDisplayNameAttribute()
     {
         if ($this->type === 'custom' && !empty($this->custom_description)) {
             return $this->custom_description;
         }
         return $this->examType ? $this->examType->name : 'Consulta Médica General';
-    }
-
-    public function interactions(): HasMany
-    {
-        // Usamos el nombre exacto de tu modelo de chat
-        return $this->hasMany(MedicalOrderInteraction::class, 'order_id');
     }
 }

@@ -7,46 +7,30 @@ use App\Models\Order;
 
 class OrderItem extends Component
 {
+    // IMPORTANTE: Si usas objetos de Eloquent,
+    // asegúrate de que el modelo use HasUuids
     public Order $order;
+
     public $userMarkedAsRead = false;
 
-    // Escucha eventos globales (útil si el chat está en otro componente)
     protected $listeners = ['refresh-order-item' => 'handleNewMessage'];
 
+    // Forzamos que Livewire entienda qué campos debe persistir
     public function mount(Order $order)
     {
         $this->order = $order;
     }
 
-    /**
-     * Se ejecuta cuando llega un nuevo mensaje.
-     * Refresca la relación de interacciones para detectar el nuevo mensaje del doctor.
-     */
-    public function handleNewMessage()
-    {
-        $this->userMarkedAsRead = false;
-        $this->order->load('interactions');
-    }
-
-    /**
-     * Marca como leído localmente para ocultar el badge rojo.
-     */
-    public function markAsRead()
-    {
-        $this->userMarkedAsRead = true;
-    }
-
     public function render()
     {
-        // Cargamos relaciones necesarias si no vienen cargadas desde el OrderList
-        // Esto evita el problema de N+1 consultas
-        $this->order->loadMissing(['activePrescription', 'interactions', 'patient', 'examType']);
+        // Si el render llega aquí y el ID está vacío, es que el modelo no se hidrató
+        // Forzamos la carga de relaciones si el objeto existe
+        if($this->order && $this->order->exists) {
+            $this->order->loadMissing(['activePrescription', 'interactions', 'patient', 'examType']);
+        }
 
         $activePrescription = $this->order->activePrescription;
 
-        // Lógica del badge:
-        // 1. Que el usuario no haya hecho clic en "Ver Mensajes" en esta sesión ($userMarkedAsRead)
-        // 2. Que exista al menos un mensaje donde el sender_type sea 'doctor'
         $hasDoctorMessages = $this->order->interactions
             ->where('sender_type', 'doctor')
             ->isNotEmpty();
