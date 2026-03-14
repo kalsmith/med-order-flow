@@ -103,7 +103,8 @@ public function index()
         Log::info("Médico ID: {$doctor->id} inició revisión de Orden {$order->id}");
 
         // Cargamos la relación específica 'prescription' (el HasOne que añadimos antes)
-        $order->load(['patient', 'doctor.user', 'examType', 'prescription']);
+       // $order->load(['patient', 'doctor.user', 'examType', 'prescription']);
+        $order->load(['patient', 'activePrescription', 'examType', 'interactions']);
 
         return view('admin.orders.sign', compact('order'));
     }
