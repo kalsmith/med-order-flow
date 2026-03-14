@@ -2,55 +2,68 @@
 
 namespace App\Services;
 
-use App\Models\MedicalOrder;
+use App\Models\Prescription; // Cambiado de MedicalOrder
 use Illuminate\Support\Facades\Log;
 
 class SignatureService
 {
     protected $forceFailure = false;
 
-    public function sign(MedicalOrder $order)
+    /**
+     * Firma la prescripción médica (antes vinculada a MedicalOrder)
+     */
+    public function sign(Prescription $prescription)
     {
-        // 1. Cargamos el doctor asignado a la orden
-        $order->load('doctor');
+        // 1. Cargamos el doctor y su relación de usuario para el nombre
+        $prescription->load(['doctor.user', 'examType']);
 
         // 2. Validación de seguridad: ¿Tiene un doctor asignado?
-        if (!$order->doctor_id || !$order->doctor) {
-            Log::error("SERVICE ERROR: La orden {$order->id} no tiene un médico asignado para firmar.");
+        if (!$prescription->doctor_id || !$prescription->doctor) {
+            Log::error("SERVICE ERROR: La prescripción {$prescription->id} no tiene un médico asignado para firmar.");
             return (object) [
                 'success' => false,
-                'message' => 'No hay un profesional responsable asignado a esta orden.'
+                'message' => 'No hay un profesional responsable asignado a esta prescripción.'
             ];
         }
 
-        $doctor = $order->doctor;
+        $doctor = $prescription->doctor;
 
-        // 3. Simulación de fallo forzado
+        // 3. Simulación de fallo forzado (para pruebas de robustez)
         if ($this->forceFailure) {
-            Log::error("SERVICE [SIMULACIÓN]: Error forzado en la firma para orden: " . $order->id);
+            Log::error("SERVICE [SIMULACIÓN]: Error forzado en la firma para prescripción: " . $prescription->id);
             return (object) [
                 'success' => false,
                 'message' => 'Error de conexión con el proveedor de firma'
             ];
         }
 
-        // --- Happy Path ---
-        // Aquí es donde en el futuro llamarías a la API de Firma Electrónica Avanzada (FEA)
-        // enviando el RUT del doctor ($doctor->rut) y el documento.
+        // --- Happy Path (Simulación de Firma Electrónica) ---
 
-        Log::info("SERVICE: Iniciando proceso de firma para la orden: " . $order->id);
-        Log::info("MÉDICO FIRMANTE: " . $doctor->user->name . " (RUT: " . $doctor->rut . ")");
-        Log::info("FIRMADO: La orden {$order->id} ha sido firmada con el archivo: " . ($doctor->signature_path ?? 'Sin imagen de firma'));
+        Log::info("SERVICE: Iniciando proceso de firma para la prescripción: " . $prescription->id);
+        Log::info("MÉDICO FIRMANTE: " . ($doctor->user->name ?? 'N/A') . " (RUT: " . $doctor->rut . ")");
+
+        // Actualizamos el estado de la prescripción a 'signed' (si usas ese estado)
+        // o guardamos los datos de la firma en metadata.
+        $prescription->update([
+            'status' => 'signed',
+            // 'signed_at' => now(), // Si tienes este campo
+        ]);
 
         return (object) [
             'success' => true,
             'signature_id' => 'FEA-' . strtoupper(uniqid()),
-            'doctor_name'  => $doctor->user->name // Dato útil para el PDF
+            'doctor_name'  => $doctor->user->name ?? 'Médico Asignado'
         ];
     }
 
-    public function notify(MedicalOrder $order)
+    /**
+     * Notifica al paciente (ahora a través de la relación con Order)
+     */
+    public function notify(Prescription $prescription)
     {
-        Log::info("MAIL ENVIADO: Notificación enviada al paciente para la orden: " . $order->id);
+        $prescription->load('order.patient.user');
+        $email = $prescription->order->patient->user->email;
+
+        Log::info("MAIL ENVIADO: Notificación enviada a {$email} para la prescripción: " . $prescription->id);
     }
 }
