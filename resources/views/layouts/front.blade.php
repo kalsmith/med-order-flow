@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'MedOrder Flow - Órdenes Médicas al Instante')</title>
+    <title>
+        @hasSection('title')
+            @yield('title') | {{ config('app.name', 'PideTuExamen') }}
+        @else
+            {{ config('app.name', 'PideTuExamen') }} - Órdenes Médicas al Instante
+        @endif
+    </title>
+
 
     {{-- Bootstrap & Icons (Actualizado a v1.11.3 para soportar todos los iconos médicos) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
