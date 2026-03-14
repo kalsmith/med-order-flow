@@ -1,4 +1,4 @@
-<div wire:poll.300s class="card card-order border-0 shadow-sm mb-3">
+<div wire:poll.300s class="card card-order border-0 shadow-sm mb-3" style="border-radius: 16px;">
     <div class="card-body p-4">
         <div class="row align-items-center">
 
@@ -17,10 +17,11 @@
                 </div>
 
                 <h2 class="fw-800 text-dark mb-0" style="letter-spacing: -1.2px; font-size: 1.85rem;">
-                    {{ is_null($order->exam_type_id) ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
+                    {{ $order->type === 'custom' ? 'Solicitud Especial' : ($order->examType->name ?? 'Examen General') }}
                 </h2>
 
-                @if($order->status === 'paid' && $order->interactions->count() === 0)
+                {{-- Spinner si está pagada pero el médico aún no toma acción (no hay interacción ni receta) --}}
+                @if($order->status === 'paid' && !$activePrescription && $order->interactions->count() === 0)
                     <div class="mt-4 p-3 info-box bg-light d-inline-flex align-items-center rounded-3 border">
                         <div class="spinner-border spinner-border-sm text-primary me-3" role="status"></div>
                         <div>
@@ -31,24 +32,26 @@
                 @endif
             </div>
 
-            {{-- LADO DERECHO: Precio y Acciones --}}
+            {{-- LADO DERECHO: Acciones --}}
             <div class="col-lg-5 mt-4 mt-lg-0 text-lg-end">
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-end gap-4">
 
-                    {{-- Precio y Estado --}}
+                    {{-- Estado y Precio --}}
                     <div class="order-lg-1">
                         @php
                             $statusConfig = [
-                                'pending' => ['class' => 'bg-warning-subtle text-warning-emphasis', 'label' => 'PENDIENTE'],
-                                'paid'    => ['class' => 'bg-info-subtle text-info-emphasis', 'label' => 'EN REVISIÓN'],
-                                'signed'  => ['class' => 'bg-success-subtle text-success', 'label' => 'LISTA'],
+                                'pending' => ['class' => 'bg-warning-subtle text-warning-emphasis', 'label' => 'PENDIENTE PAGO'],
+                                'paid'    => ['class' => 'bg-info-subtle text-info-emphasis', 'label' => 'EN PROCESO'],
+                                'completed' => ['class' => 'bg-success-subtle text-success', 'label' => 'FINALIZADA'],
                                 'rejected'=> ['class' => 'bg-danger-subtle text-danger', 'label' => 'RECHAZADA'],
                             ];
-                            $curr = $statusConfig[$order->status] ?? ['class' => 'bg-secondary-subtle', 'label' => strtoupper($order->status)];
+                            // Si hay prescripción activa, forzamos etiqueta de "LISTA" para el paciente
+                            $label = $activePrescription ? 'LISTA PARA DESCARGA' : ($statusConfig[$order->status]['label'] ?? strtoupper($order->status));
+                            $class = $activePrescription ? 'bg-success-subtle text-success' : ($statusConfig[$order->status]['class'] ?? 'bg-secondary-subtle');
                         @endphp
 
-                        <span class="badge {{ $curr['class'] }} mb-2 fw-bold px-3 py-2" style="font-size: 0.7rem;">
-                            {{ $curr['label'] }}
+                        <span class="badge {{ $class }} mb-2 fw-bold px-3 py-2" style="font-size: 0.7rem;">
+                            {{ $label }}
                         </span>
 
                         <div class="d-block">
@@ -58,11 +61,11 @@
                         </div>
                     </div>
 
-                    {{-- Botones de Acción --}}
+                    {{-- Botones --}}
                     <div class="order-lg-2 d-flex flex-column gap-2">
-                        @if($order->status === 'signed')
-                            <a href="{{ route('orders.download', $order->id) }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 px-4 shadow-sm fw-bold">
-                                <i class="bi bi-file-earmark-pdf-fill fs-5"></i> Descargar PDF
+                        @if($activePrescription)
+                            <a href="{{ route('prescriptions.download', $activePrescription->id) }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 px-4 shadow-sm fw-bold">
+                                <i class="bi bi-file-earmark-pdf-fill fs-5"></i> Descargar Orden
                             </a>
                         @elseif($order->status === 'pending')
                             <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-primary px-4 py-2 shadow-sm fw-bold">
@@ -71,17 +74,10 @@
                         @endif
 
                         @php
-                            $isCustom = is_null($order->exam_type_id);
+                            $isCustom = $order->type === 'custom';
                             $hasMessages = $order->interactions->count() > 0;
-                            $hasUnread = $order->interactions->where('sender_type', 'doctor')->count() > 0;
-
-                            // Lógica de visibilidad del chat:
-                            // 1. No mostrar en pendientes.
-                            // 2. Si está firmada, solo mostrar si ya hay mensajes (historial).
-                            // 3. Si no está firmada, mostrar si es custom o ya hay mensajes.
-                            $shouldShowChat = ($order->status !== 'pending') && (
-                                ($order->status === 'signed' ? $hasMessages : ($isCustom || $hasMessages))
-                            );
+                            // Se puede chatear si no está pendiente de pago
+                            $shouldShowChat = ($order->status !== 'pending');
                         @endphp
 
                         @if($shouldShowChat)
@@ -93,15 +89,10 @@
 
                                 <i class="bi bi-chat-left-text"></i>
                                 <span>
-                                    @if($order->status === 'signed')
-                                        Ver Historial
-                                    @else
-                                        {{ $hasMessages ? 'Ver Mensajes' : 'Consultar Médico' }}
-                                    @endif
+                                    {{ $activePrescription ? 'Ver Historial' : ($hasMessages ? 'Ver Mensajes' : 'Consultar Médico') }}
                                 </span>
 
-                                {{-- Globo de notificación: Solo si NO está firmada --}}
-                                @if($showNotificationBadge && $order->status !== 'signed')
+                                @if($showNotificationBadge && !$activePrescription)
                                     <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow">
                                         <span class="visually-hidden">Nuevo mensaje</span>
                                     </span>
@@ -115,9 +106,10 @@
 
         {{-- SECCIÓN DE CHAT COLLAPSE --}}
         @if($shouldShowChat)
-            <div class="collapse {{ ($hasUnread && $order->status !== 'signed') ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
+            <div class="collapse {{ ($showNotificationBadge && !$activePrescription) ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
                 <div class="chat-wrapper-custom mt-4 pt-4 border-top">
-                    @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
+                    {{-- Cambiado a order-chat y pasamos la Order --}}
+                    {{-- @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id)) --}}
                 </div>
             </div>
         @endif

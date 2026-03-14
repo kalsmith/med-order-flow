@@ -58,21 +58,21 @@ class PatientOrderController extends Controller
      */
 
 
-    public function index()
-    {
-        $patientIds = auth()->user()->patients()->pluck('id');
+public function index()
+{
+    $patientIds = auth()->user()->patients()->pluck('id');
 
-        // El paciente quiere ver sus "Recetas/Órdenes Médicas" (Prescriptions)
-        // ya que la Order comercial no le interesa mucho verla si no es para pagar.
-        $prescriptions = Prescription::whereHas('order', function($q) use ($patientIds) {
-                $q->whereIn('patient_id', $patientIds);
-            })
-            ->with(['examType', 'order.patient', 'doctor'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+    // Buscamos las Órdenes (Comerciales) que tienen Prescripciones (Médicas)
+    // Usamos Order porque es lo que el paciente "pagó"
+    $orders = Order::whereIn('patient_id', $patientIds)
+        ->whereNotIn('status', ['refund_pending', 'refunded', 'failed'])
+        ->with(['activePrescription.doctor', 'examType', 'patient'])
+        ->latest()
+        ->paginate(10);
 
-        return view('patient.orders.index', compact('prescriptions'));
-    }
+    // IMPORTANTE: Renderizar a una vista de PACIENTE, no de ADMIN
+    return view('patient.orders.index', compact('orders'));
+}
 
 
 
