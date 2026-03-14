@@ -42,45 +42,58 @@ class FlowController extends Controller
     return redirect()->route('payment.status', ['token' => $token]);
 }
 
+
+
 public function viewStatus($token)
 {
     $gatewayTrx = GatewayTransaction::where('token', $token)->firstOrFail();
 
-    // Consultamos a la API de Flow el estado real actual
+    // Obtenemos la orden médica relacionada
+    $order = \App\Models\MedicalOrder::find($gatewayTrx->payable_id);
+
+    // Consultamos a la API de Flow
     $flowStatus = $this->flowService->getPaymentStatus($token);
+    $flowStatusCode = (int)($flowStatus->status ?? 0);
 
-    // Mapeo de estados para la vista
-    $config = match ((int)($flowStatus->status ?? 0)) {
-        2 => [
-            'status'  => 'success',
-            'title'   => '¡Pago Confirmado!',
-            'message' => 'Tu transacción ha sido exitosa. Ya puedes acceder a tu orden médica.',
-            'action'  => route('patient.orders')
-        ],
-        3, 4 => [
-            'status'  => 'error',
-            'title'   => 'Pago Rechazado',
-            'message' => 'Lo sentimos, el banco ha rechazado la transacción o esta ha sido anulada.',
-            'action'  => route('home') // O a la ruta de solicitar orden
-        ],
-        default => [
-            'status'  => 'pending',
-            'title'   => 'Procesando Pago',
-            'message' => 'Estamos confirmando la transacción con tu institución financiera...',
-            'action'  => route('patient.orders')
-        ],
-    };
+    // LÓGICA DE MAPEO DINÁMICO
+    if ($order && $order->status === 'refund_pending') {
+        // CASO ESPECIAL: Pago exitoso en Flow pero error interno (ej: falló la firma)
+        $config = [
+            'status'  => 'error', // Lo mostramos como error aunque se haya cobrado
+            'title'   => 'Error en Procesamiento',
+            'message' => 'Tu pago fue recibido, pero detectamos un error al generar la firma médica. <strong>Se ha gestionado un reembolso automático a tu cuenta.</strong>',
+            'action'  => route('home')
+        ];
+    } else {
+        // FLUJO NORMAL
+        $config = match ($flowStatusCode) {
+            2 => [
+                'status'  => 'success',
+                'title'   => '¡Pago Confirmado!',
+                'message' => 'Tu transacción ha sido exitosa. Ya puedes acceder a tu orden médica.',
+                'action'  => route('patient.orders')
+            ],
+            3, 4 => [
+                'status'  => 'error',
+                'title'   => 'Pago Rechazado',
+                'message' => 'Lo sentimos, el banco ha rechazado la transacción o esta ha sido anulada.',
+                'action'  => route('order.flow', ['type' => 'standard'])
+            ],
+            default => [
+                'status'  => 'pending',
+                'title'   => 'Procesando Pago',
+                'message' => 'Estamos confirmando la transacción con tu institución financiera...',
+                'action'  => route('patient.orders')
+            ],
+        };
+    }
 
-    // Si es rechazo, aprovechamos de actualizar nuestra BD
-    if (in_array((int)$flowStatus->status, [3, 4])) {
+    if (in_array($flowStatusCode, [3, 4])) {
         $gatewayTrx->update(['status' => 'rejected']);
     }
 
     return view('payments.flow.status', compact('config', 'gatewayTrx'));
 }
-
-
-
 
 
 
