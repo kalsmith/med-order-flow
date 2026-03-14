@@ -36,6 +36,7 @@ class Order extends Model
     protected $casts = [
         'amount' => 'integer',
         'claimed_at' => 'datetime',
+        'created_at' => 'datetime', // Fuerza a que siempre sea un objeto Carbon
     ];
 
     protected static function boot()
