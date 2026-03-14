@@ -101,5 +101,9 @@ class Order extends Model
         return $this->examType ? $this->examType->name : 'Consulta Médica General';
     }
 
-    // ELIMINADO: generateUniqueVerificationCode() ya no pertenece a este modelo
+    public function interactions(): HasMany
+    {
+        // Usamos el nombre exacto de tu modelo de chat
+        return $this->hasMany(MedicalOrderInteraction::class, 'order_id');
+    }
 }

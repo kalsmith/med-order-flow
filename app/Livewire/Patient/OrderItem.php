@@ -10,7 +10,7 @@ class OrderItem extends Component
     public Order $order;
     public $userMarkedAsRead = false;
 
-    // Escucha si llega un nuevo mensaje para quitar el "leído" y forzar refresh
+    // Escucha eventos globales (útil si el chat está en otro componente)
     protected $listeners = ['refresh-order-item' => 'handleNewMessage'];
 
     public function mount(Order $order)
@@ -18,12 +18,19 @@ class OrderItem extends Component
         $this->order = $order;
     }
 
+    /**
+     * Se ejecuta cuando llega un nuevo mensaje.
+     * Refresca la relación de interacciones para detectar el nuevo mensaje del doctor.
+     */
     public function handleNewMessage()
     {
         $this->userMarkedAsRead = false;
         $this->order->load('interactions');
     }
 
+    /**
+     * Marca como leído localmente para ocultar el badge rojo.
+     */
     public function markAsRead()
     {
         $this->userMarkedAsRead = true;
@@ -31,13 +38,18 @@ class OrderItem extends Component
 
     public function render()
     {
-        // 1. Cargamos la relación de la prescripción activa (firmada o en proceso)
+        // Cargamos relaciones necesarias si no vienen cargadas desde el OrderList
+        // Esto evita el problema de N+1 consultas
+        $this->order->loadMissing(['activePrescription', 'interactions', 'patient', 'examType']);
+
         $activePrescription = $this->order->activePrescription;
 
-        // 2. Lógica del badge: mensajes del doctor que el usuario no ha "visto" al abrir el chat
-        $hasDoctorMessages = $this->order->interactions()
+        // Lógica del badge:
+        // 1. Que el usuario no haya hecho clic en "Ver Mensajes" en esta sesión ($userMarkedAsRead)
+        // 2. Que exista al menos un mensaje donde el sender_type sea 'doctor'
+        $hasDoctorMessages = $this->order->interactions
             ->where('sender_type', 'doctor')
-            ->exists();
+            ->isNotEmpty();
 
         $showNotificationBadge = !$this->userMarkedAsRead && $hasDoctorMessages;
 
