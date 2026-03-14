@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Doctor;
+use App\Models\ExamType;
 use App\Models\Order;
 use App\Models\Prescription;
 use App\Models\GatewayTransaction;
@@ -9,6 +11,7 @@ use App\Models\Transaction;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class FlowService
 {
@@ -78,74 +81,90 @@ class FlowService
     /**
      * Procesa la confirmación de pago (Webhook).
      */
-    public function handleWebhook(string $token)
-    {
-        Log::info("WEBHOOK: Recibido token " . $token);
-        $status = $this->getPaymentStatus($token);
 
-        if ($status && (int)$status->status === 2) {
-            return DB::transaction(function () use ($status, $token) {
+    // En app/Services/FlowService.php
 
-                $gatewayTrx = GatewayTransaction::where('buy_order', $status->commerceOrder)
-                    ->where('status', 'pending')
-                    ->first();
 
-                if (!$gatewayTrx) {
-                    Log::warning("WEBHOOK: No se encontró GatewayTransaction para " . $status->commerceOrder);
-                    return false;
+    public function handleWebhook($token)
+{
+    Log::info("WEBHOOK: Recibido token $token");
+
+    // 1. Obtener datos del pago desde Flow
+    $statusResponse = $this->getPaymentData($token); // Asumo que este método devuelve el objeto/array de Flow
+
+    // 2. Encontrar la Orden Comercial y la Transacción de Pasarela
+    $order = Order::findOrFail($statusResponse['commerceOrder']);
+    $gatewayTrx = GatewayTransaction::where('token', $token)->firstOrFail();
+
+    // 3. Extraer Metadata
+    $examTypeId = $statusResponse['optional']['exam_type_id'] ?? null;
+    $orderType = $statusResponse['optional']['type'] ?? 'standard';
+
+    return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token, $examTypeId, $orderType) {
+
+        // ACTUALIZAR TRANSACCIÓN DE PASARELA
+        $gatewayTrx->update([
+            'status' => 'authorized',
+            'raw_response' => json_encode($statusResponse)
+        ]);
+
+        // REGISTRAR MOVIMIENTO CONTABLE INTERNO
+        $this->registerTransaction($gatewayTrx, $order, $token, (object)$statusResponse);
+
+        if ($orderType === 'standard') {
+            Log::info("WEBHOOK: Flujo STANDARD");
+
+            $exam = ExamType::findOrFail($examTypeId);
+            $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+
+            if (!$doctor) {
+                throw new \Exception("No hay médicos disponibles.");
+            }
+
+            $prescription = Prescription::create([
+                'id' => (string) Str::uuid(),
+                'order_id' => $order->id,
+                'doctor_id' => $doctor->id,
+                'exam_type_id' => $exam->id,
+                'status' => 'active',
+                'verification_code' => strtoupper(Str::random(8)),
+            ]);
+
+            $doctor->update(['last_assigned_at' => now()]);
+
+            // FIRMA
+            try {
+                $signatureService = app(\App\Services\SignatureService::class);
+                $signatureResult = $signatureService->sign($prescription);
+
+                if ($signatureResult->success) {
+                    $order->update(['status' => 'completed']);
+                    Log::info("WEBHOOK: Proceso y Contabilidad completados.");
+                } else {
+                    throw new \Exception("Fallo en firma.");
                 }
+            } catch (\Exception $e) {
+                Log::error("WEBHOOK: Error en firma: " . $e->getMessage());
+                $order->update(['status' => 'failed']);
+                throw $e;
+            }
 
-                $gatewayTrx->update([
-                    'status' => 'authorized',
-                    'flow_order_id' => $status->flowOrder,
-                    'raw_response' => json_encode($status)
-                ]);
+        } else {
+            // Flujo CUSTOM
+            Prescription::create([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'order_id' => $order->id,
+                'status' => 'pending',
+                'verification_code' => strtoupper(\Illuminate\Support\Str::random(8)),
+            ]);
 
-                $order = Order::with(['patient.user'])->findOrFail($gatewayTrx->payable_id);
-                $order->update(['status' => 'paid']);
-
-                $examTypeId = $gatewayTrx->metadata['exam_type_id'] ?? null;
-                $orderType = $gatewayTrx->metadata['type'] ?? 'standard';
-
-                if ($orderType === 'standard') {
-                    Log::info("WEBHOOK: Flujo STANDARD (Firma Automática)");
-
-$prescription = Prescription::create([
-    'order_id' => $order->id,
-    'doctor_id' => $doctor->id, // <--- Esto es vital
-    'exam_type_id' => $examTypeId,
-    'status' => 'active',
-]);
-
-                    $signatureService = app(\App\Services\SignatureService::class);
-                    $signatureResult = $signatureService->sign($prescription);
-
-                    if ($signatureResult && $signatureResult->success) {
-                        $this->registerTransaction($gatewayTrx, $order, $token, $status);
-                        return true;
-                    } else {
-                        Log::error("WEBHOOK: Falló firma. Reembolsando.");
-                        $prescription->update(['status' => 'voided', 'void_reason' => 'Signature failure']);
-                        $order->update(['status' => 'refunded']);
-                        $this->requestRefund($order, $gatewayTrx, $status->flowOrder);
-                        return false;
-                    }
-                }
-
-                // FLUJO CUSTOM
-                Log::info("WEBHOOK: Flujo CUSTOM (Espera a Médico)");
-                Prescription::create([
-                    'order_id' => $order->id,
-                    'exam_type_id' => $examTypeId,
-                    'status' => 'active',
-                ]);
-
-                $this->registerTransaction($gatewayTrx, $order, $token, $status);
-                return true;
-            });
+            $order->update(['status' => 'completed']);
         }
-        return false;
-    }
+
+        return true;
+    });
+}
+
 
     /**
      * Registra el movimiento contable interno.
