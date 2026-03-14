@@ -28,8 +28,10 @@
         }
 
         .top-bar { height: 6px; background-color: #0d6efd; width: 100%; }
-        .header { padding: 45px 50px 25px 50px; }
-        .logo { font-size: 28px; font-weight: bold; color: #0d6efd; letter-spacing: -1px; }
+        .header { padding: 40px 50px 25px 50px; }
+
+        /* Ajuste de Logo */
+        .logo-img { height: 45px; width: auto; display: block; margin-bottom: 5px; }
 
         .contact-info { font-size: 10px; color: #636e72; margin-top: 5px; }
         .contact-info span { color: #0d6efd; font-weight: bold; }
@@ -46,6 +48,7 @@
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 30px;
+            color: #2d3436;
         }
 
         .section {
@@ -66,7 +69,7 @@
         .label { font-size: 8px; color: #b2bec3; text-transform: uppercase; font-weight: bold; }
         .value { font-size: 12px; font-weight: bold; color: #2d3436; margin-bottom: 10px; }
 
-        /* Estilos para Prestaciones y Packs */
+        /* Prestaciones y Packs */
         .prestacion-card {
             background-color: #f1f7ff;
             border-left: 4px solid #0d6efd;
@@ -124,9 +127,10 @@
     <table width="100%">
         <tr>
             <td width="60%">
-                <div class="logo">Doctor911</div>
+                {{-- Logo Oficial PideTuExamen.cl --}}
+                <img src="{{ public_path('assets/logo/logo.png') }}" class="logo-img">
                 <div class="contact-info">
-                    doctor911.cl &bull; contacto@doctor911.cl<br>
+                    pidetuexamen.cl &bull; contacto@pidetuexamen.cl<br>
                     <span>TEL:</span> +56 9 1234 5678
                 </div>
             </td>
@@ -204,12 +208,10 @@
             <td class="section-title">Análisis Solicitados</td>
             <td>
                 <div class="prestacion-card">
-                    {{-- Título Principal --}}
                     <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 8px; border-bottom: 1px solid #cce0ff; padding-bottom: 5px;">
                         {{ $order->display_name }}
                     </div>
 
-                    {{-- Desglose si es Pack/Perfil --}}
                     @if($order->examType && $order->examType->children->isNotEmpty())
                         <div style="margin-top: 10px;">
                             @foreach($order->examType->children as $child)
@@ -220,7 +222,6 @@
                             @endforeach
                         </div>
                     @else
-                        {{-- Si no es pack, solo mostramos el código del examen individual si tiene --}}
                         @if($order->examType && $order->examType->code_fonasa)
                             <div style="font-size: 11px; font-weight: bold;">
                                 Código Fonasa: {{ $order->examType->code_fonasa }}
@@ -228,8 +229,8 @@
                         @endif
                     @endif
 
-                    <div style="color: #636e72; font-style: italic; font-size: 9px; margin-top: 15px;">
-                        Nota: Solicitar la toma de muestras bajo las condiciones de ayuno y preparación estándar.
+                    <div style="color: #636e72; font-style: italic; font-size: 9px; margin-top: 15px; border-top: 1px solid #edf2f7; padding-top: 8px;">
+                        <strong>Nota Importante:</strong> El paciente debe consultar directamente con el laboratorio o centro de salud sobre los requisitos de preparación técnica (ayuno, horarios o condiciones especiales) necesarios para la correcta toma de muestras de los exámenes aquí descritos.
                     </div>
                 </div>
             </td>
@@ -261,7 +262,7 @@
                     <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
                     <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
                         Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
-                        <strong>{{ $order->verification_code }}</strong> en doctor911.cl/validar.
+                        <strong>{{ $order->verification_code }}</strong> en pidetuexamen.cl/validar.
                     </div>
                 </td>
             </tr>
@@ -269,7 +270,7 @@
     </div>
     <div class="legal-footer">
         CODE TECH DIGITAL SPA • RUT 77.736.856-7 • SANTIAGO, CHILE<br>
-        Documento Electrónico generado por Doctor911
+        Documento Electrónico generado por PideTuExamen.cl
     </div>
 </div>
 
