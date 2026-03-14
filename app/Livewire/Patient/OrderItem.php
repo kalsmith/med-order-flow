@@ -7,15 +7,18 @@ use App\Models\Order;
 
 class OrderItem extends Component
 {
-    // Usamos el ID como propiedad de respaldo por si el modelo se deshidrata
+    // Quitamos el tipado estricto "Order" para evitar el error de asignación nula
+    public $order;
     public $orderId;
-    public Order $order;
     public $userMarkedAsRead = false;
 
-    public function mount(Order $order)
+    protected $listeners = ['refresh-order-item' => '$refresh'];
+
+    public function mount($order)
     {
+        // Guardamos el ID por separado para asegurar la re-hidratación
         $this->order = $order;
-        $this->orderId = $order->id;
+        $this->orderId = $order->id ?? null;
     }
 
     public function markAsRead()
@@ -25,13 +28,20 @@ class OrderItem extends Component
 
     public function render()
     {
-        // SEGURIDAD: Si por el UUID el modelo llega vacío al render, lo re-vinculamos
-        if (!$this->order->exists || empty($this->order->id)) {
-            $this->order = Order::with(['patient', 'examType', 'activePrescription'])->find($this->orderId);
+        // Si la orden se perdió en el ciclo de vida, la recuperamos por ID
+        if (!$this->order || !($this->order instanceof Order) || !$this->order->exists) {
+            $this->order = Order::find($this->orderId);
         }
 
-        // Carga de relaciones necesarias para evitar el "Consultar Médico" por error
-        $this->order->loadMissing(['activePrescription', 'interactions']);
+        // Si después de intentar recuperarla sigue siendo null, no renderizamos nada (o un error controlado)
+        if (!$this->order) {
+            return <<<'blade'
+                <div></div>
+            blade;
+        }
+
+        // Cargar relaciones necesarias
+        $this->order->loadMissing(['activePrescription', 'interactions', 'patient', 'examType']);
 
         $activePrescription = $this->order->activePrescription;
 

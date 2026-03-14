@@ -4,7 +4,16 @@
 
 @section('content')
     <div class="container py-5">
-        @livewire('patient.order-item')
+        <h2 class="mb-4 fw-bold">Mis Órdenes Médicas</h2>
+
+        @forelse($orders as $order)
+            @livewire('patient.order-item', ['order' => $order], key($order->id))
+        @empty
+            <div class="text-center py-5">
+                <i class="bi bi-clipboard-x fs-1 text-muted"></i>
+                <p class="mt-3">Aún no tienes órdenes registradas.</p>
+            </div>
+        @endforelse
     </div>
 @endsection
 

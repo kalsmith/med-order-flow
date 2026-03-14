@@ -59,10 +59,9 @@ class PatientOrderController extends Controller
 
 public function index()
 {
-    // Cero consultas. Solo servimos el contenedor.
-    return view('patient.orders.index');
+    $orders = auth()->user()->patient->orders()->latest()->get();
+    return view('patient.orders.index', compact('orders'));
 }
-
 
 public function store(Request $request)
 {
