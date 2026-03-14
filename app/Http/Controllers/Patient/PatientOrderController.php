@@ -64,7 +64,7 @@ public function index()
 
     // Buscamos las Órdenes (Comerciales) que tienen Prescripciones (Médicas)
     // Usamos Order porque es lo que el paciente "pagó"
-    $orders = Order::whereIn('patient_id', $patientIds)
+    $orders = Order::with(['examType', 'patient', 'activePrescription'])
         ->whereNotIn('status', ['refund_pending', 'refunded', 'failed'])
         ->with(['activePrescription.doctor', 'examType', 'patient'])
         ->latest()

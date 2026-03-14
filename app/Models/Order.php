@@ -60,4 +60,10 @@ class Order extends Model
         return 'string';
     }
 
+    // --- AGREGA ESTA RELACIÓN ---
+    public function examType(): BelongsTo
+    {
+        return $this->belongsTo(ExamType::class);
+    }
+
 }

@@ -85,4 +85,10 @@ class ExamType extends Model
     {
         return $this->children()->count();
     }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
 }
