@@ -106,6 +106,8 @@ class MedicalOrderController extends Controller
     /**
      * Procesa la firma digital y finaliza el ciclo médico.
      */
+
+
     public function processSignature(Request $request, Order $order)
     {
         $request->validate([
@@ -115,33 +117,56 @@ class MedicalOrderController extends Controller
         $user = Auth::user();
         $doctor = $user->doctor;
 
-        // Verificación de seguridad: Comparar contra doctor->id
-        if ($order->doctor_id !== $doctor->id) {
-            Log::error("Fallo de permiso en firma", ['order_doctor' => $order->doctor_id, 'my_doctor' => $doctor->id]);
+        // CORRECCIÓN DE SEGURIDAD: Forzamos a string para evitar discrepancias de tipos (int vs string)
+        if (strval($order->doctor_id) !== strval($doctor->id)) {
+            Log::error("Fallo de permiso en firma", [
+                'order_doctor' => $order->doctor_id,
+                'my_doctor' => $doctor->id,
+                'order_type' => gettype($order->doctor_id),
+                'doctor_type' => gettype($doctor->id)
+            ]);
             return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permiso para firmar esta orden o el bloqueo expiró.');
         }
 
         try {
             DB::transaction(function () use ($order, $doctor, $request, $user) {
+                // 1. Finalizar la orden
                 $order->update([
                     'status'           => 'signed',
                     'signed_at'        => now(),
                     'clinical_context' => $request->clinical_context,
-                    'claimed_at'       => null // Liberamos el bloqueo
+                    'claimed_at'       => null // Liberamos el bloqueo temporal
                 ]);
 
-                // Vinculamos la transacción al médico (user_id) para pagos
+                // 2. Actualizar rotación del médico (vital para el motor de asignación)
+                $doctor->update([
+                    'last_assigned_at' => now()
+                ]);
+
+                // 3. Vincular la transacción al usuario médico para sus pagos
                 Transaction::where('reference_id', $order->id)
                     ->update(['receiver_id' => $user->id]);
             });
 
-            return redirect()->route('admin.doctor.panel')->with('success', 'Orden firmada exitosamente.');
+            Log::info("Orden {$order->id} firmada con éxito por Doctor ID: {$doctor->id}");
+
+            return redirect()->route('admin.doctor.panel')->with('success', 'Orden firmada exitosamente. El documento ha sido generado.');
 
         } catch (\Exception $e) {
-            Log::error("Error en processSignature: " . $e->getMessage());
+            Log::error("Error crítico en processSignature: " . $e->getMessage());
             return redirect()->back()->with('error', 'Error al procesar la firma electrónica.');
         }
     }
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Rechazar orden.
