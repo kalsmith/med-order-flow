@@ -7,25 +7,15 @@ use App\Models\Order;
 
 class OrderItem extends Component
 {
+    // Usamos el ID como propiedad de respaldo por si el modelo se deshidrata
+    public $orderId;
     public Order $order;
     public $userMarkedAsRead = false;
-
-    protected $listeners = ['refresh-order-item' => '$refresh'];
 
     public function mount(Order $order)
     {
         $this->order = $order;
-    }
-
-    /**
-     * Esta función se ejecuta en cada refresh de Livewire.
-     * Si el modelo perdió sus datos, lo re-hidratamos usando el ID.
-     */
-    public function hydrate()
-    {
-        if (!$this->order->exists && !empty($this->order->id)) {
-            $this->order = Order::find($this->order->id);
-        }
+        $this->orderId = $order->id;
     }
 
     public function markAsRead()
@@ -35,14 +25,16 @@ class OrderItem extends Component
 
     public function render()
     {
-        // Aseguramos que las relaciones estén cargadas para evitar N+1 y errores de null
-        if ($this->order && $this->order->exists) {
-            $this->order->loadMissing(['activePrescription', 'interactions', 'patient', 'examType']);
+        // SEGURIDAD: Si por el UUID el modelo llega vacío al render, lo re-vinculamos
+        if (!$this->order->exists || empty($this->order->id)) {
+            $this->order = Order::with(['patient', 'examType', 'activePrescription'])->find($this->orderId);
         }
+
+        // Carga de relaciones necesarias para evitar el "Consultar Médico" por error
+        $this->order->loadMissing(['activePrescription', 'interactions']);
 
         $activePrescription = $this->order->activePrescription;
 
-        // Contamos interacciones del doctor que sean nuevas o existan
         $hasDoctorMessages = $this->order->interactions
             ->where('sender_type', 'doctor')
             ->isNotEmpty();

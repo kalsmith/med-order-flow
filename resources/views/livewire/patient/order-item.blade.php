@@ -1,19 +1,20 @@
-<div wire:key="order-{{ $order->id }}" wire:poll.300s class="card card-order border-0 shadow-sm mb-3" style="border-radius: 16px;">
+{{-- IMPORTANTE: El wire:key es OBLIGATORIO para que Livewire no pierda el UUID --}}
+<div wire:key="order-item-{{ $order->id }}" wire:poll.300s class="card card-order border-0 shadow-sm mb-3" style="border-radius: 16px;">
     <div class="card-body p-4">
         <div class="row align-items-center">
 
-            {{-- LADO IZQUIERDO: Información --}}
             <div class="col-lg-7">
                 <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
                     <span class="badge bg-light text-dark border px-3 py-2">
-                        ID: {{ $order->id ? strtoupper(substr($order->id, 0, 8)) : '---' }}
+                        ID: {{ strtoupper(substr($order->id, 0, 8)) }}
                     </span>
                     <span class="text-muted small mx-2">
                         <i class="bi bi-calendar3 me-1"></i>
+                        {{-- Carbon manejará la conversión de zona horaria --}}
                         {{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'Sin fecha' }}
                     </span>
                     <span class="badge bg-primary-subtle text-primary text-uppercase px-3">
-                        <i class="bi bi-person-circle me-1"></i> {{ $order->patient->full_name ?? 'TITULAR' }}
+                        <i class="bi bi-person-circle me-1"></i> {{ $order->patient->full_name ?? 'PACIENTE' }}
                     </span>
                 </div>
 
@@ -37,18 +38,17 @@
                 @endif
             </div>
 
-            {{-- LADO DERECHO: Acciones --}}
             <div class="col-lg-5 mt-4 mt-lg-0 text-lg-end">
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-end gap-4">
+
                     <div class="order-lg-1">
                         @php
                             $statusConfig = [
                                 'pending'        => ['class' => 'bg-warning-subtle text-warning-emphasis', 'label' => 'PENDIENTE PAGO'],
                                 'paid'           => ['class' => 'bg-info-subtle text-info-emphasis', 'label' => 'EN PROCESO'],
-                                'completed'      => ['class' => 'bg-success-subtle text-success', 'label' => 'FINALIZADA'],
+                                'refund_pending' => ['class' => 'bg-dark text-white', 'label' => 'REEMBOLSO PENDIENTE'],
+                                'refunded'       => ['class' => 'bg-secondary-subtle text-secondary', 'label' => 'REEMBOLSADA'],
                                 'rejected'       => ['class' => 'bg-danger-subtle text-danger', 'label' => 'RECHAZADA'],
-                                'refund_pending' => ['class' => 'bg-dark-subtle text-dark', 'label' => 'REEMBOLSO EN TRÁMITE'],
-                                'refunded'       => ['class' => 'bg-light text-muted', 'label' => 'REEMBOLSADA'],
                             ];
                             $label = $isSigned ? 'LISTA PARA DESCARGA' : ($statusConfig[$order->status]['label'] ?? strtoupper($order->status));
                             $class = $isSigned ? 'bg-success-subtle text-success' : ($statusConfig[$order->status]['class'] ?? 'bg-secondary-subtle');
@@ -60,7 +60,7 @@
 
                         <div class="d-block">
                             <span class="fw-800 text-dark" style="font-size: 2.8rem; letter-spacing: -2px; line-height: 1;">
-                                $ {{ number_format($order->amount ?? 0, 0, ',', '.') }}
+                                $ {{ number_format($order->amount, 0, ',', '.') }}
                             </span>
                         </div>
                     </div>
@@ -84,10 +84,10 @@
                                     wire:click="markAsRead">
                                 <i class="bi bi-chat-left-text"></i>
                                 <span>
-                                    {{ $isSigned ? 'Ver Historial' : ($order->interactions->count() > 0 ? 'Ver Mensajes' : 'Consultar Médico') }}
+                                    {{ $order->interactions->count() > 0 ? 'Ver Mensajes' : 'Consultar Médico' }}
                                 </span>
 
-                                @if($showNotificationBadge && !$isSigned)
+                                @if($showNotificationBadge)
                                     <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow"></span>
                                 @endif
                             </button>
@@ -98,10 +98,9 @@
         </div>
 
         @if($order->status !== 'pending')
-            <div class="collapse {{ ($showNotificationBadge && !$isSigned) ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
+            <div class="collapse {{ $showNotificationBadge ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
                 <div class="chat-wrapper-custom mt-4 pt-4 border-top">
-                    {{-- Usamos el ID del objeto para garantizar que el chat reciba la orden correcta --}}
-                    {{-- @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id)) --}}
+                    @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
                 </div>
             </div>
         @endif
