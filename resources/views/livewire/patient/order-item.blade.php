@@ -1,4 +1,4 @@
-<div wire:poll.300s class="card card-order border-0 shadow-sm mb-3" style="border-radius: 16px;">
+<div wire:key="order-{{ $order->id }}" wire:poll.300s class="card card-order border-0 shadow-sm mb-3" style="border-radius: 16px;">
     <div class="card-body p-4">
         <div class="row align-items-center">
 
@@ -21,7 +21,6 @@
                     {{ $order->display_name }}
                 </h2>
 
-                {{-- Spinner: Pagado pero aún sin firma --}}
                 @php
                     $isSigned = $activePrescription && $activePrescription->status === 'signed';
                     $isWaitingDoctor = $order->status === 'paid' && !$isSigned;
@@ -41,8 +40,6 @@
             {{-- LADO DERECHO: Acciones --}}
             <div class="col-lg-5 mt-4 mt-lg-0 text-lg-end">
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-end gap-4">
-
-                    {{-- Estado y Precio --}}
                     <div class="order-lg-1">
                         @php
                             $statusConfig = [
@@ -53,7 +50,6 @@
                                 'refund_pending' => ['class' => 'bg-dark-subtle text-dark', 'label' => 'REEMBOLSO EN TRÁMITE'],
                                 'refunded'       => ['class' => 'bg-light text-muted', 'label' => 'REEMBOLSADA'],
                             ];
-
                             $label = $isSigned ? 'LISTA PARA DESCARGA' : ($statusConfig[$order->status]['label'] ?? strtoupper($order->status));
                             $class = $isSigned ? 'bg-success-subtle text-success' : ($statusConfig[$order->status]['class'] ?? 'bg-secondary-subtle');
                         @endphp
@@ -69,7 +65,6 @@
                         </div>
                     </div>
 
-                    {{-- Botones Dinámicos --}}
                     <div class="order-lg-2 d-flex flex-column gap-2">
                         @if($isSigned)
                             <a href="{{ route('prescriptions.download', $activePrescription->id) }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 px-4 shadow-sm fw-bold">
@@ -87,16 +82,13 @@
                                     data-bs-toggle="collapse"
                                     data-bs-target="#chat-{{ $order->id }}"
                                     wire:click="markAsRead">
-
                                 <i class="bi bi-chat-left-text"></i>
                                 <span>
                                     {{ $isSigned ? 'Ver Historial' : ($order->interactions->count() > 0 ? 'Ver Mensajes' : 'Consultar Médico') }}
                                 </span>
 
                                 @if($showNotificationBadge && !$isSigned)
-                                    <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow">
-                                        <span class="visually-hidden">Nuevo mensaje</span>
-                                    </span>
+                                    <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle shadow"></span>
                                 @endif
                             </button>
                         @endif
@@ -105,11 +97,11 @@
             </div>
         </div>
 
-        {{-- SECCIÓN DE CHAT COLLAPSE --}}
         @if($order->status !== 'pending')
             <div class="collapse {{ ($showNotificationBadge && !$isSigned) ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
                 <div class="chat-wrapper-custom mt-4 pt-4 border-top">
-                    @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
+                    {{-- Usamos el ID del objeto para garantizar que el chat reciba la orden correcta --}}
+                    {{-- @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id)) --}}
                 </div>
             </div>
         @endif

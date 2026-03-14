@@ -7,30 +7,42 @@ use App\Models\Order;
 
 class OrderItem extends Component
 {
-    // IMPORTANTE: Si usas objetos de Eloquent,
-    // asegúrate de que el modelo use HasUuids
     public Order $order;
-
     public $userMarkedAsRead = false;
 
-    protected $listeners = ['refresh-order-item' => 'handleNewMessage'];
+    protected $listeners = ['refresh-order-item' => '$refresh'];
 
-    // Forzamos que Livewire entienda qué campos debe persistir
     public function mount(Order $order)
     {
         $this->order = $order;
     }
 
+    /**
+     * Esta función se ejecuta en cada refresh de Livewire.
+     * Si el modelo perdió sus datos, lo re-hidratamos usando el ID.
+     */
+    public function hydrate()
+    {
+        if (!$this->order->exists && !empty($this->order->id)) {
+            $this->order = Order::find($this->order->id);
+        }
+    }
+
+    public function markAsRead()
+    {
+        $this->userMarkedAsRead = true;
+    }
+
     public function render()
     {
-        // Si el render llega aquí y el ID está vacío, es que el modelo no se hidrató
-        // Forzamos la carga de relaciones si el objeto existe
-        if($this->order && $this->order->exists) {
+        // Aseguramos que las relaciones estén cargadas para evitar N+1 y errores de null
+        if ($this->order && $this->order->exists) {
             $this->order->loadMissing(['activePrescription', 'interactions', 'patient', 'examType']);
         }
 
         $activePrescription = $this->order->activePrescription;
 
+        // Contamos interacciones del doctor que sean nuevas o existan
         $hasDoctorMessages = $this->order->interactions
             ->where('sender_type', 'doctor')
             ->isNotEmpty();
