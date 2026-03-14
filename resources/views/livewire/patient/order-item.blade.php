@@ -109,7 +109,7 @@
             <div class="collapse {{ ($showNotificationBadge && !$activePrescription) ? 'show' : '' }}" id="chat-{{ $order->id }}" wire:ignore>
                 <div class="chat-wrapper-custom mt-4 pt-4 border-top">
                     {{-- Cambiado a order-chat y pasamos la Order --}}
-                    {{-- @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id)) --}}
+                    @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
                 </div>
             </div>
         @endif

@@ -15,7 +15,7 @@
 
         @forelse($messages as $message)
             <div class="d-flex mb-3 {{ $message->sender_type === 'patient' ? 'justify-content-end' : 'justify-content-start' }}">
-                <div class="max-width-75">
+                <div class="max-width-75" style="max-width: 75%;">
                     <div class="p-3 rounded-4 shadow-sm {{ $message->sender_type === 'patient' ? 'bg-primary text-white rounded-bottom-end-0' : 'bg-light text-dark rounded-bottom-start-0' }}">
                         @if($message->sender_type === 'doctor')
                             <small class="d-block fw-bold mb-1" style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.8;">Médico Profesional</small>
@@ -28,18 +28,17 @@
                 </div>
             </div>
         @empty
-            {{-- Escenario: Sin mensajes aún --}}
             <div class="text-center py-5">
                 <div class="mb-3">
-                    <i class="bi bi- megaphone fs-1 text-primary opacity-25"></i>
+                    <i class="bi bi-megaphone fs-1 text-primary opacity-25"></i>
                 </div>
                 <h6 class="fw-bold text-dark small">Su orden se está procesando automáticamente</h6>
-                <p class="text-muted small px-4">Si el médico requiere antecedentes adicionales, se pondrá en contacto con usted por este medio.</p>
+                <p class="text-muted small px-4">Si el médico requiere antecedentes adicionales, se pondrá en contacto por este medio.</p>
             </div>
         @endforelse
     </div>
 
-    {{-- FORMULARIO DE INPUT: Condicionado --}}
+    {{-- FORMULARIO DE INPUT --}}
     @if($canPatientReply)
         <form wire:submit.prevent="sendMessage" class="mt-2">
             <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border border-primary">
@@ -61,7 +60,6 @@
         </div>
     @endif
 
-    {{-- Scripts y Estilos se mantienen igual --}}
     <script>
         document.addEventListener('livewire:initialized', () => {
             const chatBox = document.getElementById('chat-box-{{ $order->id }}');
@@ -73,8 +71,9 @@
                 const distanceToBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight;
                 if (distanceToBottom < 150) setTimeout(scrollToBottom, 50);
                 else {
-                    const alpine = document.querySelector('[x-data]').__x;
-                    if(alpine) alpine.$data.showNotice = true;
+                    // Si el usuario está arriba, mostramos el aviso de Alpine
+                    const alpine = chatBox.closest('[x-data]');
+                    if(alpine && alpine.__x) alpine.__x.$data.showNotice = true;
                 }
             });
         });
