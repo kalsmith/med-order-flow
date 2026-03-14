@@ -92,12 +92,14 @@ Route::middleware([
 Route::middleware(['role:doctor'])->group(function () {
     Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
 
-    // Cambiamos {order} por {medical_order} para evitar conflictos con el resource de abajo
-    Route::get('/ordenes/{medical_order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('orders.sign.form');
-    Route::post('/ordenes/{medical_order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('orders.sign.process');
-    Route::post('/ordenes/{medical_order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('orders.reject');
-    Route::post('/ordenes/{medical_order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('orders.release');
-    Route::post('/ordenes/{medical_order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('orders.derivate');
+        // Usamos {order} para que coincida con el modelo App\Models\Order
+        // y normalizamos los nombres de las rutas para que coincidan con tus vistas
+        Route::prefix('ordenes')->name('orders.')->group(function () {
+            Route::get('/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('sign.form');
+            Route::post('/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('sign.process');
+            Route::post('/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('reject');
+            Route::post('/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('release');
+            Route::post('/{order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('derivate');
 });
 
     // 2. ADMINISTRACIÓN

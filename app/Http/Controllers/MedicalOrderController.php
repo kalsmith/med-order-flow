@@ -146,73 +146,70 @@ class MedicalOrderController extends Controller
      */
 
 
-public function rejectOrder(Request $request, $medical_order, FlowService $flowService)
+public function rejectOrder(Request $request, Order $order, \App\Services\FlowService $flowService)
 {
     Log::info('--- INICIO PROCESO RECHAZO MANUAL ---', [
         'user_id' => auth()->id(),
-        'order_id' => $medical_order
+        'order_id' => $order->id
     ]);
 
     try {
-        $order = MedicalOrder::findOrFail($medical_order);
         $user = auth()->user();
         $doctor = $user->doctor;
 
-        // Validación de permisos
-        if (!$doctor || strval($order->doctor_id) !== strval($doctor->id)) {
-            Log::error("CRASH RECHAZO: No tienes permiso.", [
+        // 1. Validación de permisos: El médico que la tiene tomada o un Admin
+        if (!$doctor || ($order->doctor_id !== $doctor->id && !$user->hasRole('admin'))) {
+            Log::error("CRASH RECHAZO: No tienes permiso sobre esta orden.", [
                 'order_doc' => $order->doctor_id,
                 'auth_doc' => $doctor->id ?? 'null'
             ]);
             return abort(403, 'No tienes permiso sobre esta orden.');
         }
 
-        $request->validate(['rejection_reason' => 'required|string|max:500']);
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500'
+        ]);
 
         return DB::transaction(function () use ($request, $order, $flowService) {
-            // 1. Actualizamos el estado de la orden localmente
+
+            // 2. Actualizamos el estado de la orden localmente
             $order->update([
                 'status' => 'rejected',
                 'rejection_reason' => $request->rejection_reason,
-                'claimed_at' => null,
+                'claimed_at' => null, // Liberamos el bloqueo temporal
             ]);
 
-            // 2. Buscamos la transacción (Asegúrate que el Webhook ya la pasó a 'authorized')
+            Log::info("Orden {$order->id} marcada como RECHAZADA. Motivo: {$request->rejection_reason}");
+
+            /* --- BLOQUE FLOW (COMENTADO TEMPORALMENTE) ---
+
             $gatewayTrx = GatewayTransaction::where('payable_id', $order->id)
                 ->whereIn('status', ['authorized', 'completed'])
                 ->first();
 
             if ($gatewayTrx) {
-                //Log::info("Iniciando solicitud de reembolso para GatewayTrx: {$gatewayTrx->buy_order}");
-
-                /**
-                 * BALA DE PLATA:
-                 * Extraemos el ID numérico del JSON que guardamos en el Webhook.
-                 */
                 $rawResponse = json_decode($gatewayTrx->raw_response);
                 $flowTrxId = $rawResponse->flowOrder ?? null;
 
-                if (!$flowTrxId) {
-                    Log::warning("No se encontró flowOrder numérico en raw_response, se intentará con buy_order.");
-                }
-
-                // Llamamos al servicio pasando el ID numérico
+                // Llamamos al servicio de reembolso
                 $refundResult = $flowService->requestRefund($order, $gatewayTrx, $flowTrxId);
 
                 if ($refundResult) {
-                    return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado exitosamente.');
+                    return redirect()->route('admin.doctor.panel')->with('info', 'Orden rechazada y reembolso solicitado.');
                 } else {
-                    //Log::error("El servicio de Flow devolvió error al intentar reembolsar la orden {$order->id}");
-                    return redirect()->route('admin.doctor.panel')->with('error', 'Orden rechazada, pero hubo un error en el reembolso. Contacte a soporte.');
+                    return redirect()->route('admin.doctor.panel')->with('error', 'Orden rechazada, pero falló el reembolso automático.');
                 }
             }
+            */
 
-           // Log::warning("Rechazo sin reembolso: No se encontró transacción para la orden {$order->id}");
-            return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada sin reembolso (no se encontró pago previo).');
+            return redirect()->route('admin.doctor.panel')->with('warning', 'Orden rechazada. (Lógica de reembolso pendiente de activación).');
         });
 
     } catch (\Exception $e) {
-        Log::error("CRASH RECHAZO (Excepción): " . $e->getMessage());
+        Log::error("CRASH RECHAZO (Excepción): " . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
         return redirect()->back()->with('error', 'Error interno al procesar el rechazo.');
     }
 }
@@ -245,31 +242,40 @@ public function derivateOrder(Request $request, MedicalOrder $medical_order)
 }
 
 
-    /**
-     * Libera la orden.
-     * Cambiado $order por $medical_order.
-     */
-public function releaseOrder(Request $request, MedicalOrder $medical_order)
+/**
+ * Libera una orden bloqueada por un médico para que otros puedan tomarla.
+ */
+public function releaseOrder(Request $request, Order $order)
 {
-    $order = $medical_order;
-    $myDoctorId = auth()->user()->doctor->id ?? null;
+    $doctor = auth()->user()->doctor;
+    $myDoctorId = $doctor->id ?? null;
 
-    if ($order->doctor_id == $myDoctorId) {
+    // Verificamos que quien libera sea el mismo que la tiene tomada
+    // Opcionalmente podrías permitir que un admin la libere también
+    if ($order->doctor_id === $myDoctorId || auth()->user()->hasRole('admin')) {
+
         $order->update([
             'doctor_id' => null,
             'claimed_at' => null
         ]);
 
-        // Si viene del botón superior, quizás quiere ir al listado general
-        if($request->redirect_to === 'index') {
-            return redirect()->route('admin.orders.index')->with('success', 'Orden liberada.');
+        Log::info("Orden {$order->id} liberada por el médico ID: {$myDoctorId}");
+
+        // Redirección dinámica basada en el origen del clic
+        if ($request->redirect_to === 'index') {
+            return redirect()->route('admin.doctor.panel')->with('success', 'Orden liberada y devuelta al listado.');
         }
 
-        return redirect()->route('admin.doctor.panel')->with('success', 'La orden ha sido liberada.');
+        return redirect()->route('admin.doctor.panel')->with('success', 'Has liberado la orden correctamente.');
     }
 
-    return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permiso.');
+    return redirect()->route('admin.doctor.panel')->with('error', 'No tienes permisos para liberar esta orden.');
 }
+
+
+
+
+
 
     public function create()
     {
