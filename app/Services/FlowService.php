@@ -158,42 +158,61 @@ public function handleWebhook($token)
     /**
      * Lógica específica para generar recetas médicas tras el pago.
      */
+
     private function processMedicalOrder(Order $order)
-    {
-        $exam = ExamType::findOrFail($order->exam_type_id);
-        $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
+{
+    $exam = ExamType::findOrFail($order->exam_type_id);
+    $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
 
-        if (!$doctor) throw new \Exception("No hay médicos disponibles.");
+    if (!$doctor) {
+        Log::critical("FALLO CRÍTICO: No hay médicos disponibles para especialidad {$exam->specialty_id}");
+        $order->update(['status' => 'manual_review']);
+        return;
+    }
 
-        $prescription = Prescription::create([
-            'id'                => (string) Str::uuid(),
-            'order_id'          => $order->id,
-            'doctor_id'         => $doctor->id,
-            'exam_type_id'      => $exam->id,
-            'status'            => 'active',
-            'verification_code' => strtoupper(Str::random(8)),
-        ]);
+    // 1. Creamos la prescripción heredando el contexto clínico si existe
+    $prescription = Prescription::create([
+        'id'                 => (string) Str::uuid(),
+        'order_id'           => $order->id,
+        'doctor_id'          => $doctor->id,
+        'exam_type_id'       => $exam->id,
+        'status'             => 'active',
+        'verification_code'  => strtoupper(Str::random(8)),
+        'clinical_context'   => $order->clinical_context, // Heredamos el motivo de la orden
+    ]);
 
-        $doctor->update(['last_assigned_at' => now()]);
+    // Actualizamos la rotación inmediatamente
+    $doctor->update(['last_assigned_at' => now()]);
 
-        // Intentar firma automática
-        try {
-            $signatureService = app(\App\Services\SignatureService::class);
-            $signatureResult = $signatureService->sign($prescription);
+    // 2. Proceso de Firma
+    try {
+        Log::info("SERVICE: Iniciando proceso de firma para la prescripción: {$prescription->id}");
+
+        $signatureService = app(SignatureService::class);
+        $signatureResult = $signatureService->sign($prescription);
 
         if ($signatureResult && $signatureResult->success) {
-            // IMPORTANTE: Asegúrate de usar comillas
-            $prescription->update(['status' => 'signed']);
+            // ÉXITO: Marcamos como firmado y llenamos el timestamp de firma
+            $prescription->update([
+                'status'    => 'signed',
+                'signed_at' => now() // <--- Esto es clave para la validez legal
+            ]);
+
             $order->update(['status' => 'paid']);
+
+            Log::info("Firma completada exitosamente.");
         } else {
-            Log::warning("Firma fallida, la orden queda en revisión manual.");
+            // FALLO CONTROLADO: El servicio de firma respondió pero no fue exitoso
+            Log::warning("Firma fallida (Servicio retornó false), la orden queda en revisión manual.");
             $order->update(['status' => 'manual_review']);
         }
-        } catch (\Exception $e) {
-            Log::error("Error en firma: " . $e->getMessage());
-            $order->update(['status' => 'manual_review']);
-        }
+
+    } catch (\Exception $e) {
+        // ERROR TÉCNICO: Excepción en el servicio de firma (timeout, API caída, etc.)
+        Log::error("Error técnico en proceso de firma: " . $e->getMessage());
+        $order->update(['status' => 'manual_review']);
     }
+}
 
     /**
      * 3. CONTABILIDAD: Registro universal de ingresos.
