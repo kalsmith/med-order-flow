@@ -59,33 +59,42 @@
     </div>
     @error('message') <span class="text-danger" style="font-size: 0.7rem;">{{ $message }}</span> @enderror
 
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-            const chatBox = document.getElementById('chat-box-admin');
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        const chatBox = document.getElementById('chat-box-admin');
 
-            const scrollToBottom = () => {
-                if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-            };
+        // Función global para este componente para bajar el scroll
+        const scrollToBottom = () => {
+            if (chatBox) {
+                chatBox.scrollTo({
+                    top: chatBox.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        };
 
-            // Scroll inicial
-            setTimeout(scrollToBottom, 100);
+        // Scroll inicial
+        setTimeout(scrollToBottom, 100);
 
-            // Al enviar mensaje propio
-            @this.on('scroll-bottom', () => {
-                setTimeout(scrollToBottom, 50);
-            });
-
-            // Al recibir mensajes nuevos (del paciente)
-            @this.on('new-messages-received', () => {
-                const distanceToBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight;
-                if (distanceToBottom < 150) {
-                    setTimeout(scrollToBottom, 50);
-                } else {
-                    // Mostrar aviso si el doctor está revisando mensajes arriba
-                    const alpine = document.querySelector('[x-data]').__x;
-                    if(alpine) alpine.$data.showNotice = true;
-                }
-            });
+        // Al enviar mensaje propio
+        Livewire.on('scroll-bottom', () => {
+            setTimeout(scrollToBottom, 50);
         });
-    </script>
+
+        // Al recibir mensajes nuevos (del paciente)
+        Livewire.on('new-messages-received', () => {
+            const distanceToBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight;
+
+            // Si el usuario está cerca del final, bajamos automáticamente
+            if (distanceToBottom < 150) {
+                setTimeout(scrollToBottom, 50);
+            } else {
+                // Forma correcta de comunicarte con Alpine en Livewire 3
+                // Buscamos el componente Alpine más cercano al chatBox
+                let alpineData = Alpine.$data(chatBox.closest('[x-data]'));
+                alpineData.showNotice = true;
+            }
+        });
+    });
+</script>
 </div>

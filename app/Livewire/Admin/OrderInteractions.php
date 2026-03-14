@@ -3,16 +3,17 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use App\Models\MedicalOrder;
+use App\Models\Order; // <--- Cambiado de MedicalOrder a Order
 
 class OrderInteractions extends Component
 {
-    public MedicalOrder $order;
+    public Order $order; // <--- Cambiado el type-hinting a Order
     public $message = '';
     public $lastMessageCount = 0;
 
     public function mount()
     {
+        // Al ser un modelo de Eloquent, Livewire lo inyecta automáticamente si el nombre coincide
         $this->lastMessageCount = $this->order->interactions()->count();
     }
 
