@@ -1,6 +1,6 @@
 @extends('layouts.front')
 
-@section('title', 'Mi Círculo - MedOrder Flow')
+@section('title', 'Mi Círculo - ' . config('app.name'))
 
 @section('content')
 <div class="container py-5">
