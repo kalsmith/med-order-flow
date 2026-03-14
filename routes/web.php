@@ -174,7 +174,7 @@ Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle
 
 /*
 |--------------------------------------------------------------------------
-| 5. WEBHOOKS DE FLOW (Externos)
+| 5. WEBHOOKS & ESTADO DE FLOW
 |--------------------------------------------------------------------------
 */
 Route::prefix('payment/flow')->group(function () {
@@ -182,6 +182,10 @@ Route::prefix('payment/flow')->group(function () {
     Route::match(['get', 'post'], '/return', [FlowController::class, 'returnUrl'])->name('flow.return');
     Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
     Route::post('/refund-confirmation', [FlowController::class, 'refundConfirmation'])->name('flow.refund.webhook');
+
+    // Nueva ruta para mostrar el estado estético (éxito o error)
+    // No requiere middleware auth necesariamente si validas el token en el controlador
+    Route::get('/status/{token}', [FlowController::class, 'viewStatus'])->name('payment.status');
 
     Route::get('/cancel', [FlowController::class, 'cancel'])->name('flow.cancel');
     Route::get('/fail', [FlowController::class, 'fail'])->name('flow.fail');

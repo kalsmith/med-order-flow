@@ -30,21 +30,61 @@ class FlowController extends Controller
         }
     }
 
-    // Return: Donde aterriza el usuario tras pagar
+
     public function returnUrl(Request $request)
-    {
-        $token = $request->query('token') ?? $request->input('token');
-        if (!$token) return redirect()->route('home');
+{
+    // 1. Recibimos el token de Flow
+    $token = $request->query('token') ?? $request->input('token');
+    if (!$token) return redirect()->route('home');
 
-        $gatewayTrx = GatewayTransaction::where('token', $token)->first();
+    // 2. Simplemente redirigimos a la ruta de estado
+    // Esto mantiene la URL limpia y descriptiva
+    return redirect()->route('payment.status', ['token' => $token]);
+}
 
-        if (!$gatewayTrx) {
-            return view('payments.flow.status', ['status' => 'error', 'title' => 'Error', 'message' => 'Transacción no encontrada.']);
-        }
+public function viewStatus($token)
+{
+    $gatewayTrx = GatewayTransaction::where('token', $token)->firstOrFail();
 
-        // Redirigimos a la vista de éxito final de la orden
-        return redirect()->route('payment.success', ['order' => $gatewayTrx->payable_id]);
+    // Consultamos a la API de Flow el estado real actual
+    $flowStatus = $this->flowService->getPaymentStatus($token);
+
+    // Mapeo de estados para la vista
+    $config = match ((int)($flowStatus->status ?? 0)) {
+        2 => [
+            'status'  => 'success',
+            'title'   => '¡Pago Confirmado!',
+            'message' => 'Tu transacción ha sido exitosa. Ya puedes acceder a tu orden médica.',
+            'action'  => route('patient.orders')
+        ],
+        3, 4 => [
+            'status'  => 'error',
+            'title'   => 'Pago Rechazado',
+            'message' => 'Lo sentimos, el banco ha rechazado la transacción o esta ha sido anulada.',
+            'action'  => route('home') // O a la ruta de solicitar orden
+        ],
+        default => [
+            'status'  => 'pending',
+            'title'   => 'Procesando Pago',
+            'message' => 'Estamos confirmando la transacción con tu institución financiera...',
+            'action'  => route('patient.orders')
+        ],
+    };
+
+    // Si es rechazo, aprovechamos de actualizar nuestra BD
+    if (in_array((int)$flowStatus->status, [3, 4])) {
+        $gatewayTrx->update(['status' => 'rejected']);
     }
+
+    return view('payments.flow.status', compact('config', 'gatewayTrx'));
+}
+
+
+
+
+
+
+
 
     public function cancel()
     {
