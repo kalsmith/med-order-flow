@@ -32,57 +32,68 @@ class FlowService
      * 1. LANZADOR: Crea el intento de pago.
      * Ya no recibe $extraData por parámetro, usa los datos del modelo Order.
      */
+
     public function createPayment(Order $order)
-    {
-        $endpoint = $this->urlBase . '/payment/create';
+{
+    $endpoint = $this->urlBase . '/payment/create';
 
-        // Usamos el UUID de nuestra orden como referencia de comercio
-        // para que sea imposible perder el rastro en el Webhook.
-        $buyOrder = "ORD-" . substr($order->id, 0, 8);
+    // Generamos un identificador único para este intento de pago
+    // Ejemplo: ORD-019ced7c-A2B1
+    $buyOrder = "ORD-" . substr($order->id, 0, 8) . "-" . strtoupper(bin2hex(random_bytes(2)));
 
-        // Registro técnico previo al salto a Flow
-        $gatewayTrx = GatewayTransaction::create([
+    // Usamos firstOrCreate para evitar el error Integrity constraint violation (Duplicate entry)
+    // Si ya existe una transacción 'pending' para esta orden, la recuperamos.
+    // Si no, la creamos con el nuevo buy_order.
+    $gatewayTrx = GatewayTransaction::firstOrCreate(
+        [
+            'payable_type' => get_class($order),
+            'payable_id'   => $order->id,
+            'status'       => 'pending'
+        ],
+        [
             'user_id'      => auth()->id(),
             'gateway'      => 'flow',
             'buy_order'    => $buyOrder,
             'amount'       => (int)$order->amount,
-            'status'       => 'pending',
-            'payable_type' => get_class($order),
-            'payable_id'   => $order->id,
-            'raw_response'     => [
+            'raw_response' => [
                 'exam_type_id' => $order->exam_type_id,
                 'type'         => $order->type
             ]
-        ]);
+        ]
+    );
 
-        $params = [
-            'apiKey'          => $this->apiKey,
-            'commerceOrder'   => $buyOrder,
-            'subject'         => "Pago Orden #" . $order->id,
-            'amount'          => (int)$order->amount,
-            'email'           => auth()->user()->email,
-            'urlConfirmation' => route('flow.webhook'),
-            'urlReturn'       => route('flow.return'),
-        ];
+    // Si la recuperó de la DB pero el buy_order es distinto, usamos el de la DB para Flow
+    $currentBuyOrder = $gatewayTrx->buy_order;
 
-        $params['s'] = $this->makeSignature($params);
+    $params = [
+        'apiKey'          => $this->apiKey,
+        'commerceOrder'   => $currentBuyOrder,
+        'subject'         => "Pago Orden #" . $order->id,
+        'amount'          => (int)$order->amount,
+        'email'           => auth()->user()->email,
+        'urlConfirmation' => route('flow.webhook'),
+        'urlReturn'       => route('flow.return'),
+    ];
 
-        try {
-            $response = Http::asForm()->post($endpoint, $params);
+    $params['s'] = $this->makeSignature($params);
 
-            if ($response->successful()) {
-                $res = $response->object();
-                $gatewayTrx->update(['token' => $res->token]);
-                return $res;
-            }
+    try {
+        $response = Http::asForm()->post($endpoint, $params);
 
-            Log::error("Flow API Error: " . $response->body());
-            return null;
-        } catch (\Exception $e) {
-            Log::error("Excepción en Flow createPayment: " . $e->getMessage());
-            return null;
+        if ($response->successful()) {
+            $res = $response->object();
+            // Guardamos el token que nos da Flow para identificarlo en el retorno/webhook
+            $gatewayTrx->update(['token' => $res->token]);
+            return $res;
         }
+
+        Log::error("Flow API Error: " . $response->body());
+        return null;
+    } catch (\Exception $e) {
+        Log::error("Excepción en Flow createPayment: " . $e->getMessage());
+        return null;
     }
+}
 
     /**
      * 2. PROCESADOR: El corazón del Webhook.
@@ -161,12 +172,14 @@ class FlowService
             $signatureService = app(\App\Services\SignatureService::class);
             $signatureResult = $signatureService->sign($prescription);
 
-            if ($signatureResult && $signatureResult->success) {
-                $order->update(['status' => 'paid']);
-            } else {
-                Log::warning("Firma fallida, la orden queda en revisión manual.");
-                $order->update(['status' => 'manual_review']);
-            }
+        if ($signatureResult && $signatureResult->success) {
+            // IMPORTANTE: Asegúrate de usar comillas
+            $prescription->update(['status' => 'signed']);
+            $order->update(['status' => 'paid']);
+        } else {
+            Log::warning("Firma fallida, la orden queda en revisión manual.");
+            $order->update(['status' => 'manual_review']);
+        }
         } catch (\Exception $e) {
             Log::error("Error en firma: " . $e->getMessage());
             $order->update(['status' => 'manual_review']);
