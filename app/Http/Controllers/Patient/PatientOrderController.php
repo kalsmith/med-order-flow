@@ -8,6 +8,7 @@ use App\Models\MedicalOrder;
 use App\Models\Doctor;
 use App\Models\Order;
 use App\Models\Patient;
+use App\Models\Prescription;
 use App\Services\OrderPdfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -77,28 +78,30 @@ class PatientOrderController extends Controller
 
 public function store(Request $request)
     {
-        Log::info("=== INICIO PROCESO DE COMPRA ===", ['payload' => $request->all()]);
+        Log::info("=== INICIO CREACIÓN DE ORDEN ===", ['payload' => $request->all()]);
 
-        // Normalizamos el tipo de flujo
+        // 1. NORMALIZACIÓN: Determinamos el tipo antes de validar
         if (!$request->has('type')) {
             $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
         }
 
-        // 1. VALIDACIÓN
+        // 2. VALIDACIÓN
         $request->validate([
-            'patient_id'   => 'required|exists:patients,id',
-            'exam_type_id' => 'required_unless:type,custom|exists:exam_types,id',
-            'custom_description' => 'required_if:type,custom|min:10'
+            'patient_id'         => 'required|exists:patients,id',
+            'exam_type_id'       => 'required_unless:type,custom|exists:exam_types,id',
+            'custom_description' => 'required_if:type,custom|nullable|string|min:10',
+            'clinical_context'   => 'nullable|string'
         ]);
 
         try {
             $order = DB::transaction(function () use ($request) {
-                $patient = Patient::findOrFail($request->patient_id);
                 $orderType = $request->type;
+                $amount = 0;
+                $examId = null;
 
-                // Determinamos precio y datos del examen
+                // 3. DETERMINACIÓN DE COSTOS (Fuente de verdad)
                 if ($orderType === 'custom') {
-                    $amount = 9990; // Precio fijo custom
+                    $amount = 9990; // Precio fijo para órdenes personalizadas
                     $examId = null;
                 } else {
                     $exam = ExamType::findOrFail($request->exam_type_id);
@@ -106,39 +109,31 @@ public function store(Request $request)
                     $examId = $exam->id;
                 }
 
-                // 2. CREAR LA ORDEN COMERCIAL (La "boleta")
-                // No asignamos doctor aquí, solo registramos qué se quiere comprar.
-                $newOrder = Order::create([
-                    'id'         => (string) Str::uuid(),
-                    'patient_id' => $patient->id,
-                    'amount'     => $amount,
-                    'status'     => 'pending',
+                // 4. CREACIÓN DE LA ORDEN COMERCIAL (Cargada con todo su contexto)
+                return Order::create([
+                    'id'                 => (string) Str::uuid(),
+                    'patient_id'         => $request->patient_id,
+                    'exam_type_id'       => $examId,
+                    'type'               => $orderType,
+                    'amount'             => $amount,
+                    'status'             => 'pending',
+                    // Si tienes estos campos en el modelo Order, guárdalos de una vez:
+                    'custom_description' => $request->custom_description,
+                    'clinical_context'   => $request->clinical_context,
                 ]);
-
-                Log::info("Orden Comercial Creada:", ['id' => $newOrder->id]);
-
-                return [
-                    'order' => $newOrder,
-                    'exam_id' => $examId,
-                    'type' => $orderType
-                ];
             });
 
-            // 3. REDIRIGIR AL CHECKOUT PASANDO METADATA
-            // Pasamos el exam_id y el type para que FlowService los guarde en la metadata de la transacción
-            return redirect()->route('checkout.process', [
-                'order' => $order['order']->id,
-                'exam_type_id' => $order['exam_id'],
-                'type' => $order['type']
-            ]);
+            Log::info("Orden Comercial Creada con éxito", ['order_id' => $order->id]);
+
+            // 5. REDIRECCIÓN LIMPIA: Solo pasamos el ID de la orden.
+            // El CheckoutController ya sabe qué cobrar porque está en la DB.
+            return redirect()->route('checkout.index', ['order' => $order->id]);
 
         } catch (\Exception $e) {
-            Log::error("Error en PatientOrderController@store: " . $e->getMessage());
-            return back()->with('error', 'No pudimos procesar tu solicitud.');
+            Log::error("Error Crítico en PatientOrderController@store: " . $e->getMessage());
+            return back()->with('error', 'Ocurrió un error al generar tu orden. Intenta nuevamente.');
         }
     }
-
-
 
 
 
