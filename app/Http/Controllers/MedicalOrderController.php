@@ -70,29 +70,39 @@ class MedicalOrderController extends Controller
     /**
      * Muestra el formulario de firma y bloquea la orden para el médico.
      */
-    public function showSignForm(Order $order)
-    {
-        $order->load(['patient', 'doctor.user', 'examType', 'interactions']);
+public function showSignForm(Order $order)
+{
+    $order->load(['patient', 'doctor.user', 'examType', 'interactions']);
 
-        $user = Auth::user();
-        $doctor = $user->doctor;
+    $user = Auth::user();
+    $doctor = $user->doctor;
 
-        // Validación de bloqueo: Si está tomada por otro y no ha expirado
-        if ($order->doctor_id && $order->doctor_id !== $doctor->id && $order->claimed_at && $order->claimed_at->gt(now()->subMinutes(20))) {
-            return redirect()->route('admin.doctor.panel')
-                             ->with('error', 'Esta orden está siendo revisada por otro profesional.');
-        }
-
-        // Marcamos la orden como tomada por este médico
-        $order->update([
-            'doctor_id' => $doctor->id,
-            'claimed_at' => now()
-        ]);
-
-        Log::info("Médico ID: {$doctor->id} ha tomado la orden {$order->id} para revisión.");
-
-        return view('admin.orders.sign', compact('order'));
+    // VALIDACIÓN DE BLOQUEO CORREGIDA
+    // Bloqueamos SOLO SI:
+    // 1. Tiene un doctor asignado ($order->doctor_id)
+    // 2. ESE doctor NO es el médico actual ($order->doctor_id !== $doctor->id)
+    // 3. El bloqueo aún no ha expirado (claimed_at > 20 min atrás)
+    if (
+        $order->doctor_id &&
+        $order->doctor_id !== $doctor->id &&
+        $order->claimed_at &&
+        $order->claimed_at->gt(now()->subMinutes(20))
+    ) {
+        return redirect()->route('admin.doctor.panel')
+                         ->with('error', 'Esta orden está siendo revisada por otro profesional.');
     }
+
+    // Si llegamos aquí, es porque la orden está libre O es nuestra.
+    // Actualizamos el timestamp para renovar los 20 minutos de "reserva".
+    $order->update([
+        'doctor_id' => $doctor->id,
+        'claimed_at' => now()
+    ]);
+
+    Log::info("Médico ID: {$doctor->id} renovó/tomó la orden {$order->id} para revisión.");
+
+    return view('admin.orders.sign', compact('order'));
+}
 
     /**
      * Procesa la firma digital y finaliza el ciclo médico.

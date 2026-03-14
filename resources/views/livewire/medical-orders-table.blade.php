@@ -1,4 +1,4 @@
-<div wire:poll.10s class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
+<div wire:poll.15s class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
     <div class="card-header bg-white pt-4 pb-0 border-bottom-0">
         <div class="d-flex justify-content-between align-items-center mb-3 px-2">
             <h5 class="mb-0 text-dark fw-bold">
@@ -12,7 +12,7 @@
             </div>
         </div>
 
-        {{-- Solo dos pestañas --}}
+        {{-- Pestañas de Navegación --}}
         <ul class="nav nav-tabs border-bottom-0 px-2">
             <li class="nav-item">
                 <button wire:click="setTab('available')"
@@ -45,7 +45,14 @@
                     @forelse($orders as $order)
                         @php
                             $myDoctorId = auth()->user()->doctor->id ?? null;
-                            $isClaimedByOther = $order->doctor_id && $order->doctor_id !== $myDoctorId && $order->claimed_at > now()->subMinutes(20);
+
+                            // Bloqueada por otro: Tiene doctor, no soy yo, y el reclamo es reciente (< 20 min)
+                            $isClaimedByOther = $order->doctor_id &&
+                                               $order->doctor_id !== $myDoctorId &&
+                                               $order->claimed_at &&
+                                               $order->claimed_at->gt(now()->subMinutes(20));
+
+                            // Es mía: Yo soy el doctor asignado y está pagada (pendiente de firma)
                             $isClaimedByMe = $order->doctor_id === $myDoctorId && $order->status === 'paid';
                         @endphp
                         <tr>
@@ -77,8 +84,12 @@
                                     <span class="badge bg-light text-muted border border-secondary-subtle fw-normal">
                                         <i class="bi bi-person-fill-lock me-1"></i> En revisión
                                     </span>
-                                @else
+                                @elseif($isClaimedByMe)
                                     <span class="badge bg-info-subtle text-info border border-info-subtle fw-medium">
+                                        <i class="bi bi-arrow-right-circle-fill me-1"></i> En tu poder
+                                    </span>
+                                @else
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-medium">
                                         Pendiente
                                     </span>
                                 @endif
@@ -86,21 +97,28 @@
                             <td class="text-end pe-4">
                                 @if($order->status !== 'signed')
                                     @if($isClaimedByOther)
-                                        <button class="btn btn-sm btn-light border" disabled><i class="bi bi-lock-fill"></i></button>
+                                        <button class="btn btn-sm btn-light border text-muted" disabled title="Siendo revisada por otro médico">
+                                            <i class="bi bi-lock-fill"></i>
+                                        </button>
                                     @else
-                                        <a href="{{ route('admin.orders.sign.form', $order->id) }}"
+                                        {{-- Botón dinámico: Firmar o Continuar --}}
+                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
                                            class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3 rounded-pill shadow-sm fw-bold">
                                             <i class="bi {{ $isClaimedByMe ? 'bi-play-fill' : 'bi-vector-pen' }} me-1"></i>
                                             {{ $isClaimedByMe ? 'Continuar' : 'Firmar' }}
                                         </a>
                                     @endif
                                 @else
-                                    {{-- El ojo ahora apunta a la ruta de firma que NO da 403 --}}
+                                    {{-- Grupo de acciones para órdenes firmadas --}}
                                     <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
-                                        <a href="{{ route('admin.orders.sign.form', $order->id) }}" class="btn btn-sm btn-white border border-end-0" title="Ver Detalles">
+                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
+                                           class="btn btn-sm btn-white border border-end-0" title="Ver Detalles">
                                             <i class="bi bi-eye text-primary"></i>
                                         </a>
-                                        <a href="#" class="btn btn-sm btn-white border" title="PDF">
+                                        {{-- Ruta al PDF (asegúrate de que exista en tu web.php) --}}
+                                        <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}"
+                                           target="_blank"
+                                           class="btn btn-sm btn-white border" title="Descargar PDF">
                                             <i class="bi bi-file-pdf text-danger"></i>
                                         </a>
                                     </div>
@@ -125,7 +143,8 @@
 </div>
 
 <style>
-    .btn-white { background-color: #fff; color: #374151; }
-    .btn-white:hover { background-color: #f9fafb; }
-    .nav-tabs .nav-link.active { color: #0d6efd !important; }
+    .btn-white { background-color: #fff; color: #374151; transition: all 0.2s; }
+    .btn-white:hover { background-color: #f9fafb; color: #000; }
+    .nav-tabs .nav-link.active { color: #0d6efd !important; border-bottom: 3px solid #0d6efd !important; }
+    .table-hover tbody tr:hover { background-color: #f8fafc; }
 </style>
