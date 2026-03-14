@@ -17,12 +17,16 @@ class MedicalOrderController extends Controller
     /**
      * Listado de órdenes: Inteligente según el Rol con liberación de bloqueos.
      */
+
+
+
     public function index()
     {
         $user = Auth::user();
 
         // 1. Garbage Collector: Liberamos órdenes cuyo "claimed_at" expiró (20 minutos)
-        MedicalOrder::whereIn('status', ['pending', 'paid'])
+        // Nota: Asegúrate de que tu tabla 'orders' tenga 'doctor_id' y 'claimed_at'
+        Order::whereIn('status', ['pending', 'paid'])
             ->whereNotNull('claimed_at')
             ->where('claimed_at', '<', now()->subMinutes(20))
             ->update([
@@ -30,16 +34,21 @@ class MedicalOrderController extends Controller
                 'claimed_at' => null
             ]);
 
-        $query = MedicalOrder::with(['patient' => function($q) {
+        // 2. Query Base con Eager Loading
+        $query = Order::with(['patient' => function($q) {
             $q->withTrashed();
-        }, 'doctor.user', 'examType']);
+        }, 'doctor.user', 'examType', 'interactions']); // Agregamos 'interactions' para ver si hay chat
 
+        // 3. Lógica de filtrado para Doctores
         if ($user->hasRole('doctor')) {
             $doctor = $user->doctor;
 
             $query->where(function($q) use ($doctor) {
+                // Órdenes ya tomadas por este doctor
                 $q->where('doctor_id', $doctor->id)
                   ->whereIn('status', ['paid', 'pending'])
+
+                // O órdenes pagadas sin doctor de su especialidad
                 ->orWhere(function($sq) use ($doctor) {
                     $sq->whereNull('doctor_id')
                        ->where('status', 'paid')
@@ -47,17 +56,22 @@ class MedicalOrderController extends Controller
                            $eq->where('specialty_id', $doctor->specialty_id);
                        });
                 })
+
+                // O solicitudes especiales (custom) pagadas sin doctor asignado
                 ->orWhere(function($sq) {
                     $sq->whereNull('doctor_id')
-                       ->whereNull('exam_type_id')
+                       ->where('type', 'custom') // <--- Usamos la nueva columna 'type'
                        ->where('status', 'paid');
                 });
             });
         }
 
         $orders = $query->latest()->paginate(10);
+
         return view('admin.orders.index', compact('orders'));
     }
+
+
 
     /**
      * Muestra el formulario de firma.
