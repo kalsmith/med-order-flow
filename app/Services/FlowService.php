@@ -84,32 +84,36 @@ class FlowService
 
     // En app/Services/FlowService.php
 
-
-    public function handleWebhook($token)
+public function handleWebhook($token)
 {
     Log::info("WEBHOOK: Recibido token $token");
 
-    // 1. Obtener datos del pago desde Flow
-    $statusResponse = $this->getPaymentData($token); // Asumo que este método devuelve el objeto/array de Flow
+    // 1. Obtener datos del pago desde Flow usando el nombre de método correcto
+    // Cambié getPaymentData por getPaymentStatus
+    $statusResponse = $this->getPaymentStatus($token);
+
+    // Convertimos a array si es un objeto para facilitar el acceso a la metadata
+    $paymentData = (array) $statusResponse;
 
     // 2. Encontrar la Orden Comercial y la Transacción de Pasarela
-    $order = Order::findOrFail($statusResponse['commerceOrder']);
+    $order = Order::findOrFail($paymentData['commerceOrder']);
     $gatewayTrx = GatewayTransaction::where('token', $token)->firstOrFail();
 
-    // 3. Extraer Metadata
-    $examTypeId = $statusResponse['optional']['exam_type_id'] ?? null;
-    $orderType = $statusResponse['optional']['type'] ?? 'standard';
+    // 3. Extraer Metadata (Flow lo pone en 'optional')
+    $examTypeId = $paymentData['optional']['exam_type_id'] ?? null;
+    $orderType = $paymentData['optional']['type'] ?? 'standard';
 
-    return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token, $examTypeId, $orderType) {
+    return DB::transaction(function () use ($order, $gatewayTrx, $paymentData, $token, $examTypeId, $orderType) {
 
         // ACTUALIZAR TRANSACCIÓN DE PASARELA
         $gatewayTrx->update([
             'status' => 'authorized',
-            'raw_response' => json_encode($statusResponse)
+            'raw_response' => json_encode($paymentData)
         ]);
 
         // REGISTRAR MOVIMIENTO CONTABLE INTERNO
-        $this->registerTransaction($gatewayTrx, $order, $token, (object)$statusResponse);
+        // Pasamos (object)$paymentData para que registerTransaction no falle
+        $this->registerTransaction($gatewayTrx, $order, $token, (object)$paymentData);
 
         if ($orderType === 'standard') {
             Log::info("WEBHOOK: Flujo STANDARD");
@@ -118,7 +122,7 @@ class FlowService
             $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
 
             if (!$doctor) {
-                throw new \Exception("No hay médicos disponibles.");
+                throw new \Exception("No hay médicos disponibles para la especialidad.");
             }
 
             $prescription = Prescription::create([
@@ -139,9 +143,9 @@ class FlowService
 
                 if ($signatureResult->success) {
                     $order->update(['status' => 'completed']);
-                    Log::info("WEBHOOK: Proceso y Contabilidad completados.");
+                    Log::info("WEBHOOK: Proceso y Contabilidad completados exitosamente.");
                 } else {
-                    throw new \Exception("Fallo en firma.");
+                    throw new \Exception("Fallo en el servicio de firma.");
                 }
             } catch (\Exception $e) {
                 Log::error("WEBHOOK: Error en firma: " . $e->getMessage());
