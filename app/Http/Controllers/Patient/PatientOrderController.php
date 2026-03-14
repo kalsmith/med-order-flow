@@ -59,18 +59,20 @@ class PatientOrderController extends Controller
 
 public function index()
 {
-    // 1. Obtenemos el usuario autenticado
     $user = auth()->user();
 
-    // 2. Validamos que el usuario tenga un perfil de paciente
-    // Si no lo tiene, lo mandamos al home o perfil con un mensaje
-    if (!$user->patient) {
-        return redirect()->route('home')->with('error', 'No se encontró un perfil de paciente asociado.');
+    // Buscamos el paciente vinculado a este usuario
+    // Si la relación $user->patient falla, lo buscamos manualmente
+    $patient = Patient::where('user_id', $user->id)->first();
+
+    if (!$patient) {
+        // Log para debugear: así sabrás qué ID de paciente tiene el usuario 30 en realidad
+        Log::error("Usuario {$user->id} no tiene entrada en tabla patients");
+        return redirect()->route('home')->with('error', 'Perfil de paciente no encontrado.');
     }
 
-    // 3. Traemos las órdenes con sus relaciones cargadas (Eager Loading)
-    // Esto evita que la base de datos colapse con muchas consultas
-    $orders = $user->patient->orders()
+    // Traemos las órdenes del paciente encontrado
+    $orders = \App\Models\Order::where('patient_id', $patient->id)
         ->with(['examType', 'activePrescription'])
         ->latest()
         ->get();
