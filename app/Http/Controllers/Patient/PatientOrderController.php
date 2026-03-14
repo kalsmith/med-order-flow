@@ -75,66 +75,68 @@ public function index()
 }
 
 
-
 public function store(Request $request)
-    {
-        Log::info("=== INICIO CREACIÓN DE ORDEN ===", ['payload' => $request->all()]);
+{
+    Log::info("=== INICIO CREACIÓN DE ORDEN ===", ['payload' => $request->all()]);
 
-        // 1. NORMALIZACIÓN: Determinamos el tipo antes de validar
-        if (!$request->has('type')) {
-            $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
-        }
-
-        // 2. VALIDACIÓN
-        $request->validate([
-            'patient_id'         => 'required|exists:patients,id',
-            'exam_type_id'       => 'required_unless:type,custom|exists:exam_types,id',
-            'custom_description' => 'required_if:type,custom|nullable|string|min:10',
-            'clinical_context'   => 'nullable|string'
-        ]);
-
-        try {
-            $order = DB::transaction(function () use ($request) {
-                $orderType = $request->type;
-                $amount = 0;
-                $examId = null;
-
-                // 3. DETERMINACIÓN DE COSTOS (Fuente de verdad)
-                if ($orderType === 'custom') {
-                    $amount = 9990; // Precio fijo para órdenes personalizadas
-                    $examId = null;
-                } else {
-                    $exam = ExamType::findOrFail($request->exam_type_id);
-                    $amount = $exam->base_price;
-                    $examId = $exam->id;
-                }
-
-                // 4. CREACIÓN DE LA ORDEN COMERCIAL (Cargada con todo su contexto)
-                return Order::create([
-                    'id'                 => (string) Str::uuid(),
-                    'patient_id'         => $request->patient_id,
-                    'exam_type_id'       => $examId,
-                    'type'               => $orderType,
-                    'amount'             => $amount,
-                    'status'             => 'pending',
-                    // Si tienes estos campos en el modelo Order, guárdalos de una vez:
-                    'custom_description' => $request->custom_description,
-                    'clinical_context'   => $request->clinical_context,
-                ]);
-            });
-
-            Log::info("Orden Comercial Creada con éxito", ['order_id' => $order->id]);
-
-            // 5. REDIRECCIÓN LIMPIA: Solo pasamos el ID de la orden.
-            // El CheckoutController ya sabe qué cobrar porque está en la DB.
-            return redirect()->route('checkout.index', ['order' => $order->id]);
-
-        } catch (\Exception $e) {
-            Log::error("Error Crítico en PatientOrderController@store: " . $e->getMessage());
-            return back()->with('error', 'Ocurrió un error al generar tu orden. Intenta nuevamente.');
-        }
+    // 1. NORMALIZACIÓN: Determinamos el tipo antes de validar
+    if (!$request->has('type')) {
+        $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
     }
 
+    // 2. VALIDACIÓN
+    $request->validate([
+        'patient_id'         => 'required|exists:patients,id',
+        'exam_type_id'       => 'required_unless:type,custom|nullable|exists:exam_types,id',
+        'custom_description' => 'required_if:type,custom|nullable|string|min:10',
+        'clinical_context'   => 'nullable|string'
+    ]);
+
+    try {
+        $order = DB::transaction(function () use ($request) {
+            $orderType = $request->type;
+            $amount = 0;
+            $examId = null;
+
+            // 3. DETERMINACIÓN DE COSTOS (Fuente de verdad)
+            if ($orderType === 'custom') {
+                $amount = 9990;
+                $examId = null;
+            } else {
+                $exam = ExamType::findOrFail($request->exam_type_id);
+                $amount = $exam->base_price;
+                $examId = $exam->id;
+            }
+
+            // 4. CREACIÓN DE LA ORDEN COMERCIAL
+            // Importante: No pasamos 'verification_code' ni 'doctor_id' aquí.
+            // La orden nace como un documento de venta puro.
+            return Order::create([
+                'id'                 => (string) Str::uuid(),
+                'patient_id'         => $request->patient_id,
+                'exam_type_id'       => $examId,
+                'type'               => $orderType,
+                'amount'             => $amount,
+                'status'             => 'pending',
+                'custom_description' => $request->custom_description,
+                'clinical_context'   => $request->clinical_context,
+            ]);
+        });
+
+        Log::info("Orden Comercial Creada con éxito", ['order_id' => $order->id]);
+
+        // 5. REDIRECCIÓN AL PROCESO DE PAGO
+        // Usamos 'checkout.process' que es el que dispara hacia Flow
+        return redirect()->route('checkout.process', ['order' => $order->id]);
+
+    } catch (\Exception $e) {
+        Log::error("Error Crítico en PatientOrderController@store: " . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return back()->with('error', 'Ocurrió un error al generar tu orden: ' . $e->getMessage());
+    }
+}
 
 
     /**

@@ -19,7 +19,7 @@ class Order extends Model
 
     protected $fillable = [
         'patient_id',
-        'doctor_id',           // ID de la tabla 'doctors', NO user_id
+        'doctor_id',           // Solo para bloqueo (lock)
         'exam_type_id',
         'amount',
         'status',
@@ -28,9 +28,9 @@ class Order extends Model
         'flow_refund_id',
         'claimed_at',
         'custom_description',
-        'clinical_context',    // <-- AGREGADO: Sin esto, la firma no guarda el texto
-        'rejection_reason',
-        'verification_code',
+        'clinical_context',    // Contexto inicial del paciente
+        // 'rejection_reason',  <-- Esto ahora debería vivir en Prescriptions o Interactions
+        // 'verification_code', <-- ELIMINADO: Ahora es de la tabla Prescriptions
     ];
 
     protected $casts = [
@@ -43,21 +43,20 @@ class Order extends Model
         parent::boot();
         static::creating(function ($model) {
             if (!$model->status) $model->status = 'pending';
-            if (!$model->verification_code) {
-                $model->verification_code = self::generateUniqueVerificationCode();
-            }
+
+            // ELIMINADA toda la lógica de verification_code de aquí
         });
     }
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['status', 'doctor_id', 'clinical_context'])
+            ->logOnly(['status', 'doctor_id']) // Reducido a lo administrativo
             ->logOnlyDirty()
-            ->setDescriptionForEvent(fn(string $eventName) => "La orden ha sido {$eventName}");
+            ->setDescriptionForEvent(fn(string $eventName) => "La orden comercial ha sido {$eventName}");
     }
 
-    // --- RELACIONES CORREGIDAS ---
+    // --- RELACIONES ---
 
     public function patient(): BelongsTo
     {
@@ -66,7 +65,6 @@ class Order extends Model
 
     public function doctor(): BelongsTo
     {
-        // Relación directa a la tabla doctors
         return $this->belongsTo(Doctor::class, 'doctor_id');
     }
 
@@ -75,20 +73,25 @@ class Order extends Model
         return $this->belongsTo(ExamType::class);
     }
 
-    public function interactions(): HasMany
+    /**
+     * Relación con las prescripciones (historial clínico)
+     */
+    public function prescriptions(): HasMany
     {
-        return $this->hasMany(MedicalOrderInteraction::class, 'order_id')->orderBy('created_at', 'asc');
+        return $this->hasMany(Prescription::class, 'order_id');
     }
 
-    // --- LÓGICA ---
-
-    public static function generateUniqueVerificationCode()
+    /**
+     * Trae la prescripción firmada o la más reciente
+     */
+    public function activePrescription(): HasOne
     {
-        do {
-            $code = strtoupper(bin2hex(random_bytes(4)));
-        } while (self::where('verification_code', $code)->exists());
-        return $code;
+        return $this->hasOne(Prescription::class, 'order_id')
+            ->whereIn('status', ['signed', 'active'])
+            ->latestOfMany();
     }
+
+    // --- LÓGICA DE PRESENTACIÓN ---
 
     public function getDisplayNameAttribute()
     {
@@ -98,21 +101,5 @@ class Order extends Model
         return $this->examType ? $this->examType->name : 'Consulta Médica General';
     }
 
-    /**
-     * Relación con las prescripciones (historial)
-     */
-    public function prescriptions(): HasMany
-    {
-        return $this->hasMany(Prescription::class, 'order_id');
-    }
-
-    /**
-     * Relación con la prescripción actual/firmada (útil para el PDF)
-     */
-    public function prescription(): HasOne
-    {
-        return $this->hasOne(Prescription::class, 'order_id')->latestOfMany();
-    }
-
-
+    // ELIMINADO: generateUniqueVerificationCode() ya no pertenece a este modelo
 }
