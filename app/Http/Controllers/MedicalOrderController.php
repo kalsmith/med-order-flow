@@ -78,18 +78,21 @@ class MedicalOrderController extends Controller
      * Muestra el formulario de firma.
      * Cambiado $order por $medical_order para coincidir con la ruta.
      */
-    public function showSignForm(MedicalOrder $medical_order)
+    public function showSignForm(Order $order) // <--- Cambiado de MedicalOrder a Order
     {
-        $order = $medical_order; // Mantenemos la variable interna por compatibilidad
-        $order->load(['patient', 'doctor.specialties', 'examType', 'interactions']);
+        // Laravel ahora busca automáticamente por el ID (UUID) en la tabla 'orders'
+        $order->load(['patient', 'doctor.user', 'examType', 'interactions']);
+
         $user = Auth::user();
         $doctor = $user->doctor;
 
-        if ($order->doctor_id && $order->doctor_id !== $doctor->id && $order->claimed_at > now()->subMinutes(20)) {
+        // Validación de bloqueo (Claimed)
+        if ($order->doctor_id && $order->doctor_id !== $doctor->id && $order->claimed_at && $order->claimed_at->gt(now()->subMinutes(20))) {
             return redirect()->route('admin.orders.index')
-                             ->with('error', 'Esta orden está siendo revisada por otro profesional.');
+                            ->with('error', 'Esta orden está siendo revisada por otro profesional.');
         }
 
+        // Marcamos la orden como tomada por este médico
         $order->update([
             'doctor_id' => $doctor->id,
             'claimed_at' => now()
@@ -97,7 +100,6 @@ class MedicalOrderController extends Controller
 
         Log::info("Médico ID: {$doctor->id} ha tomado la orden {$order->id} para revisión.");
 
-        $doctor->load('specialties');
         return view('admin.orders.sign', compact('order'));
     }
 
