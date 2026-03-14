@@ -110,11 +110,12 @@ class FlowService
                 if ($orderType === 'standard') {
                     Log::info("WEBHOOK: Flujo STANDARD (Firma Automática)");
 
-                    $prescription = Prescription::create([
-                        'order_id' => $order->id,
-                        'exam_type_id' => $examTypeId,
-                        'status' => 'active',
-                    ]);
+$prescription = Prescription::create([
+    'order_id' => $order->id,
+    'doctor_id' => $doctor->id, // <--- Esto es vital
+    'exam_type_id' => $examTypeId,
+    'status' => 'active',
+]);
 
                     $signatureService = app(\App\Services\SignatureService::class);
                     $signatureResult = $signatureService->sign($prescription);
