@@ -1,6 +1,6 @@
 @extends('layouts.front')
 
-@section('title', $faq->question . ' - MedOrder Flow')
+@section('title', $faq->question . ' - ' . config('app.name'))
 
 @section('content')
 <div class="container py-5">
