@@ -99,52 +99,61 @@ class FlowService
      * 2. PROCESADOR: El corazón del Webhook.
      * Aquí unificamos la lógica comercial y médica.
      */
-    public function handleWebhook($token)
-    {
-        Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
 
-        try {
-            // A. Consultar estado real en Flow
-            $statusResponse = $this->getPaymentStatus($token);
-            if (!$statusResponse || $statusResponse->status != 2) {
-                Log::warning("Pago no autorizado en Flow", (array)$statusResponse);
-                return false;
+public function handleWebhook($token)
+{
+    Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
+
+    try {
+        $statusResponse = $this->getPaymentStatus($token);
+
+        // El status 2 es "Pagado" en Flow
+        if (!$statusResponse || (int)$statusResponse->status !== 2) {
+            Log::warning("Pago no autorizado o pendiente en Flow", (array)$statusResponse);
+            return false;
+        }
+
+        $gatewayTrx = GatewayTransaction::where('token', $token)->first();
+        if (!$gatewayTrx) throw new \Exception("Transacción técnica no encontrada para el token: " . $token);
+
+        $order = Order::findOrFail($gatewayTrx->payable_id);
+
+        return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token) {
+
+            // 1. Actualizar estado técnico (Pasarela)
+            $gatewayTrx->update([
+                'status' => 'authorized',
+                'raw_response' => json_encode($statusResponse)
+            ]);
+
+            // 2. Registro Contable (Transaction - Tabla de ingresos)
+            // Esto asegura que el dinero quede registrado aunque la receta falle después.
+            $this->registerTransaction($gatewayTrx, $order, $token, $statusResponse);
+
+            // 3. Procesamiento de Negocio
+            if ($order->type === 'standard' || $order->type === 'medical_purchase') {
+                /**
+                 * IMPORTANTE:
+                 * Dentro de processMedicalOrder() debemos atrapar errores de firma
+                 * para que NO rompan esta transacción. Si la firma falla,
+                 * la orden debe quedar como 'manual_review' pero la transacción exitosa.
+                 */
+                $this->processMedicalOrder($order);
+            } else {
+                $order->update(['status' => 'paid']);
             }
 
-            // B. Recuperar registros locales (GatewayTrx y Order)
-            $gatewayTrx = GatewayTransaction::where('token', $token)->first();
-            if (!$gatewayTrx) throw new \Exception("Transacción técnica no encontrada.");
+            Log::info("=== [FLOW WEBHOOK SUCCESS] ===", ['order_id' => $order->id]);
+            return true;
+        });
 
-            $order = Order::findOrFail($gatewayTrx->payable_id);
-
-            // C. TRANSACCIÓN ATÓMICA
-            return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token) {
-
-                // 1. Actualizar estado técnico
-                $gatewayTrx->update([
-                    'status' => 'authorized',
-                    'raw_response' => json_encode($statusResponse)
-                ]);
-
-                // 2. Registro Contable (Transaction)
-                $this->registerTransaction($gatewayTrx, $order, $token, $statusResponse);
-
-                // 3. Lógica según tipo de Orden (Standard / Otros)
-                if ($order->type === 'standard' || $order->type === 'medical_purchase') {
-                    $this->processMedicalOrder($order);
-                } else {
-                    $order->update(['status' => 'paid']);
-                }
-
-                Log::info("=== [FLOW WEBHOOK SUCCESS] ===", ['order_id' => $order->id]);
-                return true;
-            });
-
-        } catch (\Exception $e) {
-            Log::error("ERROR FATAL WEBHOOK: " . $e->getMessage());
-            throw $e;
-        }
+    } catch (\Exception $e) {
+        // Si llegamos aquí, algo rompió la DB (probablemente el error de ENUM que estamos arreglando)
+        Log::error("ERROR FATAL WEBHOOK: " . $e->getMessage());
+        throw $e;
     }
+}
+
 
     /**
      * Lógica específica para generar recetas médicas tras el pago.
