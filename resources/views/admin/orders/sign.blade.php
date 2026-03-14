@@ -4,7 +4,7 @@
 
 @section('header-actions')
     <div class="d-flex gap-2">
-        <form action="{{ route('admin.orders.release', ['medical_order' => $order->id]) }}" method="POST">
+        <form action="{{ route('admin.orders.release', ['order' => $order->id]) }}" method="POST">
             @csrf
             <input type="hidden" name="redirect_to" value="index">
             <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm">
@@ -158,8 +158,8 @@
                             <i class="bi bi-x-circle me-1"></i> Rechazar Orden
                         </button>
 
-                        <form action="{{ route('admin.orders.sign.process', ['medical_order' => $order->id]) }}"
-                              method="POST" id="signature-form" class="d-inline">
+                        <form action="{{ route('admin.orders.sign.process', ['order' => $order->id]) }}"
+      method="POST" id="signature-form" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-success btn-lg px-4 shadow">
                                 <i class="bi bi-vector-pen me-2"></i> Confirmar y Firmar
@@ -180,7 +180,7 @@
                 <h5 class="modal-title fw-bold">Rechazar Requerimiento</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('admin.orders.reject', ['medical_order' => $order->id]) }}" method="POST">
+            <form action="{{ route('admin.orders.reject', ['order' => $order->id]) }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <p class="text-muted">Explique el motivo del rechazo para informar al paciente.</p>
@@ -204,7 +204,7 @@
                 <h5 class="modal-title fw-bold">Derivar Solicitud</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('admin.orders.derivate', ['medical_order' => $order->id]) }}" method="POST">
+            <form action="{{ route('admin.orders.derivate', ['order' => $order->id]) }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
