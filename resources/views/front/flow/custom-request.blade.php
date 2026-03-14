@@ -1,6 +1,6 @@
 @extends('layouts.front')
 
-@section('title', 'Orden Personalizada - MedOrder Flow')
+@section('title', 'Orden Personalizada - ' . config('app.name'))
 
 @push('styles')
 <style>

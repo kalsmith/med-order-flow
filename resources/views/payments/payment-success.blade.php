@@ -1,6 +1,6 @@
 @extends('layouts.front')
 
-@section('title', '¡Pago Exitoso! - MedOrder Flow')
+@section('title', '¡Pago Exitoso! - ' . config('app.name'))
 
 @push('styles')
 <style>

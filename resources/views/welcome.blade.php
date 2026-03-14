@@ -1,6 +1,6 @@
 @extends('layouts.front')
 
-@section('title', 'MedOrder Flow - Órdenes Médicas al Instante')
+@section('title', config('app.name') . ' - Órdenes Médicas al Instante')
 
 @section('content')
     {{-- HERO SECTION --}}

@@ -1,6 +1,6 @@
 @extends('layouts.front')
 
-@section('title', 'Completar Perfil - MedOrder Flow')
+@section('title', 'Completar Perfil - ' . config('app.name'))
 
 @push('styles')
 
