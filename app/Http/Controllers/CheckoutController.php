@@ -16,7 +16,7 @@ class CheckoutController extends Controller
     public function process(Order $order, FlowService $flowService)
     {
         // 1. CARGA DE RELACIÓN
-        $order->loadMissing(['patient', 'items']);
+       $order->loadMissing(['patient']);
 
         // 2. SEGURIDAD: Validación de propiedad
         $patientUserId = (string) ($order->patient->user_id ?? '');
