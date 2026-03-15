@@ -33,20 +33,16 @@ public function index()
 
     $query = Order::with(['patient', 'doctor.user', 'examType', 'prescriptions']);
 
-    if ($user->hasRole('doctor')) {
-        $query->where(function($q) use ($doctor) {
-            // Mis asignadas
-            $q->where('doctor_id', $doctor->id)
-            // O las disponibles para mi especialidad
-            ->orWhere(function($sq) use ($doctor) {
-                $sq->availableForDoctor($doctor->id, $doctor->specialty_id);
-            })
-            // O las que necesitan re-firma
-            ->orWhere(function($sq) {
-                $sq->needsReentry();
-            });
-        });
-    }
+if ($user->hasRole('doctor')) {
+    $query->where(function($q) use ($doctor) {
+        // Mis órdenes (firmadas o por firmar)
+        $q->where('doctor_id', $doctor->id)
+        // O disponibles (nadie las ha tomado)
+          ->orWhere(function($sq) use ($doctor) {
+              $sq->availableForDoctor($doctor->id, $doctor->specialty_id);
+          });
+    });
+}
 
     $orders = $query->latest('updated_at')->paginate(10);
     return view('admin.orders.index', compact('orders'));

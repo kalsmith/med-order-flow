@@ -21,17 +21,29 @@ class MedicalOrdersTable extends Component
 
 
 
-    public function render()
+// App\Livewire\MedicalOrdersTable.php
+
+public function render()
 {
     $doctor = Auth::user()->doctor;
     $query = Order::with(['patient', 'examType', 'doctor.user', 'prescriptions']);
 
     if ($this->tab === 'available') {
-        $query->availableForDoctor($doctor->id, $doctor->specialty_id);
+        // En "Disponibles" vemos lo que nadie ha tomado + lo que YO tengo asignado pero no firmado
+        $query->where(function($q) use ($doctor) {
+            $q->availableForDoctor($doctor->id, $doctor->specialty_id)
+              ->orWhere('doctor_id', $doctor->id);
+        })
+        // IMPORTANTE: Excluir explícitamente las ya firmadas de la pestaña "disponibles"
+        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
+
     } elseif ($this->tab === 'reentry') {
-        $query->needsReentry();
+        // Solo MIS re-entradas
+        $query->where('doctor_id', $doctor->id)->needsReentry();
+
     } else {
-        $query->inHistory();
+        // Pestaña Historial: Solo MIS órdenes finalizadas
+        $query->where('doctor_id', $doctor->id)->inHistory();
     }
 
     return view('livewire.medical-orders-table', [

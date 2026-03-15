@@ -183,11 +183,8 @@ public function scopeNeedsReentry($query)
 public function scopeInHistory($query)
 {
     return $query->where(function($q) {
-        // En el historial va todo lo que ya tenga una firma final
         $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
-          // O que la orden misma esté marcada como firmada/finalizada
           ->orWhereNotNull('signed_at')
-          // O estados terminales
           ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
     });
 }
