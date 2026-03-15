@@ -12,10 +12,6 @@ use Spatie\Activitylog\LogOptions;
 
 class Order extends Model
 {
-    /**
-     * HasUuids: Fundamental para que Livewire reconozca el ID char(36).
-     * LogsActivity: Para auditoría de cambios.
-     */
     use HasUuids, LogsActivity;
 
     protected $keyType = 'string';
@@ -31,14 +27,11 @@ class Order extends Model
         'flow_order_id',
         'flow_refund_id',
         'claimed_at',
+        'signed_at', // Asegúrate de que esté en fillable para actualizaciones
         'custom_description',
         'clinical_context',
     ];
 
-    /**
-     * El casting a 'datetime' de created_at evita el error "format() on null"
-     * al asegurar que siempre sea un objeto Carbon.
-     */
     protected $casts = [
         'amount' => 'integer',
         'claimed_at' => 'datetime',
@@ -81,26 +74,16 @@ class Order extends Model
         return $this->belongsTo(ExamType::class);
     }
 
-    /**
-     * Relación con las prescripciones (documentos médicos generados)
-     */
     public function prescriptions(): HasMany
     {
         return $this->hasMany(Prescription::class, 'order_id');
     }
 
-    /**
-     * Relación con el chat/mensajería.
-     * Usamos el modelo MedicalOrderInteraction definido anteriormente.
-     */
     public function interactions(): HasMany
     {
         return $this->hasMany(MedicalOrderInteraction::class, 'order_id');
     }
 
-    /**
-     * Obtiene la prescripción activa/firmada más reciente.
-     */
     public function activePrescription(): HasOne
     {
         return $this->hasOne(Prescription::class, 'order_id')
@@ -108,11 +91,8 @@ class Order extends Model
             ->latestOfMany();
     }
 
-    // --- ACCESSORS / LÓGICA DE PRESENTACIÓN ---
+    // --- ACCESSORS ---
 
-    /**
-     * Retorna el nombre legible de lo solicitado.
-     */
     public function getDisplayNameAttribute()
     {
         if ($this->type === 'custom' && !empty($this->custom_description)) {
@@ -121,85 +101,58 @@ class Order extends Model
         return $this->examType ? $this->examType->name : 'Consulta Médica General';
     }
 
+    // --- SCOPES DE FILTRADO ---
 
+    /**
+     * Órdenes listas para ser tomadas por un médico.
+     */
+    public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
+    {
+        return $query->where('status', 'paid')
+            ->where(function($q) use ($specialtyId) {
+                $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
+                  ->orWhere('type', 'custom');
+            })
+            // No debe tener recetas firmadas ni anuladas
+            ->whereDoesntHave('prescriptions', fn($p) => $p->whereIn('status', ['signed', 'voided']))
+            // Si ya tiene fecha de firma, ya no está disponible
+            ->whereNull('signed_at');
+    }
 
+    /**
+     * Órdenes que tienen correcciones pendientes.
+     */
+    public function scopeNeedsReentry($query)
+    {
+        return $query->where('status', 'paid')
+            ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
+            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
+    }
 
-    // En App\Models\Order.php
+    /**
+     * Historial de órdenes finalizadas (Excluyendo Standard si se desea separar).
+     */
+    public function scopeInHistory($query)
+    {
+        return $query->where(function($q) {
+            $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
+              ->orWhereNotNull('signed_at')
+              ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
+        });
+    }
 
-// public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
-// {
-//     return $query->where('status', 'paid')
-//         ->where(function($q) use ($doctorId, $specialtyId) {
-//             $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
-//               ->orWhere('type', 'custom');
-//         })
-//         // No debe tener NINGUNA receta firmada (signed)
-//         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'))
-//         // No debe tener NINGUNA receta anulada (si tiene anuladas, va a la otra pestaña)
-//         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'));
-// }
-
-// public function scopeNeedsReentry($query)
-// {
-//     // Una orden necesita re-firma si tiene alguna anulada (voided)
-//     // PERO la receta más reciente aún no está firmada.
-//     return $query->where('status', 'paid')
-//         ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
-//         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
-// }
-
-// public function scopeInHistory($query)
-// {
-//     return $query->where(function($q) {
-//         $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
-//           ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
-//     });
-// }
-
-// App\Models\Order.php
-
-public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
-{
-    return $query->where('status', 'paid')
-        ->where(function($q) use ($doctorId, $specialtyId) {
-            $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
-              ->orWhere('type', 'custom');
-        })
-        // Solo disponibles si NO tienen recetas firmadas
-        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'))
-        // Y no tienen anuladas (porque esas van a Reentry)
-        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'))
-        // IMPORTANTE: Si es standard y ya tiene doctor asignado (auto-firmada), no es "disponible"
-        ->whereNull('signed_at');
-}
-
-public function scopeNeedsReentry($query)
-{
-    return $query->where('status', 'paid')
-        ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
-        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
-}
-
-public function scopeInHistory($query)
-{
-    return $query->where(function($q) {
-        $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
-          ->orWhereNotNull('signed_at')
-          ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
-    });
-}
-
-public function scopeAutoSignedStandard($query, $doctorId)
-{
-    return $query->where('doctor_id', $doctorId)
-                 ->where('type', 'standard')
-                 ->where('status', 'paid')
-                 ->whereHas('prescriptions', function($q) {
-                     $q->where('status', 'signed')
-                       ->whereNotNull('signed_at');
-                 });
-}
-
-
-
+    /**
+     * Órdenes del flujo estándar auto-firmadas.
+     * Si no te aparece nada, prueba quitando el ->whereNotNull('signed_at')
+     * dentro del closure de prescriptions.
+     */
+    public function scopeAutoSignedStandard($query, $doctorId)
+    {
+        return $query->where('doctor_id', $doctorId)
+                     ->where('type', 'standard')
+                     ->where('status', 'paid')
+                     ->whereHas('prescriptions', function($q) {
+                         $q->where('status', 'signed');
+                     });
+    }
 }
