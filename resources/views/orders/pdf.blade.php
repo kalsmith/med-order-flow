@@ -205,10 +205,19 @@
             <td>
                 <div class="prestacion-card">
                     <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 8px; border-bottom: 1px solid #cce0ff; padding-bottom: 5px;">
-                        {{ $order->examType->name ?? ($order->type === 'custom' ? 'Examen Personalizado' : 'Examen Estándar') }}
+                        @if($order->type === 'custom')
+                            ORDEN MÉDICA PERSONALIZADA
+                        @else
+                            {{ $order->examType->name ?? 'EXAMEN ESTÁNDAR' }}
+                        @endif
                     </div>
 
-                    @if($order->examType && $order->examType->children->isNotEmpty())
+                    {{-- Flujo de Órdenes Custom (Prioridad Médica) --}}
+                    @if($order->type === 'custom')
+                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap; color: #2d3436;">{{ $prescription->clinical_context }}</div>
+
+                    {{-- Flujo de Órdenes con Pack/Hijos --}}
+                    @elseif($order->examType && $order->examType->children->isNotEmpty())
                         <div style="margin-top: 10px;">
                             @foreach($order->examType->children as $child)
                                 <div class="exam-item">
@@ -217,8 +226,8 @@
                                 </div>
                             @endforeach
                         </div>
-                    @elseif($order->type === 'custom')
-                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap;">{{ $order->custom_description }}</div>
+
+                    {{-- Flujo de Examen Único Estándar --}}
                     @elseif($order->examType)
                         <div class="exam-item">
                             <span class="exam-code">[{{ $order->examType->code_fonasa ?? 'S/C' }}]</span>
@@ -235,7 +244,8 @@
     </table>
 </div>
 
-@if($prescription->clinical_context)
+{{-- Solo mostrar observaciones si NO es custom, ya que en custom ya se usó ese texto arriba --}}
+@if($order->type !== 'custom' && $prescription->clinical_context)
 <div class="section">
     <table width="100%">
         <tr>
@@ -251,7 +261,7 @@
         <table width="100%">
             <tr>
                 <td width="70">
-                    {{-- CAMBIO CLAVE: Cambiado de image/png a image/svg+xml --}}
+                    {{-- Cambiado a SVG Base64 para máxima compatibilidad --}}
                     <img src="data:image/svg+xml;base64,{{ $qrCode }}" style="width: 70px; height: 70px;">
                 </td>
                 <td style="padding-left: 15px; vertical-align: middle;">
