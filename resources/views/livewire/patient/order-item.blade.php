@@ -1,5 +1,4 @@
 @php
-    // Definimos el color del acento lateral según el estado de la orden
     $accentClass = [
         'paid' => 'border-start-success',
         'refund_pending' => 'border-start-info',
@@ -20,8 +19,8 @@
      style="border-width: 1px 1px 1px 5px !important; border-style: solid !important;">
     <div class="card-body p-0">
         <div class="row g-0">
-            <div class="col-md-3 bg-light border-end d-flex flex-column p-4 justify-content-between align-items-center">
-                <div class="text-center w-100">
+            <div class="col-md-3 bg-light border-end d-flex flex-column p-4 justify-content-between align-items-center text-center">
+                <div class="w-100">
                     <div class="mb-3">
                         <span class="d-block text-uppercase tracking-wider small fw-bold text-muted mb-1" style="font-size: 0.65rem;">ID Seguimiento</span>
                         <code class="h6 fw-bold text-dark bg-white px-2 py-1 rounded border shadow-sm">#{{ substr($order->id, 0, 8) }}</code>
@@ -64,6 +63,23 @@
                     </div>
                 </div>
 
+                {{-- ALERTA DE CHAT ACTIVO: Solo si el médico ha escrito --}}
+                @if($canShowChat)
+                    <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center py-2 px-3 mb-3" style="background-color: #e7f3ff;">
+                        <i class="bi bi-chat-dots-fill text-primary me-3 fs-4"></i>
+                        <div class="flex-grow-1">
+                            <p class="mb-0 small fw-bold text-dark">El médico ha iniciado una conversación.</p>
+                            <p class="mb-0 x-small text-muted" style="font-size: 0.75rem;">Revisa las indicaciones o responde sus dudas.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#chat-collapse-{{ $order->id }}">
+                            Ver Mensajes
+                        </button>
+                    </div>
+                @endif
+
                 <hr class="my-4 opacity-10">
 
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
@@ -90,16 +106,6 @@
                                 <i class="bi bi-file-earmark-arrow-down-fill me-2 fs-5"></i>
                                 Descargar Orden
                             </a>
-                        @endif
-
-                        @if($canShowChat)
-                            <button class="btn btn-outline-info px-4 py-2 rounded-4 d-flex align-items-center fw-bold"
-                                    type="button"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#chat-collapse-{{ $order->id }}">
-                                <i class="bi bi-chat-text-fill me-2 fs-5"></i>
-                                Hablar con Médico
-                            </button>
                         @endif
                     </div>
                 </div>
