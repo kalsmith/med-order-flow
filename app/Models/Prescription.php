@@ -27,7 +27,8 @@ class Prescription extends Model
         'clinical_context',
         'void_reason',
         'signed_at',
-        'type', // <--- Asegúrate de que esté aquí
+        'type',
+        'rejection_reason'
     ];
 
     protected $casts = [
