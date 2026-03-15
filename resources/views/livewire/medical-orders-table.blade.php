@@ -41,12 +41,14 @@
                 <button wire:click="setTab('standard')"
                     class="nav-link {{ $tab === 'standard' ? 'active fw-bold border-bottom border-info border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-robot me-1"></i> Auto-Firmadas
-
+                    {{-- @php
+                        $standardCount = \App\Models\Order::autoSignedStandard(auth()->user()->doctor->id ?? 0)->count();
+                    @endphp
                     @if($standardCount > 0)
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size: 0.6rem;">
                             {{ $standardCount }}
                         </span>
-                    @endif
+                    @endif --}}
                 </button>
             </li>
 
