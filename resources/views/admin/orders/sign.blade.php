@@ -19,7 +19,8 @@
     <div class="col-md-10 col-lg-8">
 
         @php
-            $isSigned = !is_null($order->signed_at);
+            // IMPORTANTE: Validamos la firma a través de la relación prescription
+            $isSigned = $order->prescription && !is_null($order->prescription->signed_at);
 
             // Lógica de expiración (solo si no está firmada)
             $expiresAt = $order->claimed_at ? $order->claimed_at->addMinutes(20) : now()->addMinutes(20);
@@ -43,7 +44,7 @@
                     <i class="bi bi-patch-check-fill me-1"></i> Documento Firmado y Cerrado
                 </small>
                 <span class="badge bg-success text-white">
-                    Emitido el {{ $order->signed_at->format('d/m/Y H:i') }}
+                    Emitido el {{ \Carbon\Carbon::parse($order->prescription->signed_at)->format('d/m/Y H:i') }}
                 </span>
             </div>
         @endif
@@ -79,7 +80,9 @@
                         <div class="mt-1">
                             <p class="mb-0">{{ $order->created_at->format('d/m/Y H:i') }} hrs</p>
                             @if($isSigned)
-                                <p class="text-success small mb-0"><i class="bi bi-clock-history"></i> Firmado: {{ $order->signed_at->format('d/m/Y H:i') }}</p>
+                                <p class="text-success small mb-0">
+                                    <i class="bi bi-clock-history"></i> Firmado: {{ \Carbon\Carbon::parse($order->prescription->signed_at)->format('d/m/Y H:i') }}
+                                </p>
                             @endif
                         </div>
                     </div>
@@ -104,7 +107,7 @@
                         </div>
                     </div>
 
-                    {{-- 2. Input de Contexto Clínico (Bloqueado si está firmado) --}}
+                    {{-- 2. Indicación Médica (Bloqueado si está firmado) --}}
                     <div class="col-12">
                         <div class="form-group">
                             <label class="{{ $isSigned ? 'text-muted' : 'text-primary' }} fw-bold mb-2 small text-uppercase">
@@ -124,14 +127,13 @@
                         </div>
                     </div>
 
-                    {{-- 3. Interacciones (Solo lectura si está firmado) --}}
+                    {{-- 3. Interacciones --}}
                     <div class="col-12">
                         <div class="d-flex align-items-center mb-2">
                             <hr class="flex-grow-1 opacity-10">
                             <span class="mx-3 text-muted small fw-bold text-uppercase">Interacción con Paciente</span>
                             <hr class="flex-grow-1 opacity-10">
                         </div>
-                        {{-- Puedes pasar un parámetro al componente para bloquear el input de chat si lo deseas --}}
                         @livewire('admin.order-interactions', ['order' => $order, 'readOnly' => $isSigned])
                     </div>
                 </div>
@@ -152,7 +154,7 @@
                     <div class="col-md-9 text-md-end text-center">
                         @if($isSigned)
                             {{-- BOTONES MODO LECTURA --}}
-                            <button type="button" class="btn btn-outline-dark px-4 shadow-sm" disabled>
+                            <button type="button" class="btn btn-outline-dark px-4 shadow-sm" disabled title="Función próximamente disponible">
                                 <i class="bi bi-trash3 me-1"></i> Anular Firma
                             </button>
 
@@ -185,7 +187,7 @@
     </div>
 </div>
 
-{{-- Los modales solo se incluyen si no está firmado para ahorrar recursos --}}
+{{-- Modales --}}
 @if(!$isSigned)
     {{-- MODAL RECHAZO --}}
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
@@ -198,8 +200,7 @@
                 <form action="{{ route('admin.orders.reject', ['order' => $order->id]) }}" method="POST">
                     @csrf
                     <div class="modal-body">
-                        <p class="text-muted">Explique el motivo del rechazo para informar al paciente.</p>
-                        <textarea name="rejection_reason" class="form-control" rows="4" required placeholder="Ej: No corresponde a atención telemédica..."></textarea>
+                        <textarea name="rejection_reason" class="form-control" rows="4" required placeholder="Motivo del rechazo..."></textarea>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

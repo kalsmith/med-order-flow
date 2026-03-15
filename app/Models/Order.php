@@ -44,6 +44,7 @@ class Order extends Model
         'claimed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'signed_at' => 'datetime',
     ];
 
     protected static function boot()
