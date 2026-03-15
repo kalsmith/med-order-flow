@@ -15,8 +15,10 @@
     $currentStatus = $statusConfig[$order->status] ?? ['label' => $order->status, 'class' => 'bg-light text-dark'];
 @endphp
 
-<div class="card mb-4 overflow-hidden rounded-4 card-order-patient shadow-sm border {{ $accentClass }}"
-     style="border-width: 1px 1px 1px 5px !important; border-style: solid !important;">
+{{-- Poll de 15 segundos: Suficiente para que parezca real-time sin saturar el servidor --}}
+<div wire:poll.15s class="card mb-4 overflow-hidden rounded-4 card-order-patient shadow-sm border {{ $accentClass }}"
+     style="border-width: 1px 1px 1px 5px !important; border-style: solid !important; transition: all 0.3s ease;">
+
     <div class="card-body p-0">
         <div class="row g-0">
             <div class="col-md-3 bg-light border-end d-flex flex-column p-4 justify-content-between align-items-center text-center">
@@ -27,7 +29,7 @@
                     </div>
 
                     @if($order->activePrescription)
-                    <div class="py-2 px-3 rounded-3 bg-white border shadow-sm mb-3">
+                    <div class="py-2 px-3 rounded-3 bg-white border shadow-sm mb-3 animate__animated animate__fadeIn">
                         <span class="d-block text-uppercase small fw-bold text-primary mb-1" style="font-size: 0.6rem;">Folio Médico</span>
                         <span class="h5 fw-800 text-dark mb-0">{{ $order->activePrescription->correlative_number }}</span>
                     </div>
@@ -63,9 +65,9 @@
                     </div>
                 </div>
 
-                {{-- ALERTA DE CHAT ACTIVO: Solo si el médico ha escrito --}}
+                {{-- ALERTA DE CHAT ACTIVO --}}
                 @if($canShowChat)
-                    <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center py-2 px-3 mb-3" style="background-color: #e7f3ff;">
+                    <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center py-2 px-3 mb-3 animate__animated animate__bounceIn" style="background-color: #e7f3ff;">
                         <i class="bi bi-chat-dots-fill text-primary me-3 fs-4"></i>
                         <div class="flex-grow-1">
                             <p class="mb-0 small fw-bold text-dark">El médico ha iniciado una conversación.</p>
@@ -102,7 +104,7 @@
 
                     <div class="actions-group d-flex gap-2 w-100 w-sm-auto">
                         @if($canDownload)
-                            <a href="#" class="btn btn-primary px-4 py-2 rounded-4 shadow-sm d-flex align-items-center">
+                            <a href="#" class="btn btn-primary px-4 py-2 rounded-4 shadow-sm d-flex align-items-center animate__animated animate__fadeInUp">
                                 <i class="bi bi-file-earmark-arrow-down-fill me-2 fs-5"></i>
                                 Descargar Orden
                             </a>
