@@ -126,6 +126,38 @@ class Order extends Model
 
     // En App\Models\Order.php
 
+// public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
+// {
+//     return $query->where('status', 'paid')
+//         ->where(function($q) use ($doctorId, $specialtyId) {
+//             $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
+//               ->orWhere('type', 'custom');
+//         })
+//         // No debe tener NINGUNA receta firmada (signed)
+//         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'))
+//         // No debe tener NINGUNA receta anulada (si tiene anuladas, va a la otra pestaña)
+//         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'));
+// }
+
+// public function scopeNeedsReentry($query)
+// {
+//     // Una orden necesita re-firma si tiene alguna anulada (voided)
+//     // PERO la receta más reciente aún no está firmada.
+//     return $query->where('status', 'paid')
+//         ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
+//         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
+// }
+
+// public function scopeInHistory($query)
+// {
+//     return $query->where(function($q) {
+//         $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
+//           ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
+//     });
+// }
+
+// App\Models\Order.php
+
 public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
 {
     return $query->where('status', 'paid')
@@ -133,16 +165,16 @@ public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
             $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
               ->orWhere('type', 'custom');
         })
-        // No debe tener NINGUNA receta firmada (signed)
+        // Solo disponibles si NO tienen recetas firmadas
         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'))
-        // No debe tener NINGUNA receta anulada (si tiene anuladas, va a la otra pestaña)
-        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'));
+        // Y no tienen anuladas (porque esas van a Reentry)
+        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'))
+        // IMPORTANTE: Si es standard y ya tiene doctor asignado (auto-firmada), no es "disponible"
+        ->whereNull('signed_at');
 }
 
 public function scopeNeedsReentry($query)
 {
-    // Una orden necesita re-firma si tiene alguna anulada (voided)
-    // PERO la receta más reciente aún no está firmada.
     return $query->where('status', 'paid')
         ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
         ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
@@ -151,12 +183,14 @@ public function scopeNeedsReentry($query)
 public function scopeInHistory($query)
 {
     return $query->where(function($q) {
+        // En el historial va todo lo que ya tenga una firma final
         $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
+          // O que la orden misma esté marcada como firmada/finalizada
+          ->orWhereNotNull('signed_at')
+          // O estados terminales
           ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
     });
 }
-
-
 
 
 
