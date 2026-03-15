@@ -15,8 +15,7 @@
     $currentStatus = $statusConfig[$order->status] ?? ['label' => $order->status, 'class' => 'bg-light text-dark'];
 @endphp
 
-{{-- Poll de 15 segundos --}}
-<div wire:poll.15s class="card mb-4 overflow-hidden rounded-4 card-order-patient shadow-sm border {{ $accentClass }}"
+<div wire:poll.15s class="card mb-4 overflow-hidden rounded-4 shadow-sm border {{ $accentClass }}"
      style="border-width: 1px 1px 1px 5px !important; border-style: solid !important; transition: all 0.3s ease;">
 
     <div class="card-body p-0">
@@ -28,7 +27,7 @@
                         <code class="h6 fw-bold text-dark bg-white px-2 py-1 rounded border shadow-sm">#{{ substr($order->id, 0, 8) }}</code>
                     </div>
 
-                    @if($order->activePrescription)
+                    @if($isSigned)
                     <div class="py-2 px-3 rounded-3 bg-white border shadow-sm mb-3 animate__animated animate__fadeIn">
                         <span class="d-block text-uppercase small fw-bold text-primary mb-1" style="font-size: 0.6rem;">Folio Médico</span>
                         <span class="h5 fw-800 text-dark mb-0">{{ $order->activePrescription->correlative_number }}</span>
@@ -86,11 +85,11 @@
 
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
                     <div class="status-messages">
-                        @if($order->status === 'refunded')
+                        @if($isRefunded)
                             <div class="d-flex align-items-center text-danger fw-600 small">
                                 <span class="pulse-red me-2"></span> Proceso detenido por reembolso
                             </div>
-                        @elseif($order->status === 'paid' && !$order->activePrescription)
+                        @elseif($isProcessing)
                             <div class="d-flex align-items-center text-primary fw-600 small">
                                 <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                                 Médico revisando tu solicitud...
@@ -103,8 +102,8 @@
                     </div>
 
                     <div class="actions-group d-flex gap-2 w-100 w-sm-auto">
-                        {{-- Solo habilitamos descarga si está pagada Y tiene la receta generada --}}
-                        @if($order->status === 'paid' && $order->activePrescription)
+                        {{-- BOTÓN DE DESCARGA: Solo si está firmado --}}
+                        @if($canDownload)
                             <a href="{{ route('orders.download', $order->id) }}"
                                target="_blank"
                                class="btn btn-primary px-4 py-2 rounded-4 shadow-sm d-flex align-items-center animate__animated animate__fadeInUp">
