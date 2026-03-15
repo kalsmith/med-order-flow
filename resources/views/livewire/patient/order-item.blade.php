@@ -1,98 +1,104 @@
-<div class="card border-0 shadow-sm mb-4 card-order overflow-hidden">
+<div class="card border-0 shadow-sm mb-4 overflow-hidden rounded-4 card-order-patient">
     <div class="card-body p-0">
-        <div class="d-flex flex-column flex-md-row">
-            {{-- Bloque Izquierdo: Identificadores --}}
-            <div class="p-4 bg-light text-center d-flex flex-column justify-content-center border-end" style="min-width: 140px;">
-                <span class="text-uppercase small fw-bold text-muted mb-1">Orden</span>
-                <span class="h6 fw-800 mb-2">#{{ substr($order->id, 0, 8) }}</span>
-
-                {{-- Correlativo de Receta: Se muestra si hay una receta activa/firmada --}}
-                @if($order->activePrescription)
-                    <div class="mb-2">
-                        <span class="text-uppercase display-9 fw-bold text-primary d-block" style="font-size: 0.7rem;">Documento</span>
-                        <span class="fw-bold text-dark">#{{ $order->activePrescription->correlative_number }}</span>
+        <div class="row g-0">
+            <div class="col-md-3 bg-light border-end d-flex flex-column p-4 justify-content-between align-items-center">
+                <div class="text-center w-100">
+                    <div class="mb-3">
+                        <span class="d-block text-uppercase tracking-wider small fw-bold text-muted mb-1" style="font-size: 0.65rem;">ID Seguimiento</span>
+                        <code class="h6 fw-bold text-dark bg-white px-2 py-1 rounded border">#{{ substr($order->id, 0, 8) }}</code>
                     </div>
-                @endif
 
-                <div class="mt-2">
-                    @php
-                        $statusColors = [
-                            'paid' => 'bg-success-subtle text-success',
-                            'pending' => 'bg-warning-subtle text-warning',
-                            'refund_pending' => 'bg-info-subtle text-info',
-                            'refunded' => 'bg-secondary-subtle text-secondary'
-                        ];
-                        $statusLabels = [
-                            'paid' => 'Pagada',
-                            'pending' => 'Pendiente',
-                            'refund_pending' => 'Reembolso',
-                            'refunded' => 'Reembolsada'
-                        ];
-                    @endphp
-                    <span class="badge {{ $statusColors[$order->status] ?? 'bg-light' }} rounded-pill px-3">
-                        {{ $statusLabels[$order->status] ?? $order->status }}
+                    @if($order->activePrescription)
+                    <div class="py-2 px-3 rounded-3 bg-white border shadow-sm mb-3">
+                        <span class="d-block text-uppercase small fw-bold text-primary mb-1" style="font-size: 0.6rem;">Folio Médico</span>
+                        <span class="h5 fw-800 text-dark mb-0">{{ $order->activePrescription->correlative_number }}</span>
+                    </div>
+                    @endif
+                </div>
+
+                @php
+                    $statusConfig = [
+                        'paid' => ['label' => 'Pagada', 'class' => 'bg-success text-white'],
+                        'pending' => ['label' => 'Pendiente', 'class' => 'bg-warning text-dark'],
+                        'refund_pending' => ['label' => 'En Reembolso', 'class' => 'bg-info text-white'],
+                        'refunded' => ['label' => 'Reembolsada', 'class' => 'bg-secondary text-white']
+                    ];
+                    $currentStatus = $statusConfig[$order->status] ?? ['label' => $order->status, 'class' => 'bg-light text-dark'];
+                @endphp
+
+                <div class="w-100 mt-auto">
+                    <span class="badge {{ $currentStatus['class'] }} w-100 py-2 rounded-pill shadow-sm">
+                        {{ $currentStatus['label'] }}
                     </span>
                 </div>
             </div>
 
-            {{-- Bloque Derecho: Información y Acciones --}}
-            <div class="p-4 flex-grow-1">
+            <div class="col-md-9 p-4">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <h5 class="fw-bold mb-1 text-dark">
-                            {{ $order->examType->name ?? ($order->type == 'custom' ? 'Examen Personalizado' : 'Examen Estándar') }}
-                        </h5>
-                        <p class="text-muted small mb-0">
-                            <i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y H:i') }}
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h4 class="fw-800 text-dark mb-0">
+                                {{ $order->examType->name ?? ($order->type == 'custom' ? 'Examen Personalizado' : 'Examen Estándar') }}
+                            </h4>
+                            @if($order->type == 'custom')
+                                <span class="badge bg-primary-subtle text-primary border-primary border py-1">Custom</span>
+                            @endif
+                        </div>
+                        <p class="text-muted small mb-0 d-flex align-items-center">
+                            <i class="bi bi-calendar3 me-2"></i> {{ $order->created_at->format('d M, Y • H:i') }}
                         </p>
                     </div>
                     <div class="text-end">
-                        <span class="h5 fw-bold text-primary">${{ number_format($order->amount, 0, ',', '.') }}</span>
+                        <div class="display-6 fw-bold text-primary" style="font-size: 1.5rem;">
+                            ${{ number_format($order->amount, 0, ',', '.') }}
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-wrap gap-2">
-                    {{-- BOTÓN DESCARGAR --}}
-                    @if($canDownload)
-                        <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
-                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Descargar Orden #{{ $order->activePrescription->correlative_number }}
-                        </button>
+                <hr class="my-4 opacity-10">
 
-                    {{-- PROCESANDO FIRMA --}}
-                    @elseif($isProcessing)
-                        <span class="badge bg-light text-primary border py-2 px-3 rounded-pill">
-                            <i class="bi bi-hourglass-split me-1"></i> Procesando firma médica
-                        </span>
-                    @endif
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+                    <div class="status-messages">
+                        @if($isRefunded)
+                            <div class="d-flex align-items-center text-danger fw-600 small">
+                                <span class="pulse-red me-2"></span> Proceso detenido por reembolso
+                            </div>
+                        @elseif($isProcessing)
+                            <div class="d-flex align-items-center text-primary fw-600 small">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Médico revisando tu solicitud...
+                            </div>
+                        @elseif($waitingContact)
+                            <div class="d-flex align-items-center text-muted small italic">
+                                <i class="bi bi-clock-history me-2"></i> Pendiente de asignación médica
+                            </div>
+                        @endif
+                    </div>
 
-                    {{-- CHAT --}}
-                    @if($canShowChat)
-                        <button class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#chat-collapse-{{ $order->id }}">
-                            <i class="bi bi-chat-dots-fill me-1"></i> Consultar al Médico
-                        </button>
+                    <div class="actions-group d-flex gap-2 w-100 w-sm-auto">
+                        @if($canDownload)
+                            <a href="#" class="btn btn-primary px-4 py-2 rounded-4 shadow d-flex align-items-center">
+                                <i class="bi bi-file-earmark-arrow-down-fill me-2 fs-5"></i>
+                                Descargar Orden
+                            </a>
+                        @endif
 
-                    {{-- ESPERANDO CONTACTO --}}
-                    @elseif($waitingContact)
-                        <span class="badge bg-light text-muted border py-2 px-3 rounded-pill">
-                            <i class="bi bi-clock me-1"></i> Esperando contacto del médico
-                        </span>
-                    @endif
-
-                    {{-- REEMBOLSO --}}
-                    @if($isRefunded)
-                        <span class="badge bg-light text-danger border py-2 px-3 rounded-pill">
-                            <i class="bi bi-info-circle me-1"></i> Proceso médico detenido por reembolso
-                        </span>
-                    @endif
+                        @if($canShowChat)
+                            <button class="btn btn-outline-info px-4 py-2 rounded-4 d-flex align-items-center"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#chat-collapse-{{ $order->id }}">
+                                <i class="bi bi-chat-text-fill me-2 fs-5"></i>
+                                Hablar con Médico
+                            </button>
+                        @endif
+                    </div>
                 </div>
 
                 @if($canShowChat)
-                    <div class="collapse mt-3" id="chat-collapse-{{ $order->id }}" wire:ignore>
-                        <div class="card card-body border-0 bg-light p-0 overflow-hidden rounded-4">
-                            @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
+                    <div class="collapse mt-4" id="chat-collapse-{{ $order->id }}" wire:ignore>
+                        <div class="border-top pt-4 mt-2">
+                             @livewire('patient.order-chat', ['order' => $order], key('chat-'.$order->id))
                         </div>
                     </div>
                 @endif
