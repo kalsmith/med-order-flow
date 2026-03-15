@@ -128,6 +128,11 @@ public function index()
      */
 
 
+
+
+
+
+
 public function processSignature(Request $request, Order $order)
 {
     Log::info("--- INICIO PROCESO FIRMA ---", ['order_id' => $order->id]);
@@ -204,34 +209,88 @@ public function processSignature(Request $request, Order $order)
 }
 
 
+
+
+
+
     /**
      * Rechazar orden por motivos clínicos o técnicos.
      */
-    public function rejectOrder(Request $request, Order $order)
-    {
-        $user = auth()->user();
-        $doctor = $user->doctor;
+public function rejectOrder(Request $request, Order $order)
+{
+    $user = auth()->user();
+    $doctor = $user->doctor;
 
-        if (!$user->hasRole('admin') && (!$doctor || strval($order->doctor_id) !== strval($doctor->id))) {
-            return redirect()->back()->with('error', 'No tiene permisos para rechazar esta orden.');
-        }
+    Log::info("=== INICIO PROCESO RECHAZO ===", [
+        'order_id' => $order->id,
+        'user_id' => $user->id,
+        'doctor_id' => $doctor->id ?? 'N/A'
+    ]);
 
-        $request->validate(['rejection_reason' => 'required|string|max:500']);
+    // 1. Validación de permisos
+    if (!$user->hasRole('admin') && (!$doctor || strval($order->doctor_id) !== strval($doctor->id))) {
+        Log::error("RECHAZO FALLIDO: Permisos insuficientes", ['order_doctor_id' => $order->doctor_id]);
+        return redirect()->back()->with('error', 'No tiene permisos para rechazar esta orden.');
+    }
 
-        try {
-            $order->update([
+    $request->validate(['rejection_reason' => 'required|string|max:500']);
+
+    try {
+        DB::beginTransaction();
+
+        // 2. Actualizar la Orden
+        $orderUpdated = $order->update([
+            'status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
+            'claimed_at' => null,
+        ]);
+
+        Log::info("1. Orden actualizada", ['success' => $orderUpdated, 'new_status' => $order->status]);
+
+        // 3. Actualizar la Prescripción asociada (SI EXISTE)
+        // Buscamos la receta activa o pendiente vinculada a esta orden
+        $prescription = Prescription::where('order_id', $order->id)->first();
+
+        if ($prescription) {
+            $prescriptionUpdated = $prescription->update([
                 'status' => 'rejected',
                 'rejection_reason' => $request->rejection_reason,
-                'claimed_at' => null,
+                'doctor_id' => $doctor->id ?? $prescription->doctor_id // Aseguramos que quede el ID del doctor
             ]);
-
-            Log::warning("Orden {$order->id} rechazada por médico {$user->id}. Motivo: {$request->rejection_reason}");
-            return redirect()->route('admin.doctor.panel')->with('warning', 'La orden ha sido rechazada.');
-        } catch (\Exception $e) {
-            Log::error("Error en rejectOrder: " . $e->getMessage());
-            return redirect()->back()->with('error', 'No se pudo procesar el rechazo.');
+            Log::info("2. Prescripción encontrada y actualizada", [
+                'prescription_id' => $prescription->id,
+                'success' => $prescriptionUpdated
+            ]);
+        } else {
+            Log::warning("2. No se encontró prescripción asociada a la orden", ['order_id' => $order->id]);
         }
+
+        DB::commit();
+
+        Log::warning("=== RECHAZO COMPLETADO CON ÉXITO ===", [
+            'order_id' => $order->id,
+            'motivo' => $request->rejection_reason
+        ]);
+
+        return redirect()->route('admin.doctor.panel')->with('warning', 'La orden ha sido rechazada.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error("=== ERROR CRÍTICO EN RECHAZO ===", [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return redirect()->back()->with('error', 'Error al procesar el rechazo: ' . $e->getMessage());
     }
+}
+
+
+
+
+
+
+
+
 
     /**
      * Libera manualmente el bloqueo de una orden (Admin o el propio Médico).
