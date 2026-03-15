@@ -37,11 +37,18 @@
                 </button>
             </li>
 
-            {{-- NUEVA PESTAÑA: FLUJO ESTÁNDAR --}}
             <li class="nav-item">
                 <button wire:click="setTab('standard')"
-                    class="nav-link {{ $tab === 'standard' ? 'active fw-bold border-bottom border-info border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
+                    class="nav-link {{ $tab === 'standard' ? 'active fw-bold border-bottom border-info border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-robot me-1"></i> Auto-Firmadas
+                    @php
+                        $standardCount = \App\Models\Order::autoSignedStandard(auth()->user()->doctor->id)->count();
+                    @endphp
+                    @if($standardCount > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size: 0.6rem;">
+                            {{ $standardCount }}
+                        </span>
+                    @endif
                 </button>
             </li>
 
@@ -55,6 +62,25 @@
     </div>
 
     <div class="card-body p-0">
+        {{-- BLOQUE DE DEBUG (Visible para Admin o Usuario ID 1/2) --}}
+        @if(auth()->user()->hasRole('admin') || in_array(auth()->id(), [1, 2]))
+            <div class="alert alert-dark mx-4 mt-3 py-2 small shadow-sm" style="font-family: monospace; font-size: 0.7rem; border-left: 4px solid #0dcaf0;">
+                <div class="d-flex justify-content-between">
+                    <span><strong>DEBUG MODE</strong> | Tab: <span class="text-info">{{ $tab }}</span></span>
+                    <span>Doctor ID: {{ auth()->user()->doctor->id }}</span>
+                </div>
+                <hr class="my-1 opacity-25">
+                <div class="row">
+                    <div class="col-md-6">Total en esta vista: {{ $orders->total() }}</div>
+                    <div class="col-md-6 text-end">IDs:
+                        @foreach($orders->take(3) as $o)
+                            {{ substr($o->id, 0, 5) }}@if(!$loop->last), @endif
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light-subtle">
@@ -76,8 +102,8 @@
                             $latestPrescription = $order->prescriptions->sortByDesc('created_at')->first();
 
                             $isSigned = $latestPrescription && $latestPrescription->status === 'signed';
+                            $isStandard = $order->type === 'standard';
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid' && !$isSigned;
-                            $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->status === 'paid' && $order->claimed_at?->gt(now()->subMinutes(20));
 
                             $hasVoided = $order->prescriptions->where('status', 'voided')->count() > 0;
                             $isReentry = $hasVoided && !$isSigned;
@@ -85,13 +111,10 @@
                             $hasBeenRejected = in_array($order->status, ['rejected', 'refund_pending', 'refunded']);
                         @endphp
 
-                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }}">
+                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }} {{ $isSigned && $isStandard ? 'bg-info-subtle bg-opacity-10' : '' }}">
                             <td class="ps-4 py-3">
                                 <div class="fw-bold text-primary mb-0" style="font-size: 0.85rem;">
-                                    @php
-                                        $displayNumber = $latestPrescription?->correlative_number;
-                                    @endphp
-                                    #{{ $displayNumber ?? substr($order->id, 0, 8) }}
+                                    #{{ $latestPrescription?->correlative_number ?? substr($order->id, 0, 8) }}
                                 </div>
                                 <div class="text-muted" style="font-size: 0.7rem;">
                                     Ref: {{ substr($order->id, 0, 8) }}...
@@ -138,7 +161,8 @@
                             <td class="py-3">
                                 @if($isSigned)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-3" style="font-size: 0.75rem;">
-                                        <i class="bi bi-check2-all me-1"></i> {{ $order->type === 'standard' ? 'Auto-Firmado' : 'Firmado' }}
+                                        <i class="bi {{ $isStandard ? 'bi-robot' : 'bi-check2-all' }} me-1"></i>
+                                        {{ $isStandard ? 'Auto-Firmado' : 'Firmado' }}
                                     </span>
                                 @elseif($order->status === 'refund_pending')
                                     <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3" style="font-size: 0.75rem;">

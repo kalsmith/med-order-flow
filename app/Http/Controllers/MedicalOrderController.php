@@ -25,7 +25,7 @@ public function index()
     $user = Auth::user();
     $doctor = $user->doctor;
 
-    // Garbage Collector
+    // Garbage Collector (Optimizado)
     Order::where('status', 'paid')
         ->whereNotNull('claimed_at')
         ->where('claimed_at', '<', now()->subMinutes(20))
@@ -33,17 +33,18 @@ public function index()
 
     $query = Order::with(['patient', 'doctor.user', 'examType', 'prescriptions']);
 
-if ($user->hasRole('doctor')) {
-    $query->where(function($q) use ($doctor) {
-        // Mis órdenes (firmadas o por firmar)
-        $q->where('doctor_id', $doctor->id)
-        // O disponibles (nadie las ha tomado)
-          ->orWhere(function($sq) use ($doctor) {
-              $sq->availableForDoctor($doctor->id, $doctor->specialty_id);
-          });
-    });
-}
+    if ($user->hasRole('doctor')) {
+        $query->where(function($q) use ($doctor) {
+            // 1. Mis órdenes (Las que tengo tomadas, las que ya firmé manual y las AUTO-FIRMAdas)
+            $q->where('doctor_id', $doctor->id)
+            // 2. O las que están disponibles para que cualquiera de mi especialidad las tome
+              ->orWhere(function($sq) use ($doctor) {
+                  $sq->availableForDoctor($doctor->id, $doctor->specialty_id);
+              });
+        });
+    }
 
+    // Importante: No filtres más aquí, deja que Livewire maneje las pestañas sobre este universo de datos
     $orders = $query->latest('updated_at')->paginate(10);
     return view('admin.orders.index', compact('orders'));
 }
