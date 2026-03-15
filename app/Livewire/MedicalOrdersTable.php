@@ -44,9 +44,10 @@ class MedicalOrdersTable extends Component
             'activePrescription' // Importante para ver el estado de firma
         ])->withCount('interactions'); // Para el semáforo del chat
 
-        if ($this->tab === 'available') {
-            $query->where('status', 'paid')
-                ->where(function($q) use ($myDoctorId, $doctor) {
+    if ($this->tab === 'available') {
+        $query->where('status', 'paid')
+            ->whereNull('signed_at') // <--- Agrega esto: Solo mostrar lo NO firmado
+            ->where(function($q) use ($myDoctorId, $doctor) {
                     // A. Lo que ya tomé yo
                     $q->where('doctor_id', $myDoctorId)
                     // B. O lo que nadie ha tomado pero es de MI especialidad
