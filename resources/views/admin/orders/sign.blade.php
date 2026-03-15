@@ -22,7 +22,6 @@
             $prescription = $order->activePrescription;
             $isSigned = $prescription && $prescription->status === 'signed';
 
-            // Lógica de expiración (solo si no está firmada)
             $claimedAt = $order->claimed_at ? \Carbon\Carbon::parse($order->claimed_at) : now();
             $expiresAt = $claimedAt->copy()->addMinutes(20);
             $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
@@ -128,14 +127,26 @@
                         </div>
                     </div>
 
-                    {{-- 3. Interacciones --}}
+                    {{-- 3. Interacciones (CHAT BLOQUEADO SI ESTÁ FIRMADO) --}}
                     <div class="col-12">
                         <div class="d-flex align-items-center mb-2">
                             <hr class="flex-grow-1 opacity-10">
-                            <span class="mx-3 text-muted small fw-bold text-uppercase">Interacción con Paciente</span>
+                            <span class="mx-3 text-muted small fw-bold text-uppercase">
+                                <i class="bi bi-chat-dots me-1"></i> Interacción con Paciente
+                            </span>
                             <hr class="flex-grow-1 opacity-10">
                         </div>
+
+                        {{-- Pasamos readOnly al componente de Livewire --}}
                         @livewire('admin.order-interactions', ['order' => $order, 'readOnly' => $isSigned])
+
+                        @if($isSigned)
+                            <div class="text-center mt-2">
+                                <span class="badge bg-light text-muted border border-secondary-subtle">
+                                    <i class="bi bi-lock-fill me-1"></i> Chat cerrado por documento firmado
+                                </span>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -158,7 +169,6 @@
                                 <i class="bi bi-trash3 me-1"></i> Anular Firma
                             </button>
 
-                            {{-- Corrección de la ruta: admin. + orders. + pdf --}}
                             <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-danger btn-lg px-4 shadow ms-2">
                                 <i class="bi bi-file-pdf me-2"></i> Ver PDF Firmado
                             </a>
@@ -189,6 +199,7 @@
 
 {{-- Modales --}}
 @if(!$isSigned)
+    {{-- (Los modales se mantienen iguales...) --}}
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
