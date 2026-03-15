@@ -127,7 +127,6 @@
     <table width="100%">
         <tr>
             <td width="60%">
-                {{-- Logo Oficial PideTuExamen.cl --}}
                 <img src="https://med-order-flow.soltys.cl/assets/logo/logo.png" class="logo-img">
                 <div class="contact-info">
                     pidetuexamen.cl &bull; contacto@pidetuexamen.cl<br>
@@ -140,11 +139,11 @@
                         <tr>
                             <td>
                                 <div class="label">Emisión</div>
-                                <div class="value" style="margin:0;">{{ $order->created_at->format('d/m/Y') }}</div>
+                                <div class="value" style="margin:0;">{{ $prescription->signed_at->format('d/m/Y') }}</div>
                             </td>
                             <td align="right">
-                                <div class="label">ID Orden</div>
-                                <div class="value" style="margin:0; color: #0d6efd;">#{{ strtoupper(substr($order->id, 0, 8)) }}</div>
+                                <div class="label">N° Correlativo</div>
+                                <div class="value" style="margin:0; color: #0d6efd;">#{{ $prescription->correlative_number }}</div>
                             </td>
                         </tr>
                     </table>
@@ -162,22 +161,22 @@
             <td class="section-title">Médico Emisor</td>
             <td>
                 <div class="value" style="font-size: 15px; margin-bottom: 4px;">
-                    {{ $order->doctor->prefix }} {{ $order->doctor->user->name }}
+                    Dr(a). {{ $prescription->doctor->user->name }}
                 </div>
                 <div style="color: #636e72; font-size: 10px;">
-                    RUT: {{ $order->doctor->rut }} | Registro SIS: {{ $order->doctor->rnpi_number }}<br>
+                    RUT: {{ $prescription->doctor->rut }} | Registro SIS: {{ $prescription->doctor->rnpi_number }}<br>
                     <span style="color: #0d6efd; font-weight: bold;">
-                        {{ strtoupper($order->doctor->specialties->pluck('name')->join(' / ')) }}
+                        {{ strtoupper($prescription->doctor->specialties->pluck('name')->join(' / ')) }}
                     </span>
                 </div>
 
-                @if($order->doctor->signature_path)
+                @if($prescription->doctor->signature_path)
                     <div class="signature-container">
-                        <img src="{{ public_path('storage/' . $order->doctor->signature_path) }}" class="signature-img">
+                        <img src="{{ public_path('storage/' . $prescription->doctor->signature_path) }}" class="signature-img">
                     </div>
                 @else
                     <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
-                        Documento firmado electrónicamente
+                        Documento firmado electrónicamente bajo Ley N° 19.799
                     </div>
                 @endif
             </td>
@@ -194,7 +193,7 @@
                     <tr>
                         <td width="55%"><div class="label">Nombre</div><div class="value">{{ strtoupper($order->patient->full_name) }}</div></td>
                         <td width="25%"><div class="label">RUT</div><div class="value">{{ $order->patient->rut }}</div></td>
-                        <td><div class="label">Edad</div><div class="value">{{ $order->patient_age_at_order ?? $order->patient->age }} años</div></td>
+                        <td><div class="label">Edad</div><div class="value">{{ $order->patient->age }} años</div></td>
                     </tr>
                 </table>
             </td>
@@ -212,6 +211,7 @@
                         {{ $order->display_name }}
                     </div>
 
+                    {{-- Caso 1: Es un Pack/Perfil con hijos --}}
                     @if($order->examType && $order->examType->children->isNotEmpty())
                         <div style="margin-top: 10px;">
                             @foreach($order->examType->children as $child)
@@ -221,16 +221,19 @@
                                 </div>
                             @endforeach
                         </div>
-                    @else
-                        @if($order->examType && $order->examType->code_fonasa)
-                            <div style="font-size: 11px; font-weight: bold;">
-                                Código Fonasa: {{ $order->examType->code_fonasa }}
-                            </div>
-                        @endif
+                    {{-- Caso 2: Es un Custom Order (Descripción libre) --}}
+                    @elseif($order->type === 'custom')
+                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap;">{{ $order->custom_description }}</div>
+                    {{-- Caso 3: Es un examen estándar único --}}
+                    @elseif($order->examType)
+                        <div class="exam-item">
+                            <span class="exam-code">[{{ $order->examType->code_fonasa ?? 'S/C' }}]</span>
+                            <span style="font-size: 11px; font-weight: bold;">{{ $order->examType->name }}</span>
+                        </div>
                     @endif
 
                     <div style="color: #636e72; font-style: italic; font-size: 9px; margin-top: 15px; border-top: 1px solid #edf2f7; padding-top: 8px;">
-                        <strong>Nota Importante:</strong> El paciente debe consultar directamente con el laboratorio o centro de salud sobre los requisitos de preparación técnica (ayuno, horarios o condiciones especiales) necesarios para la correcta toma de muestras de los exámenes aquí descritos.
+                        <strong>Nota Importante:</strong> El paciente debe consultar directamente con el laboratorio sobre los requisitos de preparación técnica (ayuno, horarios o condiciones especiales) necesarios.
                     </div>
                 </div>
             </td>
@@ -238,14 +241,12 @@
     </table>
 </div>
 
-@if($order->clinical_context)
+@if($prescription->clinical_context)
 <div class="section">
     <table width="100%">
         <tr>
-            <td class="section-title">Observaciones</td>
-            <td style="font-size: 11px; color: #2d3436;">
-                {{ $order->clinical_context }}
-            </td>
+            <td class="section-title">Observaciones Clínicas</td>
+            <td style="font-size: 11px; color: #2d3436; white-space: pre-wrap;">{{ $prescription->clinical_context }}</td>
         </tr>
     </table>
 </div>
@@ -262,7 +263,8 @@
                     <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
                     <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
                         Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
-                        <strong>{{ $order->verification_code }}</strong> en pidetuexamen.cl/validar.
+                        <strong>{{ $prescription->verification_code }}</strong> en pidetuexamen.cl/validar.
+                        <br>ID Transacción: {{ strtoupper(substr($order->id, 0, 8)) }}
                     </div>
                 </td>
             </tr>
@@ -270,7 +272,7 @@
     </div>
     <div class="legal-footer">
         CODE TECH DIGITAL SPA • RUT 77.736.856-7 • SANTIAGO, CHILE<br>
-        Documento Electrónico generado por PideTuExamen.cl
+        Documento Electrónico generado por PideTuExamen.cl el {{ now()->format('d/m/Y H:i') }}
     </div>
 </div>
 

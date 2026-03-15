@@ -18,6 +18,22 @@ use Illuminate\Support\Str;
 
 class PatientOrderController extends Controller
 {
+
+
+    public function showSuccess(Order $order = null)
+    {
+        if (!$order) return redirect()->route('patient.orders');
+
+        if ((string)$order->patient->user_id !== (string)auth()->id()) {
+            abort(403);
+        }
+
+        $order->load(['patient.user', 'prescriptions']);
+
+        return view('payments.payment-success', compact('order'));
+    }
+
+
     /**
      * Paso 1: El usuario eligió un Pack desde la Home.
      * El middleware 'auth' ya lo obligó a loguearse antes de llegar aquí.
@@ -150,44 +166,25 @@ public function store(Request $request)
     /**
      * Listado de órdenes del paciente.
      */
-
-public function download($orderId, OrderPdfService $pdfService)
-{
-    // 1. Cargar la orden con las relaciones necesarias para evitar queries extras
-    $order = MedicalOrder::with(['patient.user', 'doctor.user'])->findOrFail($orderId);
-
-    // 2. Validar propiedad
-    if ((int)auth()->id() !== (int)$order->patient->user->id) {
-        abort(403);
-    }
-
-    // 3. Validar que esté firmada (Estado 'signed') [cite: 2, 28]
-    if ($order->status !== 'signed') {
-        return back()->with('error', 'La orden aún no ha sido firmada por el médico.');
-    }
-
-    // 4. Generar el PDF usando el servicio
-    $pdf = $pdfService->generate($order);
-
-    // 5. Formatear nombre de archivo profesional (ej: Orden_Benjamin_de_la_Fuente.pdf)
-    $fileName = 'Orden_' . Str::slug($order->patient->full_name, '_') . '.pdf';
-
-    return $pdf->download($fileName);
-}
-
-
-public function showSuccess(Order $order = null)
+public function downloadPdf(Order $order, OrderPdfService $pdfService)
     {
-        if (!$order) return redirect()->route('patient.orders');
-
+        // Seguridad: Solo el dueño de la orden puede descargarla
         if ((string)$order->patient->user_id !== (string)auth()->id()) {
             abort(403);
         }
 
-        $order->load(['patient.user', 'prescriptions']);
+        // Verificar que tenga receta firmada
+        if (!$order->activePrescription) {
+            return back()->with('error', 'La orden aún no ha sido firmada por un médico.');
+        }
 
-        return view('payments.payment-success', compact('order'));
+        $pdf = $pdfService->generate($order);
+
+        $filename = 'Orden_Medica_' . $order->activePrescription->correlative_number . '.pdf';
+
+        return $pdf->download($filename);
     }
+
 
 
 
