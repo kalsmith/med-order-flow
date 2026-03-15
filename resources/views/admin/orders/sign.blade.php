@@ -2,11 +2,13 @@
 
 @php
     /**
-     * Definición de variables al inicio para evitar el error "Undefined variable"
-     * en secciones que se renderizan antes que el contenido (como header-actions).
+     * Definición de variables para controlar el estado de bloqueo
      */
     $prescription = $order->activePrescription;
     $isSigned = $prescription && $prescription->status === 'signed';
+    $isRejected = $order->status === 'rejected';
+    // Si está firmada o rechazada, la orden está "Cerrada" para edición
+    $isClosed = $isSigned || $isRejected;
 
     $claimedAt = $order->claimed_at ? \Carbon\Carbon::parse($order->claimed_at) : now();
     $expiresAt = $claimedAt->copy()->addMinutes(20);
@@ -18,7 +20,7 @@
 
 @section('header-actions')
     <div class="d-flex gap-2">
-        @if(!$isSigned)
+        @if(!$isClosed)
             {{-- Opción para liberar la reserva y que otro médico pueda tomarla --}}
             <form action="{{ route('admin.orders.release', ['order' => $order->id]) }}" method="POST">
                 @csrf
@@ -41,22 +43,31 @@
     <div class="col-md-10 col-lg-8">
 
         {{-- Alerta de Estado --}}
-        @if(!$isSigned)
-            <div class="alert bg-white border-start border-4 border-warning shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
-                <small class="text-muted fw-bold text-uppercase">
-                    <i class="bi bi-hourglass-split text-warning me-1"></i> Sesión de firma activa
-                </small>
-                <span class="badge bg-warning text-dark fw-bold">
-                    Reserva expira en {{ $displayMinutes }} min
-                </span>
-            </div>
-        @else
+        @if($isSigned)
             <div class="alert bg-success-subtle border-start border-4 border-success shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
                 <small class="text-success fw-bold text-uppercase">
                     <i class="bi bi-patch-check-fill me-1"></i> Documento Firmado y Cerrado
                 </small>
                 <span class="badge bg-success text-white">
                     Emitido el {{ \Carbon\Carbon::parse($prescription->signed_at)->format('d/m/Y H:i') }}
+                </span>
+            </div>
+        @elseif($isRejected)
+            <div class="alert bg-danger-subtle border-start border-4 border-danger shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
+                <small class="text-danger fw-bold text-uppercase">
+                    <i class="bi bi-x-circle-fill me-1"></i> Requerimiento Rechazado
+                </small>
+                <span class="badge bg-danger text-white">
+                    Rechazado el {{ $order->updated_at->format('d/m/Y H:i') }}
+                </span>
+            </div>
+        @else
+            <div class="alert bg-white border-start border-4 border-warning shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
+                <small class="text-muted fw-bold text-uppercase">
+                    <i class="bi bi-hourglass-split text-warning me-1"></i> Sesión de firma activa
+                </small>
+                <span class="badge bg-warning text-dark fw-bold">
+                    Reserva expira en {{ $displayMinutes }} min
                 </span>
             </div>
         @endif
@@ -68,8 +79,13 @@
                         <i class="bi bi-file-earmark-medical text-primary me-2"></i>
                         Revisión de Requerimiento #{{ substr($order->id, 0, 8) }}
                     </h5>
-                    <span class="badge border {{ $isSigned ? 'bg-success-subtle text-success border-success-subtle' : 'bg-info-subtle text-info border-info-subtle' }} px-3 py-2">
-                        {{ $isSigned ? 'Firmado' : 'Pendiente de Firma' }}
+                    @php
+                        $badgeClass = $isSigned ? 'bg-success-subtle text-success border-success-subtle' :
+                                     ($isRejected ? 'bg-danger-subtle text-danger border-danger-subtle' : 'bg-info-subtle text-info border-info-subtle');
+                        $statusText = $isSigned ? 'Firmado' : ($isRejected ? 'Rechazado' : 'Pendiente de Firma');
+                    @endphp
+                    <span class="badge border {{ $badgeClass }} px-3 py-2">
+                        {{ $statusText }}
                     </span>
                 </div>
             </div>
@@ -99,6 +115,16 @@
                         </div>
                     </div>
 
+                    {{-- Motivo de Rechazo (Solo si aplica) --}}
+                    @if($isRejected)
+                        <div class="col-12">
+                            <div class="p-3 bg-danger-subtle border border-danger rounded">
+                                <label class="text-danger small text-uppercase fw-bold d-block mb-1">Motivo del Rechazo Profesional</label>
+                                <p class="mb-0 text-dark fw-medium">{{ $order->rejection_reason }}</p>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="col-12">
                         <hr class="opacity-10 my-0">
                     </div>
@@ -122,16 +148,16 @@
                     {{-- 2. Indicación Médica --}}
                     <div class="col-12">
                         <div class="form-group">
-                            <label class="{{ $isSigned ? 'text-muted' : 'text-primary' }} fw-bold mb-2 small text-uppercase">
+                            <label class="{{ $isClosed ? 'text-muted' : 'text-primary' }} fw-bold mb-2 small text-uppercase">
                                 <i class="bi bi-pencil-square me-1"></i> Indicación Médica Profesional (PDF)
                             </label>
                             <textarea name="clinical_context"
                                       form="signature-form"
-                                      class="form-control {{ $isSigned ? 'bg-light border-secondary opacity-75' : 'border-primary shadow-sm' }}"
+                                      class="form-control {{ $isClosed ? 'bg-light border-secondary opacity-75' : 'border-primary shadow-sm' }}"
                                       rows="4"
                                       placeholder="Redacte aquí el diagnóstico y los exámenes solicitados..."
-                                      {{ $isSigned ? 'readonly' : 'required' }}>{{ old('clinical_context', $isSigned ? $prescription->clinical_context : $order->clinical_context) }}</textarea>
-                            @if(!$isSigned)
+                                      {{ $isClosed ? 'readonly' : 'required' }}>{{ old('clinical_context', $isSigned ? $prescription->clinical_context : $order->clinical_context) }}</textarea>
+                            @if(!$isClosed)
                                 <div class="form-text small text-muted">
                                     <i class="bi bi-info-circle me-1"></i> Esta indicación aparecerá en el PDF final firmado.
                                 </div>
@@ -149,12 +175,12 @@
                             <hr class="flex-grow-1 opacity-10">
                         </div>
 
-                        @livewire('admin.order-interactions', ['order' => $order, 'readOnly' => $isSigned])
+                        @livewire('admin.order-interactions', ['order' => $order, 'readOnly' => $isClosed])
 
-                        @if($isSigned)
+                        @if($isClosed)
                             <div class="text-center mt-2">
                                 <span class="badge bg-light text-muted border border-secondary-subtle">
-                                    <i class="bi bi-lock-fill me-1"></i> Chat cerrado por documento firmado
+                                    <i class="bi bi-lock-fill me-1"></i> Chat cerrado ({{ $isSigned ? 'Documento firmado' : 'Orden rechazada' }})
                                 </span>
                             </div>
                         @endif
@@ -165,7 +191,7 @@
             <div class="card-footer bg-white p-4 border-top">
                 <div class="row align-items-center">
                     <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
-                        <div class="d-inline-block border p-2 bg-light rounded text-center {{ $isSigned ? 'opacity-50' : '' }}" style="min-width: 180px;">
+                        <div class="d-inline-block border p-2 bg-light rounded text-center {{ $isClosed ? 'opacity-50' : '' }}" style="min-width: 180px;">
                             <label class="d-block small text-muted mb-1">Sello Estampado</label>
                             @php $sigPath = auth()->user()->doctor->signature_path; @endphp
                             <img src="{{ $sigPath ? asset('storage/' . $sigPath) : asset('images/no-signature.png') }}"
@@ -183,6 +209,10 @@
                             <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-danger btn-lg px-4 shadow ms-2">
                                 <i class="bi bi-file-pdf me-2"></i> Ver PDF Firmado
                             </a>
+                        @elseif($isRejected)
+                             <span class="text-danger fw-bold me-3">
+                                <i class="bi bi-x-octagon-fill me-1"></i> ESTE REQUERIMIENTO FUE RECHAZADO
+                             </span>
                         @else
                             @if(!$order->exam_type_id)
                                 <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
@@ -209,7 +239,8 @@
 </div>
 
 {{-- Modales --}}
-@if(!$isSigned)
+@if(!$isClosed)
+    {{-- Modal de Rechazo --}}
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -220,6 +251,7 @@
                 <form action="{{ route('admin.orders.reject', ['order' => $order->id]) }}" method="POST">
                     @csrf
                     <div class="modal-body">
+                        <p class="text-muted small mb-3">Indique claramente el motivo por el cual no se puede emitir esta orden (ej: requiere evaluación presencial, datos insuficientes, etc.)</p>
                         <textarea name="rejection_reason" class="form-control" rows="4" required placeholder="Motivo del rechazo..."></textarea>
                     </div>
                     <div class="modal-footer bg-light">
@@ -231,6 +263,7 @@
         </div>
     </div>
 
+    {{-- Modal de Derivación --}}
     @if(!$order->exam_type_id)
     <div class="modal fade" id="derivateModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -266,6 +299,7 @@
 <style>
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-success-subtle { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0 !important; }
+    .bg-danger-subtle { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca !important; }
     .border-dashed { border-style: dashed !important; }
 </style>
 @endsection
