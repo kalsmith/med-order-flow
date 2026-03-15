@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Prescription;
 use App\Models\Transaction;
+use App\Services\RefundService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -216,20 +217,25 @@ public function processSignature(Request $request, Order $order)
     /**
      * Rechazar orden por motivos clínicos o técnicos.
      */
-public function rejectOrder(Request $request, Order $order)
+
+
+use App\Services\RefundService; // No olvides importar el servicio
+
+/**
+ * Inyectamos el RefundService en el método o en el constructor
+ */
+public function rejectOrder(Request $request, Order $order, RefundService $refundService)
 {
     $user = auth()->user();
     $doctor = $user->doctor;
 
-    Log::info("=== INICIO PROCESO RECHAZO ===", [
+    Log::info("=== INICIO PROCESO RECHAZO CON REEMBOLSO ===", [
         'order_id' => $order->id,
-        'user_id' => $user->id,
-        'doctor_id' => $doctor->id ?? 'N/A'
+        'flow_order_id' => $order->flow_order_id
     ]);
 
     // 1. Validación de permisos
     if (!$user->hasRole('admin') && (!$doctor || strval($order->doctor_id) !== strval($doctor->id))) {
-        Log::error("RECHAZO FALLIDO: Permisos insuficientes", ['order_doctor_id' => $order->doctor_id]);
         return redirect()->back()->with('error', 'No tiene permisos para rechazar esta orden.');
     }
 
@@ -238,53 +244,55 @@ public function rejectOrder(Request $request, Order $order)
     try {
         DB::beginTransaction();
 
-        // 2. Actualizar la Orden
-        $orderUpdated = $order->update([
+        // 2. Actualizar la Orden localmente a 'rejected'
+        $order->update([
             'status' => 'rejected',
             'rejection_reason' => $request->rejection_reason,
             'claimed_at' => null,
         ]);
 
-        Log::info("1. Orden actualizada", ['success' => $orderUpdated, 'new_status' => $order->status]);
-
-        // 3. Actualizar la Prescripción asociada (SI EXISTE)
-        // Buscamos la receta activa o pendiente vinculada a esta orden
+        // 3. Actualizar la Prescripción asociada
         $prescription = Prescription::where('order_id', $order->id)->first();
-
         if ($prescription) {
-            $prescriptionUpdated = $prescription->update([
+            $prescription->update([
                 'status' => 'rejected',
                 'rejection_reason' => $request->rejection_reason,
-                'doctor_id' => $doctor->id ?? $prescription->doctor_id // Aseguramos que quede el ID del doctor
+                'doctor_id' => $doctor->id ?? $prescription->doctor_id
             ]);
-            Log::info("2. Prescripción encontrada y actualizada", [
-                'prescription_id' => $prescription->id,
-                'success' => $prescriptionUpdated
-            ]);
-        } else {
-            Log::warning("2. No se encontró prescripción asociada a la orden", ['order_id' => $order->id]);
         }
 
         DB::commit();
 
-        Log::warning("=== RECHAZO COMPLETADO CON ÉXITO ===", [
-            'order_id' => $order->id,
-            'motivo' => $request->rejection_reason
-        ]);
+        // --- PROCESO DE REEMBOLSO ---
+        // Verificamos si tenemos el ID de transacción de Flow
+        $flowTrxId = $order->flow_order_id;
 
-        return redirect()->route('admin.doctor.panel')->with('warning', 'La orden ha sido rechazada.');
+        if ($flowTrxId) {
+            Log::info("Disparando solicitud de reembolso...", ['flowTrxId' => $flowTrxId]);
+
+            $refundResponse = $refundService->createRefund($order, $flowTrxId);
+
+            if ($refundResponse) {
+                Log::info("Reembolso procesado correctamente en Flow", ['token' => $refundResponse->token]);
+                $message = 'La orden ha sido rechazada y el reembolso ha sido solicitado con éxito.';
+            } else {
+                Log::error("El rechazo se hizo pero el reembolso en Flow falló.");
+                $message = 'La orden se rechazó, pero hubo un problema con el reembolso automático. Por favor, revisar en panel de Flow.';
+            }
+        } else {
+            Log::warning("No se encontró flow_order_id para esta orden. No se puede procesar reembolso automático.");
+            $message = 'La orden se rechazó, pero no se encontró registro de pago para reembolso automático.';
+        }
+
+        return redirect()->route('admin.doctor.panel')->with('warning', $message);
 
     } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error("=== ERROR CRÍTICO EN RECHAZO ===", [
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
+        if (DB::transactionLevel() > 0) DB::rollBack();
+
+        Log::error("ERROR CRÍTICO EN RECHAZO", ['error' => $e->getMessage()]);
         return redirect()->back()->with('error', 'Error al procesar el rechazo: ' . $e->getMessage());
     }
 }
-
-
 
 
 
