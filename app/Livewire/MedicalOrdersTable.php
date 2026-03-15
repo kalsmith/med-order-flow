@@ -69,8 +69,8 @@ class MedicalOrdersTable extends Component
                 });
         } else {
             // Historial: Solo lo que yo ya firmé
-            $query->where('status', 'signed')
-                  ->where('doctor_id', $myDoctorId);
+        $query->whereNotNull('signed_at')
+                ->where('doctor_id', $myDoctorId);
         }
 
         return view('livewire.medical-orders-table', [
