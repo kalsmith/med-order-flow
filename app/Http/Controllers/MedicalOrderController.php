@@ -20,7 +20,7 @@ class MedicalOrderController extends Controller
 
 
 
-    public function index()
+public function index()
 {
     $user = Auth::user();
 
@@ -42,41 +42,29 @@ class MedicalOrderController extends Controller
         $doctor = $user->doctor;
 
         $query->where(function($q) use ($doctor) {
-            // A. MIS ÓRDENES: Todo lo que yo haya firmado o rechazado
+            // A. ÓRDENES ASIGNADAS A MÍ:
+            // Todo lo que yo ya tomé, esté firmado, pendiente o anulado.
             $q->where('doctor_id', $doctor->id)
 
-            // B. DISPONIBLES (Nuevas): Pagadas, de mi especialidad/custom y que NO tengan finalización
-            ->orWhere(function($sq) use ($doctor) {
-                $sq->where('status', 'paid')
-                   ->where(function($sub) use ($doctor) {
-                       $sub->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id))
-                           ->orWhere('type', 'custom');
-                   })
-                   // Importante: Que no tengan ninguna firma válida ni estén anuladas
-                   ->whereDoesntHave('prescriptions', function($pq) {
-                       $pq->whereIn('status', ['signed', 'voided']);
-                   });
-            })
-
-            // C. RE-ENTRY (Cualquiera de mi especialidad que necesite re-firma)
+            // B. DISPONIBLES O RE-ENTRY (De mi especialidad):
             ->orWhere(function($sq) use ($doctor) {
                 $sq->where('status', 'paid')
                    ->where(function($sub) use ($doctor) {
                         $sub->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id))
                             ->orWhere('type', 'custom');
                    })
-                   ->whereHas('prescriptions', fn($pq) => $pq->where('status', 'voided'))
+                   // CRÍTICO: Si ya tiene una firma final ('signed'), ya no es "atendible"
+                   // por otros doctores en la lista general.
                    ->whereDoesntHave('prescriptions', fn($pq) => $pq->where('status', 'signed'));
             });
         });
     }
 
-    // Usamos updated_at para que las que se acaban de tocar suban al principio
+    // Usamos updated_at para que las órdenes con actividad reciente suban
     $orders = $query->latest('updated_at')->paginate(10);
 
     return view('admin.orders.index', compact('orders'));
 }
-
 
 
 
