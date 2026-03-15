@@ -70,7 +70,7 @@ class MedicalOrdersTable extends Component
         $query->where('doctor_id', $myDoctorId)
               ->where(function($q) {
                   $q->whereNotNull('signed_at')
-                    ->orWhere('status', 'rejected');
+                    ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
               });
     }
 
