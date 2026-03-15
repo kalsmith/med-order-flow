@@ -62,7 +62,6 @@
     </div>
 
     <div class="card-body p-0">
-        {{-- BLOQUE DE DEBUG ACTUALIZADO PARA ROL DOCTOR --}}
         @if(auth()->user()->hasRole('doctor') || auth()->user()->hasRole('admin') || in_array(auth()->id(), [1, 2]))
             <div class="alert alert-dark mx-4 mt-3 py-2 small shadow-sm" style="font-family: monospace; font-size: 0.7rem; border-left: 4px solid #0dcaf0; background-color: #1e1e1e; color: #d4d4d4;">
                 <div class="d-flex justify-content-between align-items-center">
@@ -97,15 +96,19 @@
                         @php
                             $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
                             $latestPrescription = $order->prescriptions->sortByDesc('created_at')->first();
+
                             $isSigned = $latestPrescription && $latestPrescription->status === 'signed';
+                            $isRejected = $latestPrescription && $latestPrescription->status === 'rejected';
+                            $isRefundPending = $order->status === 'refund_pending';
+                            $isRefunded = $order->status === 'refunded';
+
                             $isStandard = $order->type === 'standard';
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid' && !$isSigned;
                             $hasVoided = $order->prescriptions->where('status', 'voided')->count() > 0;
-                            $isReentry = $hasVoided && !$isSigned;
-                            $hasBeenRejected = in_array($order->status, ['rejected', 'refund_pending', 'refunded']);
+                            $isReentry = $hasVoided && !$isSigned && !$isRejected;
                         @endphp
 
-                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }}">
+                        <tr class="{{ ($isRejected || $isRefundPending || $isRefunded) ? 'bg-light' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }}">
                             <td class="ps-4 py-3">
                                 <div class="fw-bold text-primary mb-0" style="font-size: 0.85rem;">
                                     #{{ $latestPrescription?->correlative_number ?? substr($order->id, 0, 8) }}
@@ -117,7 +120,7 @@
 
                             <td class="py-3">
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-sm me-3 bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                    <div class="avatar-sm me-3 {{ ($isRejected || $isRefundPending) ? 'bg-secondary-subtle text-secondary' : 'bg-primary-subtle text-primary' }} rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
                                         {{ substr($order->patient->full_name ?? 'N', 0, 1) }}
                                     </div>
                                     <div>
@@ -153,7 +156,24 @@
                             </td>
 
                             <td class="py-3">
-                                @if($isSigned)
+                                @if($isRefunded)
+                                    <span class="badge bg-danger text-white border-0 px-3" style="font-size: 0.75rem;">
+                                        <i class="bi bi-cash-stack me-1"></i> Reembolsada
+                                    </span>
+                                @elseif($isRefundPending)
+                                    <div class="d-flex flex-column gap-1">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3" style="font-size: 0.75rem;">
+                                            <i class="bi bi-x-circle-fill me-1"></i> Rechazada
+                                        </span>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3" style="font-size: 0.65rem;">
+                                            <i class="bi bi-clock-history me-1"></i> Reembolso Pendiente
+                                        </span>
+                                    </div>
+                                @elseif($isRejected)
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3" style="font-size: 0.75rem;">
+                                        <i class="bi bi-x-octagon me-1"></i> Rechazada
+                                    </span>
+                                @elseif($isSigned)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-3" style="font-size: 0.75rem;">
                                         <i class="bi {{ $isStandard ? 'bi-robot' : 'bi-check2-all' }} me-1"></i>
                                         {{ $isStandard ? 'Auto-Firmado' : 'Firmado' }}
@@ -179,6 +199,10 @@
                                             <i class="bi bi-file-earmark-pdf"></i>
                                         </a>
                                     </div>
+                                @elseif($isRejected || $isRefundPending || $isRefunded)
+                                     <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-light border px-3 rounded-pill text-muted small">
+                                        <i class="bi bi-search"></i> Ver detalle
+                                    </a>
                                 @else
                                     <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
                                        class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : ($isReentry ? 'btn-warning' : 'btn-primary') }} px-3 rounded-pill shadow-sm fw-bold">
