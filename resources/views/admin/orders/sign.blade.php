@@ -219,7 +219,8 @@
 
                     <div class="col-md-9 text-md-end text-center">
                         @if($isSigned)
-                            <button type="button" class="btn btn-outline-dark px-4 shadow-sm" disabled>
+                            {{-- BOTÓN ANULAR FIRMA ACTIVADO --}}
+                            <button type="button" class="btn btn-outline-dark px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#voidModal">
                                 <i class="bi bi-trash3 me-1"></i> Anular Firma
                             </button>
 
@@ -261,6 +262,37 @@
 </div>
 
 {{-- Modales --}}
+
+{{-- Modal de Anulación de Firma (Solo cuando está firmado) --}}
+@if($isSigned)
+    <div class="modal fade" id="voidModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Anular Firma Médica</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ route('admin.orders.void', ['order' => $order->id]) }}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="alert alert-warning small">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Al anular la firma, el documento actual quedará invalidado y podrá redactar una nueva indicación para esta misma orden.
+                        </div>
+                        <label class="form-label fw-bold small text-uppercase">Motivo de la anulación:</label>
+                        <textarea name="void_reason" class="form-control" rows="4" required
+                            placeholder="Ej: Error en el diagnóstico, cambio en los exámenes solicitados, etc."></textarea>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-dark px-4">Confirmar Anulación</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
+
 @if(!$isClosed)
     {{-- Modal de Rechazo --}}
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">

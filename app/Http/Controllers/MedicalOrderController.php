@@ -214,9 +214,101 @@ public function processSignature(Request $request, Order $order)
 
 
 
-    /**
-     * Rechazar orden por motivos clínicos o técnicos.
-     */
+
+
+
+
+public function voidSignature(Request $request, Order $order)
+{
+    // 1. Validaciones de Seguridad
+    if ($order->status === 'refund_pending' || $order->status === 'refunded') {
+        return back()->with('error', 'No se puede anular una firma en una orden con reembolso en proceso.');
+    }
+
+    $prescription = $order->activePrescription;
+
+    if (!$prescription || $prescription->status !== 'signed') {
+        return back()->with('error', 'Solo se pueden anular documentos que ya han sido firmados.');
+    }
+
+    $request->validate([
+        'void_reason' => 'required|string|min:10|max:500',
+    ]);
+
+    try {
+        DB::transaction(function () use ($order, $prescription, $request) {
+            // 2. Anular la receta actual
+            $prescription->update([
+                'status' => 'voided',
+                'void_reason' => $request->void_reason,
+            ]);
+
+            // 3. Limpiar la Orden para permitir nueva firma
+            // Mantenemos status = 'paid', pero reseteamos campos de firma
+            $order->update([
+                'signed_at' => null,
+                // Opcional: podrías querer limpiar el clinical_context de la orden
+                // para que el doctor redacte uno nuevo desde cero.
+            ]);
+
+            // 4. Crear la nueva Prescription "vacía" (en estado active)
+            // Esto permite que el showSignForm() detecte una nueva receta pendiente
+            $order->prescriptions()->create([
+                'doctor_id' => auth()->user()->doctor->id,
+                'exam_type_id' => $order->exam_type_id,
+                'status' => 'active',
+                'type' => $order->type, // standard o custom
+                'clinical_context' => $prescription->clinical_context, // Copiamos el anterior para facilitar corrección
+            ]);
+        });
+
+        return redirect()->route('admin.orders.sign.form', $order)
+            ->with('success', 'La firma anterior ha sido anulada. Ahora puede emitir el nuevo documento.');
+
+    } catch (\Exception $e) {
+        \Log::error("Error al anular firma: " . $e->getMessage());
+        return back()->with('error', 'Ocurrió un error al procesar la anulación.');
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

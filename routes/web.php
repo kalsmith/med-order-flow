@@ -99,6 +99,7 @@ Route::middleware([
             Route::post('/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('reject');
             Route::post('/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('release');
             Route::post('/{order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('derivate');
+            Route::post('/{order}/anular-firma', [MedicalOrderController::class, 'voidSignature'])->name('void');
             Route::get('/{order}/pdf', [MedicalOrderController::class, 'generatePdf'])->name('pdf');
         });
     });
