@@ -3,7 +3,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3 px-2">
             <h5 class="mb-0 text-dark fw-bold">
                 <i class="bi bi-clipboard2-pulse text-primary me-2"></i>
-                Gestión de Órdenes Médicas ssss
+                Gestión de Órdenes Médicas
             </h5>
             <div class="text-muted small">
                 <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle fw-medium">
@@ -25,7 +25,7 @@
                     class="nav-link {{ $tab === 'reentry' ? 'active fw-bold border-bottom border-warning border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Por Re-firmar
                     @php
-                        $reentryCount = \App\Models\Order::where('doctor_id', auth()->user()->doctor->id)
+                        $reentryCount = \App\Models\Order::where('doctor_id', auth()->user()->doctor->id ?? 0)
                             ->needsReentry()
                             ->count();
                     @endphp
@@ -42,7 +42,7 @@
                     class="nav-link {{ $tab === 'standard' ? 'active fw-bold border-bottom border-info border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-robot me-1"></i> Auto-Firmadas
                     @php
-                        $standardCount = \App\Models\Order::autoSignedStandard(auth()->user()->doctor->id)->count();
+                        $standardCount = \App\Models\Order::autoSignedStandard(auth()->user()->doctor->id ?? 0)->count();
                     @endphp
                     @if($standardCount > 0)
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size: 0.6rem;">
@@ -62,21 +62,18 @@
     </div>
 
     <div class="card-body p-0">
-        {{-- BLOQUE DE DEBUG (Visible para Admin o Usuario ID 1/2) --}}
-        @if(auth()->user()->hasRole('admin') || in_array(auth()->id(), [1, 2]))
-            <div class="alert alert-dark mx-4 mt-3 py-2 small shadow-sm" style="font-family: monospace; font-size: 0.7rem; border-left: 4px solid #0dcaf0;">
-                <div class="d-flex justify-content-between">
-                    <span><strong>DEBUG MODE</strong> | Tab: <span class="text-info">{{ $tab }}</span></span>
-                    <span>Doctor ID: {{ auth()->user()->doctor->id }}</span>
+        {{-- BLOQUE DE DEBUG ACTUALIZADO PARA ROL DOCTOR --}}
+        @if(auth()->user()->hasRole('doctor') || auth()->user()->hasRole('admin') || in_array(auth()->id(), [1, 2]))
+            <div class="alert alert-dark mx-4 mt-3 py-2 small shadow-sm" style="font-family: monospace; font-size: 0.7rem; border-left: 4px solid #0dcaf0; background-color: #1e1e1e; color: #d4d4d4;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><strong class="text-info">DEBUG DOCTOR</strong> | Tab: <strong>{{ $tab }}</strong></span>
+                    <span class="badge bg-secondary">User ID: {{ auth()->id() }}</span>
                 </div>
                 <hr class="my-1 opacity-25">
                 <div class="row">
-                    <div class="col-md-6">Total en esta vista: {{ $orders->total() }}</div>
-                    <div class="col-md-6 text-end">IDs:
-                        @foreach($orders->take(3) as $o)
-                            {{ substr($o->id, 0, 5) }}@if(!$loop->last), @endif
-                        @endforeach
-                    </div>
+                    <div class="col-md-4">Doc ID: {{ auth()->user()->doctor->id ?? 'No asignado' }}</div>
+                    <div class="col-md-4 text-center">Órdenes en Tab: {{ $orders->count() }}</div>
+                    <div class="col-md-4 text-end">Total Global: {{ $orders->total() }}</div>
                 </div>
             </div>
         @endif
@@ -100,18 +97,15 @@
                         @php
                             $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
                             $latestPrescription = $order->prescriptions->sortByDesc('created_at')->first();
-
                             $isSigned = $latestPrescription && $latestPrescription->status === 'signed';
                             $isStandard = $order->type === 'standard';
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid' && !$isSigned;
-
                             $hasVoided = $order->prescriptions->where('status', 'voided')->count() > 0;
                             $isReentry = $hasVoided && !$isSigned;
-
                             $hasBeenRejected = in_array($order->status, ['rejected', 'refund_pending', 'refunded']);
                         @endphp
 
-                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }} {{ $isSigned && $isStandard ? 'bg-info-subtle bg-opacity-10' : '' }}">
+                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }}">
                             <td class="ps-4 py-3">
                                 <div class="fw-bold text-primary mb-0" style="font-size: 0.85rem;">
                                     #{{ $latestPrescription?->correlative_number ?? substr($order->id, 0, 8) }}
@@ -164,16 +158,8 @@
                                         <i class="bi {{ $isStandard ? 'bi-robot' : 'bi-check2-all' }} me-1"></i>
                                         {{ $isStandard ? 'Auto-Firmado' : 'Firmado' }}
                                     </span>
-                                @elseif($order->status === 'refund_pending')
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3" style="font-size: 0.75rem;">
-                                        <i class="bi bi-hourglass-split me-1"></i> Reembolso
-                                    </span>
-                                @elseif($order->status === 'rejected')
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3" style="font-size: 0.75rem;">
-                                        <i class="bi bi-x-octagon me-1"></i> Rechazado
-                                    </span>
                                 @elseif($isClaimedByMe)
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 fw-medium anim-pulse" style="font-size: 0.75rem;">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 fw-medium" style="font-size: 0.75rem;">
                                         <i class="bi bi-pencil-square me-1"></i> Editando
                                     </span>
                                 @else
@@ -186,17 +172,13 @@
                             <td class="text-end pe-4 py-3">
                                 @if($isSigned)
                                     <div class="btn-group shadow-sm bg-white" style="border-radius: 8px;">
-                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-outline-light border text-primary" title="Ver Detalles">
+                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-outline-light border text-primary">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-sm btn-outline-light border text-danger" title="Ver PDF">
+                                        <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-sm btn-outline-light border text-danger">
                                             <i class="bi bi-file-earmark-pdf"></i>
                                         </a>
                                     </div>
-                                @elseif($hasBeenRejected)
-                                    <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-outline-secondary px-3 rounded-pill">
-                                        Motivo
-                                    </a>
                                 @else
                                     <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
                                        class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : ($isReentry ? 'btn-warning' : 'btn-primary') }} px-3 rounded-pill shadow-sm fw-bold">
@@ -209,10 +191,8 @@
                     @empty
                         <tr>
                             <td colspan="6" class="text-center py-5 bg-light-subtle">
-                                <div class="py-4">
-                                    <i class="bi bi-clipboard-x fs-1 text-muted opacity-25"></i>
-                                    <h6 class="text-muted fw-normal mt-3">No hay órdenes en la categoría <strong>"{{ $tab }}"</strong></h6>
-                                </div>
+                                <i class="bi bi-clipboard-x fs-1 text-muted opacity-25"></i>
+                                <h6 class="text-muted fw-normal mt-3">No hay órdenes en <strong>"{{ $tab }}"</strong></h6>
                             </td>
                         </tr>
                     @endforelse
