@@ -15,7 +15,7 @@
     $currentStatus = $statusConfig[$order->status] ?? ['label' => $order->status, 'class' => 'bg-light text-dark'];
 @endphp
 
-{{-- Poll de 15 segundos: Suficiente para que parezca real-time sin saturar el servidor --}}
+{{-- Poll de 15 segundos --}}
 <div wire:poll.15s class="card mb-4 overflow-hidden rounded-4 card-order-patient shadow-sm border {{ $accentClass }}"
      style="border-width: 1px 1px 1px 5px !important; border-style: solid !important; transition: all 0.3s ease;">
 
@@ -86,34 +86,37 @@
 
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
                     <div class="status-messages">
-                        @if($isRefunded)
+                        @if($order->status === 'refunded')
                             <div class="d-flex align-items-center text-danger fw-600 small">
                                 <span class="pulse-red me-2"></span> Proceso detenido por reembolso
                             </div>
-                        @elseif($isProcessing)
+                        @elseif($order->status === 'paid' && !$order->activePrescription)
                             <div class="d-flex align-items-center text-primary fw-600 small">
                                 <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                                 Médico revisando tu solicitud...
                             </div>
-                        @elseif($waitingContact)
+                        @elseif($order->status === 'pending')
                             <div class="d-flex align-items-center text-muted small italic">
-                                <i class="bi bi-clock-history me-2"></i> Pendiente de asignación médica
+                                <i class="bi bi-clock-history me-2"></i> Pendiente de pago / asignación
                             </div>
                         @endif
                     </div>
 
-{{-- Busca este bloque en tu código --}}
-<div class="actions-group d-flex gap-2 w-100 w-sm-auto">
-    @if($canDownload)
-        {{-- Cambio: Añadimos la ruta y el atributo target="_blank" para no cerrar la página actual --}}
-        <a href="{{ route('orders.download', $order) }}"
-           target="_blank"
-           class="btn btn-primary px-4 py-2 rounded-4 shadow-sm d-flex align-items-center animate__animated animate__fadeInUp">
-            <i class="bi bi-file-earmark-arrow-down-fill me-2 fs-5"></i>
-            Descargar Orden
-        </a>
-    @endif
-</div>
+                    <div class="actions-group d-flex gap-2 w-100 w-sm-auto">
+                        {{-- Solo habilitamos descarga si está pagada Y tiene la receta generada --}}
+                        @if($order->status === 'paid' && $order->activePrescription)
+                            <a href="{{ route('orders.download', $order->id) }}"
+                               target="_blank"
+                               class="btn btn-primary px-4 py-2 rounded-4 shadow-sm d-flex align-items-center animate__animated animate__fadeInUp">
+                                <i class="bi bi-file-earmark-arrow-down-fill me-2 fs-5"></i>
+                                Descargar Orden
+                            </a>
+                        @elseif($order->status === 'pending')
+                            <a href="{{ route('checkout.process', $order->id) }}" class="btn btn-warning px-4 py-2 rounded-4 shadow-sm fw-bold">
+                                Pagar ahora
+                            </a>
+                        @endif
+                    </div>
                 </div>
 
                 @if($canShowChat)
