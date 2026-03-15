@@ -166,7 +166,7 @@ public function store(Request $request)
     /**
      * Listado de órdenes del paciente.
      */
-public function downloadPdf(Order $order, OrderPdfService $pdfService)
+public function download(Order $order, OrderPdfService $pdfService)
     {
         // Seguridad: Solo el dueño de la orden puede descargarla
         if ((string)$order->patient->user_id !== (string)auth()->id()) {
