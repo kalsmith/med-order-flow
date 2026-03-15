@@ -1,5 +1,19 @@
 @extends('layouts.admin')
 
+@php
+    /**
+     * Definición de variables al inicio para evitar el error "Undefined variable"
+     * en secciones que se renderizan antes que el contenido (como header-actions).
+     */
+    $prescription = $order->activePrescription;
+    $isSigned = $prescription && $prescription->status === 'signed';
+
+    $claimedAt = $order->claimed_at ? \Carbon\Carbon::parse($order->claimed_at) : now();
+    $expiresAt = $claimedAt->copy()->addMinutes(20);
+    $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
+    $displayMinutes = ceil($minutesLeft);
+@endphp
+
 @section('header', 'Firma de Orden Médica')
 
 @section('header-actions')
@@ -25,16 +39,6 @@
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
-
-        @php
-            $prescription = $order->activePrescription;
-            $isSigned = $prescription && $prescription->status === 'signed';
-
-            $claimedAt = $order->claimed_at ? \Carbon\Carbon::parse($order->claimed_at) : now();
-            $expiresAt = $claimedAt->copy()->addMinutes(20);
-            $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
-            $displayMinutes = ceil($minutesLeft);
-        @endphp
 
         {{-- Alerta de Estado --}}
         @if(!$isSigned)
@@ -135,7 +139,7 @@
                         </div>
                     </div>
 
-                    {{-- 3. Interacciones (CHAT BLOQUEADO SI ESTÁ FIRMADO) --}}
+                    {{-- 3. Interacciones --}}
                     <div class="col-12">
                         <div class="d-flex align-items-center mb-2">
                             <hr class="flex-grow-1 opacity-10">
@@ -145,7 +149,6 @@
                             <hr class="flex-grow-1 opacity-10">
                         </div>
 
-                        {{-- Pasamos readOnly al componente de Livewire --}}
                         @livewire('admin.order-interactions', ['order' => $order, 'readOnly' => $isSigned])
 
                         @if($isSigned)
@@ -207,7 +210,6 @@
 
 {{-- Modales --}}
 @if(!$isSigned)
-    {{-- (Los modales se mantienen iguales...) --}}
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
