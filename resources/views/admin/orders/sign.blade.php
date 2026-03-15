@@ -70,7 +70,7 @@
                         <label class="text-muted small text-uppercase fw-bold">Fecha de Solicitud</label>
                         <div class="mt-1">
                             <p class="mb-0">{{ $order->created_at->format('d/m/Y H:i') }} hrs</p>
-                            <p class="text-primary fw-bold mb-0">Honorarios: ${{ number_format($order->amount, 0, ',', '.') }}</p>
+                            {{-- <p class="text-primary fw-bold mb-0">Honorarios: ${{ number_format($order->amount, 0, ',', '.') }}</p> --}}
                         </div>
                     </div>
 
