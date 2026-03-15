@@ -123,6 +123,38 @@ class Order extends Model
 
 
 
+    // En App\Models\Order.php
+
+    public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
+    {
+        return $query->where('status', 'paid')
+            ->where(function($q) use ($doctorId, $specialtyId) {
+                $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
+                ->orWhere('type', 'custom');
+            })
+            // Solo mostramos si NO hay ninguna firmada
+            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'))
+            // Y que no tenga anuladas (porque si tiene anuladas, es Re-entry)
+            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'));
+    }
+
+    public function scopeNeedsReentry($query)
+    {
+        return $query->where('status', 'paid')
+            ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
+            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
+    }
+
+    public function scopeInHistory($query)
+    {
+        return $query->where(function($q) {
+            $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
+            ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded', 'refunded_partial']);
+        });
+    }
+
+
+
 
 
 

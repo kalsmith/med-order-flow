@@ -23,50 +23,34 @@ class MedicalOrderController extends Controller
 public function index()
 {
     $user = Auth::user();
+    $doctor = $user->doctor;
 
-    // 1. Garbage Collector: Liberamos bloqueos expirados (20 min)
+    // Garbage Collector
     Order::where('status', 'paid')
         ->whereNotNull('claimed_at')
         ->where('claimed_at', '<', now()->subMinutes(20))
         ->update(['doctor_id' => null, 'claimed_at' => null]);
 
-    $query = Order::with([
-        'patient' => fn($q) => $q->withTrashed(),
-        'doctor.user',
-        'examType',
-        'activePrescription',
-        'prescriptions',
-    ])->withCount('interactions');
+    $query = Order::with(['patient', 'doctor.user', 'examType', 'prescriptions']);
 
     if ($user->hasRole('doctor')) {
-        $doctor = $user->doctor;
-
         $query->where(function($q) use ($doctor) {
-            // A. ÓRDENES ASIGNADAS A MÍ:
-            // Todo lo que yo ya tomé, esté firmado, pendiente o anulado.
+            // Mis asignadas
             $q->where('doctor_id', $doctor->id)
-
-            // B. DISPONIBLES O RE-ENTRY (De mi especialidad):
+            // O las disponibles para mi especialidad
             ->orWhere(function($sq) use ($doctor) {
-                $sq->where('status', 'paid')
-                   ->where(function($sub) use ($doctor) {
-                        $sub->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id))
-                            ->orWhere('type', 'custom');
-                   })
-                   // CRÍTICO: Si ya tiene una firma final ('signed'), ya no es "atendible"
-                   // por otros doctores en la lista general.
-                   ->whereDoesntHave('prescriptions', fn($pq) => $pq->where('status', 'signed'));
+                $sq->availableForDoctor($doctor->id, $doctor->specialty_id);
+            })
+            // O las que necesitan re-firma
+            ->orWhere(function($sq) {
+                $sq->needsReentry();
             });
         });
     }
 
-    // Usamos updated_at para que las órdenes con actividad reciente suban
     $orders = $query->latest('updated_at')->paginate(10);
-
     return view('admin.orders.index', compact('orders'));
 }
-
-
 
 
 

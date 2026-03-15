@@ -21,35 +21,20 @@ class MedicalOrdersTable extends Component
 
     public function render()
     {
-        $user = Auth::user();
-        $doctor = $user->doctor;
-        $myDoctorId = $doctor->id ?? null;
-
-        $query = Order::with(['patient' => fn($q) => $q->withTrashed(), 'examType', 'doctor.user', 'activePrescription', 'prescriptions'])
-            ->withCount('interactions');
+        $doctor = Auth::user()->doctor;
+        $query = Order::with(['patient', 'examType', 'doctor.user', 'prescriptions']);
 
         if ($this->tab === 'available') {
-            // DISPONIBLES: Pagadas que NO tienen NADA (ni firmado, ni anulado, ni activo).
-            // Es decir, órdenes "vírgenes".
-            $query->where('status', 'paid')
-                ->whereDoesntHave('prescriptions')
-                ->where(function($q) use ($myDoctorId) {
-                    $q->where('doctor_id', $myDoctorId)->orWhereNull('doctor_id');
-                });
+            // DISPONIBLES: Órdenes pagadas de su especialidad que NO tienen firmas ni anulaciones.
+            $query->availableForDoctor($doctor->id, $doctor->specialty_id);
 
         } elseif ($this->tab === 'reentry') {
-            // POR RE-FIRMAR: Tiene al menos una anulada (voided)
-            // Y la receta más reciente NO está firmada.
-            $query->where('status', 'paid')
-                ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
-                ->whereDoesntHave('prescriptions', fn($q) => $q->where('status', 'signed'));
+            // RE-ENTRY: Órdenes que tienen anulaciones pero no firmas.
+            $query->needsReentry();
 
         } else {
-            // HISTORIAL: Tiene una firmada O está en proceso de reembolso/rechazo.
-            $query->where(function($q) {
-                $q->whereHas('prescriptions', fn($sq) => $sq->where('status', 'signed'))
-                ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
-            });
+            // HISTORIAL: Firmadas o rechazadas.
+            $query->inHistory();
         }
 
         return view('livewire.medical-orders-table', [
