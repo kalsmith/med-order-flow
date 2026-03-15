@@ -24,7 +24,6 @@
                     class="nav-link {{ $tab === 'reentry' ? 'active fw-bold border-bottom border-warning border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Por Re-firmar
                     @php
-                        // Conteo dinámico corregido: Pagadas que tienen alguna anulada Y cuya prescripción más reciente NO está firmada
                         $reentryCount = \App\Models\Order::where('status', 'paid')
                             ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
                             ->whereHas('prescriptions', fn($q) => $q->where('status', '!=', 'signed'))
@@ -51,7 +50,8 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light-subtle">
                     <tr>
-                        <th class="ps-4 py-3 text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">Paciente</th>
+                        <th class="ps-4 py-3 text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px; width: 120px;">Orden / ID</th>
+                        <th class="py-3 text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">Paciente</th>
                         <th class="py-3 text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">Examen / Tipo</th>
                         <th class="py-3 text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">Fecha Registro</th>
                         <th class="py-3 text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">Estado Actual</th>
@@ -67,11 +67,9 @@
                             $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->status === 'paid' && $order->claimed_at?->gt(now()->subMinutes(20));
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
 
-                            // LÓGICA DE FIRMA: Basada en la prescripción más reciente
                             $latestPrescription = $order->prescriptions->sortByDesc('created_at')->first();
                             $isSigned = $latestPrescription && $latestPrescription->status === 'signed';
 
-                            // LÓGICA DE RE-ENTRY: Tiene historial de anulación pero la última no está firmada
                             $hasVoided = $order->prescriptions->where('status', 'voided')->count() > 0;
                             $isReentry = $hasVoided && !$isSigned;
 
@@ -83,32 +81,41 @@
 
                         <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }}">
                             <td class="ps-4 py-3">
+                                <div class="fw-bold text-primary mb-0" style="font-size: 0.85rem;">
+                                    #{{ $order->correlative ?? $order->id }}
+                                </div>
+                                <div class="text-muted" style="font-size: 0.7rem;">
+                                    ID: {{ $order->id }}
+                                </div>
+                            </td>
+
+                            <td class="py-3">
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-sm me-3 bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px;">
+                                    <div class="avatar-sm me-3 bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
                                         {{ substr($order->patient->full_name ?? 'N', 0, 1) }}
                                     </div>
                                     <div>
-                                        <div class="fw-bold text-dark mb-0">{{ $order->patient->full_name ?? 'N/A' }}</div>
-                                        <div class="text-muted small">{{ $order->patient->rut ?? 'Sin RUT' }}</div>
+                                        <div class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">{{ $order->patient->full_name ?? 'N/A' }}</div>
+                                        <div class="text-muted small" style="font-size: 0.75rem;">{{ $order->patient->rut ?? 'Sin RUT' }}</div>
                                     </div>
                                 </div>
                             </td>
 
                             <td class="py-3">
                                 @if($order->type === 'custom')
-                                    <span class="badge rounded-pill" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;">
+                                    <span class="badge rounded-pill" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 0.7rem;">
                                         <i class="bi bi-stars me-1"></i> Especial
                                     </span>
                                 @else
-                                    <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle fw-medium">
+                                    <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle fw-medium" style="font-size: 0.7rem;">
                                         {{ $order->examType->name ?? 'Estándar' }}
                                     </span>
                                 @endif
 
                                 @if($isReentry)
                                     <div class="mt-1">
-                                        <span class="badge bg-warning text-dark border border-warning-subtle fw-bold" style="font-size: 0.65rem;">
-                                            <i class="bi bi-exclamation-triangle-fill"></i> RE-FIRMA REQUERIDA
+                                        <span class="badge bg-warning text-dark border border-warning-subtle fw-bold" style="font-size: 0.6rem;">
+                                            <i class="bi bi-exclamation-triangle-fill"></i> RE-FIRMA
                                         </span>
                                     </div>
                                 @endif
@@ -121,32 +128,32 @@
 
                             <td class="py-3">
                                 @if($isSigned)
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3" style="font-size: 0.75rem;">
                                         <i class="bi bi-check2-all me-1"></i> Firmado
                                     </span>
                                 @elseif($isRefundPending)
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3">
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3" style="font-size: 0.75rem;">
                                         <i class="bi bi-hourglass-split me-1"></i> Reembolso
                                     </span>
                                 @elseif($isRefunded)
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3">
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3" style="font-size: 0.75rem;">
                                         <i class="bi bi-cash-stack me-1"></i> Reembolsada
                                     </span>
                                 @elseif($isRejected)
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3">
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3" style="font-size: 0.75rem;">
                                         <i class="bi bi-x-octagon me-1"></i> Rechazado
                                     </span>
                                 @elseif($isClaimedByOther)
-                                    <span class="badge bg-light text-muted border border-secondary-subtle px-3 fw-normal">
+                                    <span class="badge bg-light text-muted border border-secondary-subtle px-3 fw-normal" style="font-size: 0.75rem;">
                                         <i class="bi bi-lock-fill me-1"></i> En revisión
                                     </span>
                                 @elseif($isClaimedByMe)
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 fw-medium anim-pulse">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 fw-medium anim-pulse" style="font-size: 0.75rem;">
                                         <i class="bi bi-pencil-square me-1"></i> Editando
                                     </span>
                                 @else
-                                    <span class="badge {{ $isReentry ? 'bg-warning-subtle text-warning' : 'bg-light text-dark' }} border px-3">
-                                        {{ $isReentry ? 'Pendiente Corrección' : 'Esperando Médico' }}
+                                    <span class="badge {{ $isReentry ? 'bg-warning-subtle text-warning' : 'bg-light text-dark' }} border px-3" style="font-size: 0.75rem;">
+                                        {{ $isReentry ? 'Pendiente Corregir' : 'Esperando' }}
                                     </span>
                                 @endif
                             </td>
@@ -163,15 +170,15 @@
                                     </div>
                                 @elseif($hasBeenRejected)
                                     <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-outline-secondary px-3 rounded-pill">
-                                        Ver Motivo
+                                        Motivo
                                     </a>
                                 @elseif($isClaimedByOther)
                                     <button class="btn btn-sm btn-light border text-muted opacity-50" disabled>
-                                        <i class="bi bi-lock"></i> Bloqueado
+                                        <i class="bi bi-lock"></i>
                                     </button>
                                 @else
                                     <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
-                                       class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : ($isReentry ? 'btn-warning' : 'btn-primary') }} px-4 rounded-pill shadow-sm fw-bold">
+                                       class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : ($isReentry ? 'btn-warning' : 'btn-primary') }} px-3 rounded-pill shadow-sm fw-bold">
                                         <i class="bi {{ $isClaimedByMe ? 'bi-play-circle-fill' : ($isReentry ? 'bi-arrow-repeat' : 'bi-pen-fill') }} me-1"></i>
                                         {{ $isClaimedByMe ? 'Continuar' : ($isReentry ? 'Corregir' : 'Atender') }}
                                     </a>
@@ -180,7 +187,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 bg-light-subtle">
+                            <td colspan="6" class="text-center py-5 bg-light-subtle">
                                 <div class="py-4">
                                     <i class="bi bi-clipboard-x fs-1 text-muted opacity-25"></i>
                                     <h6 class="text-muted fw-normal mt-3">No hay órdenes en la categoría <strong>"{{ $tab }}"</strong></h6>
