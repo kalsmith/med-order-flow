@@ -12,37 +12,48 @@
             </div>
         </div>
 
-        <ul class="nav nav-tabs border-bottom-0 px-2">
-            <li class="nav-item">
-                <button wire:click="setTab('available')"
-                    class="nav-link {{ $tab === 'available' ? 'active fw-bold border-bottom border-primary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
-                    <i class="bi bi-megaphone me-1"></i> Nuevas Pendientes
-                </button>
-            </li>
-            <li class="nav-item">
-                <button wire:click="setTab('reentry')"
-                    class="nav-link {{ $tab === 'reentry' ? 'active fw-bold border-bottom border-warning border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Por Re-firmar
-                    @php
-                        $reentryCount = \App\Models\Order::where('status', 'paid')
-                            ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
-                            ->whereHas('prescriptions', fn($q) => $q->where('status', '!=', 'signed'))
-                            ->count();
-                    @endphp
-                    @if($reentryCount > 0)
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                            {{ $reentryCount }}
-                        </span>
-                    @endif
-                </button>
-            </li>
-            <li class="nav-item">
-                <button wire:click="setTab('signed')"
-                    class="nav-link {{ $tab === 'signed' ? 'active fw-bold border-bottom border-secondary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
-                    <i class="bi bi-archive me-1"></i> Historial y Rechazos
-                </button>
-            </li>
-        </ul>
+<ul class="nav nav-tabs border-bottom-0 px-2">
+    <li class="nav-item">
+        <button wire:click="setTab('available')"
+            class="nav-link {{ $tab === 'available' ? 'active fw-bold border-bottom border-primary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
+            <i class="bi bi-megaphone me-1"></i> Nuevas Pendientes
+        </button>
+    </li>
+    <li class="nav-item">
+        <button wire:click="setTab('reentry')"
+            class="nav-link {{ $tab === 'reentry' ? 'active fw-bold border-bottom border-warning border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Por Re-firmar
+
+            @php
+                // LÓGICA CORREGIDA: Tiene algo anulado PERO NO tiene nada firmado aún
+                $reentryCount = \App\Models\Order::where('status', 'paid')
+                    ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
+                    ->whereDoesntHave('prescriptions', fn($q) => $q->where('status', 'signed'))
+                    ->count();
+            @endphp
+
+            @if($reentryCount > 0)
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                    {{ $reentryCount }}
+                </span>
+            @endif
+        </button>
+    </li>
+    <li class="nav-item">
+        <button wire:click="setTab('signed')"
+            class="nav-link {{ $tab === 'signed' ? 'active fw-bold border-bottom border-secondary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
+            <i class="bi bi-archive me-1"></i> Historial y Rechazos
+        </button>
+    </li>
+</ul>
+
+
+
+
+
+
+
+
     </div>
 
     <div class="card-body p-0">
