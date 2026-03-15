@@ -45,44 +45,16 @@
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
 
-        {{-- Alerta de Estado --}}
-        @if($isSigned)
-            <div class="alert bg-success-subtle border-start border-4 border-success shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
-                <small class="text-success fw-bold text-uppercase">
-                    <i class="bi bi-patch-check-fill me-1"></i> Documento Firmado y Cerrado
-                </small>
-                <span class="badge bg-success text-white">
-                    Emitido el {{ \Carbon\Carbon::parse($prescription->signed_at)->format('d/m/Y H:i') }}
-                </span>
-            </div>
-        @elseif($isRefundPending || $isRefunded)
-            <div class="alert bg-warning-subtle border-start border-4 border-warning shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
-                <small class="text-warning-emphasis fw-bold text-uppercase">
-                    <i class="bi bi-arrow-left-right me-1"></i> {{ $isRefundPending ? 'Reembolso en Proceso' : 'Orden Reembolsada' }}
-                </small>
-                <span class="badge bg-warning text-dark">
-                    {{ $isRefundPending ? 'Pendiente Flow' : 'Dinero devuelto' }}
-                </span>
-            </div>
-        @elseif($isRejected)
-            <div class="alert bg-danger-subtle border-start border-4 border-danger shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
-                <small class="text-danger fw-bold text-uppercase">
-                    <i class="bi bi-x-circle-fill me-1"></i> Requerimiento Rechazado
-                </small>
-                <span class="badge bg-danger text-white">
-                    Rechazado el {{ $order->updated_at->format('d/m/Y H:i') }}
-                </span>
-            </div>
-        @else
-            <div class="alert bg-white border-start border-4 border-warning shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
-                <small class="text-muted fw-bold text-uppercase">
-                    <i class="bi bi-hourglass-split text-warning me-1"></i> Sesión de firma activa
-                </small>
-                <span class="badge bg-warning text-dark fw-bold">
-                    Reserva expira en {{ $displayMinutes }} min
-                </span>
-            </div>
-        @endif
+        {{-- 1. Alertas de Estado (Partial) --}}
+        @include('admin.orders.partials._status_alerts', [
+            'order' => $order,
+            'prescription' => $prescription,
+            'isSigned' => $isSigned,
+            'isRejected' => $isRejected,
+            'isRefundPending' => $isRefundPending,
+            'isRefunded' => $isRefunded,
+            'displayMinutes' => $displayMinutes
+        ])
 
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom">
@@ -91,6 +63,7 @@
                         <i class="bi bi-file-earmark-medical text-primary me-2"></i>
                         Revisión de Requerimiento #{{ substr($order->id, 0, 8) }}
                     </h5>
+
                     @php
                         $badgeClass = $isSigned ? 'bg-success-subtle text-success border-success-subtle' :
                                      ($isRejected ? 'bg-danger-subtle text-danger border-danger-subtle' :
@@ -109,28 +82,8 @@
 
             <div class="card-body p-4">
                 <div class="row g-4">
-                    {{-- Datos del Paciente --}}
-                    <div class="col-md-6 border-end">
-                        <label class="text-muted small text-uppercase fw-bold">Paciente</label>
-                        <div class="mt-1">
-                            <h6 class="mb-0 fw-bold">{{ $order->patient->full_name }}</h6>
-                            <p class="text-muted mb-0">RUT: {{ $order->patient->rut }}</p>
-                            <p class="text-muted small">Edad: {{ $order->patient->age ?? 'N/A' }} años</p>
-                        </div>
-                    </div>
-
-                    {{-- Datos de la Orden --}}
-                    <div class="col-md-6">
-                        <label class="text-muted small text-uppercase fw-bold">Fecha de Solicitud</label>
-                        <div class="mt-1">
-                            <p class="mb-0">{{ $order->created_at->format('d/m/Y H:i') }} hrs</p>
-                            @if($isSigned && $prescription->signed_at)
-                                <p class="text-success small mb-0">
-                                    <i class="bi bi-clock-history"></i> Firmado: {{ \Carbon\Carbon::parse($prescription->signed_at)->format('d/m/Y H:i') }}
-                                </p>
-                            @endif
-                        </div>
-                    </div>
+                    {{-- 2. Datos del Paciente y Orden (Partial) --}}
+                    @include('admin.orders.partials._patient_info', ['order' => $order, 'prescription' => $prescription, 'isSigned' => $isSigned])
 
                     {{-- Motivo de Rechazo / Reembolso --}}
                     @if($isRejected || $isRefundPending || $isRefunded)
@@ -146,7 +99,7 @@
                         <hr class="opacity-10 my-0">
                     </div>
 
-                    {{-- 1. Detalle del Requerimiento --}}
+                    {{-- 3. Detalle del Requerimiento --}}
                     <div class="col-12">
                         <label class="text-muted small text-uppercase fw-bold">Motivo de Consulta (Usuario)</label>
                         <div class="mt-2 p-3 bg-light rounded border border-dashed">
@@ -162,7 +115,7 @@
                         </div>
                     </div>
 
-                    {{-- 2. Indicación Médica --}}
+                    {{-- 4. Indicación Médica Profesional --}}
                     <div class="col-12">
                         <div class="form-group">
                             <label class="{{ $isClosed ? 'text-muted' : 'text-primary' }} fw-bold mb-2 small text-uppercase">
@@ -182,7 +135,7 @@
                         </div>
                     </div>
 
-                    {{-- 3. Interacciones --}}
+                    {{-- 5. Interacciones (Livewire) --}}
                     <div class="col-12">
                         <div class="d-flex align-items-center mb-2">
                             <hr class="flex-grow-1 opacity-10">
@@ -219,7 +172,6 @@
 
                     <div class="col-md-9 text-md-end text-center">
                         @if($isSigned)
-                            {{-- BOTÓN ANULAR FIRMA ACTIVADO --}}
                             <button type="button" class="btn btn-outline-dark px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#voidModal">
                                 <i class="bi bi-trash3 me-1"></i> Anular Firma
                             </button>
@@ -261,94 +213,12 @@
     </div>
 </div>
 
-{{-- Modales --}}
-
-{{-- Modal de Anulación de Firma (Solo cuando está firmado) --}}
-@if($isSigned)
-    <div class="modal fade" id="voidModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title fw-bold">Anular Firma Médica</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="{{ route('admin.orders.void', ['order' => $order->id]) }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="alert alert-warning small">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Al anular la firma, el documento actual quedará invalidado y podrá redactar una nueva indicación para esta misma orden.
-                        </div>
-                        <label class="form-label fw-bold small text-uppercase">Motivo de la anulación:</label>
-                        <textarea name="void_reason" class="form-control" rows="4" required
-                            placeholder="Ej: Error en el diagnóstico, cambio en los exámenes solicitados, etc."></textarea>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-dark px-4">Confirmar Anulación</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-@endif
-
-@if(!$isClosed)
-    {{-- Modal de Rechazo --}}
-    <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title fw-bold">Rechazar Requerimiento</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="{{ route('admin.orders.reject', ['order' => $order->id]) }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <p class="text-muted small mb-3">Indique claramente el motivo por el cual no se puede emitir esta orden. <strong>Esto disparará un reembolso automático al paciente.</strong></p>
-                        <textarea name="rejection_reason" class="form-control" rows="4" required placeholder="Motivo del rechazo..."></textarea>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-danger px-4">Confirmar Rechazo</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal de Derivación --}}
-    @if(!$order->exam_type_id)
-    <div class="modal fade" id="derivateModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold">Derivar Solicitud</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="{{ route('admin.orders.derivate', ['order' => $order->id]) }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Asignar a Área:</label>
-                            <select name="specialty_id" class="form-select" required>
-                                <option value="">-- Seleccionar área --</option>
-                                @foreach(\App\Models\Specialty::all() as $spec)
-                                    <option value="{{ $spec->id }}">{{ $spec->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary px-4">Confirmar Derivación</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endif
-@endif
+{{-- 6. Modales de Acción (Partials) --}}
+@include('admin.orders.partials._modals', [
+    'order' => $order,
+    'isSigned' => $isSigned,
+    'isClosed' => $isClosed
+])
 
 <style>
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
