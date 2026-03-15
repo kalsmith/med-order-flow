@@ -3,7 +3,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3 px-2">
             <h5 class="mb-0 text-dark fw-bold">
                 <i class="bi bi-clipboard2-pulse text-primary me-2"></i>
-                Gestión de Órdenes Médicas
+                Gestión de Órdenes Médicas ssss
             </h5>
             <div class="text-muted small">
                 <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle fw-medium">
