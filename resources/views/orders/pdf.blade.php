@@ -264,14 +264,14 @@
                     {{-- Cambiado a SVG Base64 para máxima compatibilidad --}}
                     <img src="data:image/svg+xml;base64,{{ $qrCode }}" style="width: 70px; height: 70px;">
                 </td>
-                <td style="padding-left: 15px; vertical-align: middle;">
-                    <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
-                    <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
-                        Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
-                        <strong>{{ $prescription->verification_code }}</strong> en pidetuexamen.cl/validar.
-                        <br>ID Transacción: {{ strtoupper(substr($order->id, 0, 8)) }}
-                    </div>
-                </td>
+<td style="padding-left: 15px; vertical-align: middle;">
+    <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
+    <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
+        Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
+        <strong>{{ $prescription->verification_code }}</strong> en pidetuexamen.cl/v/{{ $prescription->verification_code }}.
+        <br>ID Transacción: {{ strtoupper(substr($order->id, 0, 8)) }}
+    </div>
+</td>
             </tr>
         </table>
     </div>

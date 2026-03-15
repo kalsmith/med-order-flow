@@ -3,18 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\MedicalOrder;
+use App\Models\Prescription;
 
 class OrderValidationController extends Controller
 {
-    public function show($id)
+    public function show($id) // $id aquí recibirá el verification_code
     {
-        $order = MedicalOrder::with(['patient', 'doctor'])->findOrFail($id);
+        $prescription = Prescription::where('verification_code', $id)
+            ->with(['order', 'doctor'])
+            ->firstOrFail(); // Si no existe el código, ahí sí da 404 correctamente
 
-        // Si la orden no está firmada, no es válida para terceros
-        if ($order->status !== 'signed') {
-            return view('orders.validation-failed');
-        }
-
-        return view('orders.validation-success', compact('order'));
+        return view('validate.show', compact('prescription'));
     }
 }
