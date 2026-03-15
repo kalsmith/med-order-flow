@@ -11,9 +11,7 @@ class MedicalOrdersTable extends Component
 {
     use WithPagination;
 
-    public $tab = 'available';
-
-    protected $paginationTheme = 'bootstrap';
+    public $tab = 'available'; // available, reentry, signed
 
     public function setTab($tab)
     {
@@ -27,28 +25,27 @@ class MedicalOrdersTable extends Component
         $doctor = $user->doctor;
         $myDoctorId = $doctor->id ?? null;
 
-        // 1. Garbage Collector: Liberar órdenes bloqueadas por inactividad
+        // 1. Garbage Collector (Se mantiene igual)
         Order::where('status', 'paid')
             ->whereNotNull('claimed_at')
             ->where('claimed_at', '<', now()->subMinutes(20))
-            ->update([
-                'doctor_id' => null,
-                'claimed_at' => null
-            ]);
+            ->update(['doctor_id' => null, 'claimed_at' => null]);
 
-        // 2. Query Base con relaciones necesarias
+        // 2. Query Base
         $query = Order::with([
             'patient' => fn($q) => $q->withTrashed(),
             'examType',
             'doctor.user',
             'activePrescription',
-            'prescriptions' // Cargamos historial para detectar anulaciones
+            'prescriptions'
         ])->withCount('interactions');
 
+        // 3. Lógica de Pestañas
         if ($this->tab === 'available') {
-            // Pestaña Pendientes: Sin fecha de firma y estado pagado
+            // SOLO órdenes nuevas (sin ninguna prescripción previa, ni firmadas)
             $query->where('status', 'paid')
                 ->whereNull('signed_at')
+                ->whereDoesntHave('prescriptions') // No tiene intentos previos
                 ->where(function($q) use ($myDoctorId, $doctor) {
                     $q->where('doctor_id', $myDoctorId)
                       ->orWhere(function($sq) use ($doctor) {
@@ -56,17 +53,18 @@ class MedicalOrdersTable extends Component
                              ->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id));
                       })
                       ->orWhere(function($sq) {
-                          $sq->whereNull('doctor_id')
-                             ->where('type', 'custom');
+                          $sq->whereNull('doctor_id')->where('type', 'custom');
                       });
-                })
-                ->where(function($sq) use ($myDoctorId) {
-                    $sq->where('doctor_id', $myDoctorId)
-                        ->orWhereNull('doctor_id')
-                        ->orWhere('claimed_at', '<', now()->subMinutes(20));
                 });
+
+        } elseif ($this->tab === 'reentry') {
+            // SOLO órdenes para RE-FIRMA (tienen prescripciones anuladas y no están firmadas actualmente)
+            $query->where('status', 'paid')
+                ->whereNull('signed_at')
+                ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'));
+
         } else {
-            // Pestaña Historial: Firmadas o con estados terminales (Rechazo/Reembolso)
+            // HISTORIAL (Firmadas o Rechazadas)
             $query->where('doctor_id', $myDoctorId)
                   ->where(function($q) {
                       $q->whereNotNull('signed_at')
