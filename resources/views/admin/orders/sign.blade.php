@@ -45,8 +45,8 @@
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
 
-        {{-- 1. Alertas de Estado (Partial) --}}
-        @include('admin.orders.partials._status_alerts', [
+        {{-- 1. Alertas de Estado --}}
+        @include('admin.partials._status_alerts', [
             'order' => $order,
             'prescription' => $prescription,
             'isSigned' => $isSigned,
@@ -82,8 +82,12 @@
 
             <div class="card-body p-4">
                 <div class="row g-4">
-                    {{-- 2. Datos del Paciente y Orden (Partial) --}}
-                    @include('admin.orders.partials._patient_info', ['order' => $order, 'prescription' => $prescription, 'isSigned' => $isSigned])
+                    {{-- 2. Datos del Paciente --}}
+                    @include('admin.partials._patient_info', [
+                        'order' => $order,
+                        'prescription' => $prescription,
+                        'isSigned' => $isSigned
+                    ])
 
                     {{-- Motivo de Rechazo / Reembolso --}}
                     @if($isRejected || $isRefundPending || $isRefunded)
@@ -213,8 +217,8 @@
     </div>
 </div>
 
-{{-- 6. Modales de Acción (Partials) --}}
-@include('admin.orders.partials._modals', [
+{{-- 6. Modales de Acción --}}
+@include('admin.partials._modals', [
     'order' => $order,
     'isSigned' => $isSigned,
     'isClosed' => $isClosed
