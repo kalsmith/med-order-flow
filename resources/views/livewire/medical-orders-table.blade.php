@@ -91,14 +91,23 @@
                         @endphp
 
                         <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle bg-opacity-10' : '' }}">
-                            <td class="ps-4 py-3">
-                                <div class="fw-bold text-primary mb-0" style="font-size: 0.85rem;">
-                                    #{{ $order->correlative ?? $order->id }}
-                                </div>
-                                <div class="text-muted" style="font-size: 0.7rem;">
-                                    ID: {{ $order->id }}
-                                </div>
-                            </td>
+<td class="ps-4 py-3">
+    <div class="fw-bold text-primary mb-0" style="font-size: 0.85rem;">
+        @php
+            // Obtenemos la receta más reciente para mostrar su número correlativo
+            $displayNumber = $order->prescriptions->sortByDesc('created_at')->first()?->correlative_number;
+        @endphp
+
+        @if($displayNumber)
+            #{{ $displayNumber }}
+        @else
+            <span class="text-muted">#{{ substr($order->id, 0, 8) }}</span>
+        @endif
+    </div>
+    <div class="text-muted" style="font-size: 0.7rem;">
+        Ref: {{ substr($order->id, 0, 8) }}...
+    </div>
+</td>
 
                             <td class="py-3">
                                 <div class="d-flex align-items-center">
