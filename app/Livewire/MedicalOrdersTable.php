@@ -27,9 +27,7 @@ class MedicalOrdersTable extends Component
         $doctor = $user->doctor;
         $myDoctorId = $doctor->id ?? null;
 
-        // 1. Garbage Collector
-        // IMPORTANTE: Solo liberamos lo que está 'paid'.
-        // Si está en 'refund_pending' o 'rejected', no se toca.
+        // 1. Garbage Collector: Liberar órdenes bloqueadas por inactividad
         Order::where('status', 'paid')
             ->whereNotNull('claimed_at')
             ->where('claimed_at', '<', now()->subMinutes(20))
@@ -38,16 +36,17 @@ class MedicalOrdersTable extends Component
                 'claimed_at' => null
             ]);
 
-        // 2. Query Base
+        // 2. Query Base con relaciones necesarias
         $query = Order::with([
             'patient' => fn($q) => $q->withTrashed(),
             'examType',
             'doctor.user',
-            'activePrescription'
+            'activePrescription',
+            'prescriptions' // Cargamos historial para detectar anulaciones
         ])->withCount('interactions');
 
         if ($this->tab === 'available') {
-            // Pestaña Pendientes: Solo órdenes PAGADAS que no han sido atendidas ni firmadas
+            // Pestaña Pendientes: Sin fecha de firma y estado pagado
             $query->where('status', 'paid')
                 ->whereNull('signed_at')
                 ->where(function($q) use ($myDoctorId, $doctor) {
@@ -67,7 +66,7 @@ class MedicalOrdersTable extends Component
                         ->orWhere('claimed_at', '<', now()->subMinutes(20));
                 });
         } else {
-            // Pestaña Historial: Mostramos lo FIRMADO o lo que está en cualquier fase de RECHAZO/REEMBOLSO
+            // Pestaña Historial: Firmadas o con estados terminales (Rechazo/Reembolso)
             $query->where('doctor_id', $myDoctorId)
                   ->where(function($q) {
                       $q->whereNotNull('signed_at')
@@ -76,7 +75,6 @@ class MedicalOrdersTable extends Component
         }
 
         return view('livewire.medical-orders-table', [
-            // Usamos updated_at para que la orden que acabas de rechazar aparezca de las primeras en el historial
             'orders' => $query->latest('updated_at')->paginate(10)
         ]);
     }

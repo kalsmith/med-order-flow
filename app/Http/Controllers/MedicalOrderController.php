@@ -217,7 +217,6 @@ public function processSignature(Request $request, Order $order)
 
 
 
-
 public function voidSignature(Request $request, Order $order)
 {
     // 1. Validaciones de Seguridad
@@ -227,6 +226,7 @@ public function voidSignature(Request $request, Order $order)
 
     $prescription = $order->activePrescription;
 
+    // Validamos que exista una prescripción y esté en estado 'signed'
     if (!$prescription || $prescription->status !== 'signed') {
         return back()->with('error', 'Solo se pueden anular documentos que ya han sido firmados.');
     }
@@ -237,41 +237,41 @@ public function voidSignature(Request $request, Order $order)
 
     try {
         DB::transaction(function () use ($order, $prescription, $request) {
+
             // 2. Anular la receta actual
             $prescription->update([
                 'status' => 'voided',
                 'void_reason' => $request->void_reason,
             ]);
 
-            // 3. Limpiar la Orden para permitir nueva firma
-            // Mantenemos status = 'paid', pero reseteamos campos de firma
+            // 3. Limpiar la Orden para sacarla de la pestaña "Firmados"
+            // Al poner signed_at en null, el sistema la tratará como pendiente de firma nuevamente
             $order->update([
                 'signed_at' => null,
-                // Opcional: podrías querer limpiar el clinical_context de la orden
-                // para que el doctor redacte uno nuevo desde cero.
+                'status' => 'paid', // Nos aseguramos que el estado sea el correcto para flujo administrativo
             ]);
 
-            // 4. Crear la nueva Prescription "vacía" (en estado active)
-            // Esto permite que el showSignForm() detecte una nueva receta pendiente
+            // 4. Crear la nueva Prescription "active"
+            // Generamos un nuevo código de verificación único para el nuevo documento
             $order->prescriptions()->create([
-                'doctor_id' => auth()->user()->doctor->id,
-                'exam_type_id' => $order->exam_type_id,
-                'status' => 'active',
-                'type' => $order->type, // standard o custom
-                'clinical_context' => $prescription->clinical_context, // Copiamos el anterior para facilitar corrección
+                'doctor_id'          => auth()->user()->doctor->id,
+                'exam_type_id'       => $order->exam_type_id,
+                'status'             => 'active',
+                'type'               => $order->type,
+                'correlative_number' => \App\Models\Prescription::max('correlative_number') + 1,
+                'verification_code'  => strtoupper(Str::random(8)), // Genera código tipo C7FB1536
+                'clinical_context'   => $prescription->clinical_context, // Clonamos para que el doctor solo corrija el error
             ]);
         });
 
         return redirect()->route('admin.orders.sign.form', $order)
-            ->with('success', 'La firma anterior ha sido anulada. Ahora puede emitir el nuevo documento.');
+            ->with('success', 'La firma anterior ha sido anulada. El borrador anterior se ha cargado para su corrección.');
 
     } catch (\Exception $e) {
-        \Log::error("Error al anular firma: " . $e->getMessage());
-        return back()->with('error', 'Ocurrió un error al procesar la anulación.');
+        Log::error("Error al anular firma en orden {$order->id}: " . $e->getMessage());
+        return back()->with('error', 'Ocurrió un error al procesar la anulación. Intente nuevamente.');
     }
 }
-
-
 
 
 

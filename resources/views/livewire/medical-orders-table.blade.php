@@ -48,7 +48,12 @@
                             $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
                             $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->status === 'paid' && $order->claimed_at?->gt(now()->subMinutes(20));
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
-                            $isSigned = $order->status === 'signed';
+
+                            // Una orden está firmada si tiene el timestamp signed_at
+                            $isSigned = $order->signed_at !== null;
+
+                            // Lógica de Re-emisión: No está firmada pero tiene prescripciones previas anuladas
+                            $isReentry = !$isSigned && $order->prescriptions->contains('status', 'voided');
 
                             // Lógica de Rechazos y Reembolsos
                             $isRejected = $order->status === 'rejected';
@@ -56,7 +61,8 @@
                             $isRefunded = $order->status === 'refunded';
                             $hasBeenRejected = $isRejected || $isRefundPending || $isRefunded;
                         @endphp
-                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }}">
+                        {{-- Resaltamos la fila si es una re-emisión para captar la atención --}}
+                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }} {{ $isReentry ? 'bg-warning-subtle' : '' }}">
                             <td class="ps-4">
                                 <div class="fw-bold text-dark">{{ $order->patient->full_name ?? 'N/A' }}</div>
                                 <div class="text-muted small">{{ $order->patient->rut ?? '' }}</div>
@@ -70,6 +76,15 @@
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium">
                                         {{ $order->examType->name ?? 'Estándar' }}
                                     </span>
+                                @endif
+
+                                {{-- Badge de advertencia para re-emisiones --}}
+                                @if($isReentry)
+                                    <div class="mt-1">
+                                        <span class="badge bg-warning text-dark border border-warning-subtle fw-bold" style="font-size: 0.65rem;">
+                                            <i class="bi bi-arrow-counterclockwise"></i> RE-EMISIÓN
+                                        </span>
+                                    </div>
                                 @endif
 
                                 @if($order->interactions_count > 0)
@@ -87,7 +102,7 @@
                                     </span>
                                 @elseif($isRefundPending)
                                     <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-medium">
-                                        <i class="bi bi-arrow-left-right me-1"></i> Reembolso en Proceso
+                                        <i class="bi bi-arrow-left-right me-1"></i> Reembolso
                                     </span>
                                 @elseif($isRefunded)
                                     <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-medium">
@@ -131,10 +146,11 @@
                                             <i class="bi bi-lock-fill"></i>
                                         </button>
                                     @else
+                                        {{-- El botón cambia de color y texto si es re-emisión --}}
                                         <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}"
-                                           class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : 'btn-primary' }} px-3 rounded-pill shadow-sm fw-bold">
+                                           class="btn btn-sm {{ $isClaimedByMe ? 'btn-info text-white' : ($isReentry ? 'btn-warning' : 'btn-primary') }} px-3 rounded-pill shadow-sm fw-bold">
                                             <i class="bi {{ $isClaimedByMe ? 'bi-play-fill' : 'bi-vector-pen' }} me-1"></i>
-                                            {{ $isClaimedByMe ? 'Continuar' : 'Atender' }}
+                                            {{ $isClaimedByMe ? 'Continuar' : ($isReentry ? 'Corregir' : 'Atender') }}
                                         </a>
                                     @endif
                                 @endif
