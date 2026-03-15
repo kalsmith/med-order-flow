@@ -5,10 +5,15 @@
      * Definición de variables para controlar el estado de bloqueo
      */
     $prescription = $order->activePrescription;
+
+    // Estados base
     $isSigned = $prescription && $prescription->status === 'signed';
     $isRejected = $order->status === 'rejected';
-    // Si está firmada o rechazada, la orden está "Cerrada" para edición
-    $isClosed = $isSigned || $isRejected;
+    $isRefundPending = $order->status === 'refund_pending';
+    $isRefunded = $order->status === 'refunded';
+
+    // Si está firmada, rechazada o en proceso de reembolso, la orden está "Cerrada" para edición
+    $isClosed = $isSigned || $isRejected || $isRefundPending || $isRefunded;
 
     $claimedAt = $order->claimed_at ? \Carbon\Carbon::parse($order->claimed_at) : now();
     $expiresAt = $claimedAt->copy()->addMinutes(20);
@@ -21,7 +26,6 @@
 @section('header-actions')
     <div class="d-flex gap-2">
         @if(!$isClosed)
-            {{-- Opción para liberar la reserva y que otro médico pueda tomarla --}}
             <form action="{{ route('admin.orders.release', ['order' => $order->id]) }}" method="POST">
                 @csrf
                 <input type="hidden" name="redirect_to" value="index">
@@ -30,7 +34,6 @@
                 </button>
             </form>
         @else
-            {{-- Simple retorno si ya está cerrada --}}
             <a href="{{ route('admin.doctor.panel') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> Volver al Listado
             </a>
@@ -50,6 +53,15 @@
                 </small>
                 <span class="badge bg-success text-white">
                     Emitido el {{ \Carbon\Carbon::parse($prescription->signed_at)->format('d/m/Y H:i') }}
+                </span>
+            </div>
+        @elseif($isRefundPending || $isRefunded)
+            <div class="alert bg-warning-subtle border-start border-4 border-warning shadow-sm py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
+                <small class="text-warning-emphasis fw-bold text-uppercase">
+                    <i class="bi bi-arrow-left-right me-1"></i> {{ $isRefundPending ? 'Reembolso en Proceso' : 'Orden Reembolsada' }}
+                </small>
+                <span class="badge bg-warning text-dark">
+                    {{ $isRefundPending ? 'Pendiente Flow' : 'Dinero devuelto' }}
                 </span>
             </div>
         @elseif($isRejected)
@@ -81,8 +93,13 @@
                     </h5>
                     @php
                         $badgeClass = $isSigned ? 'bg-success-subtle text-success border-success-subtle' :
-                                     ($isRejected ? 'bg-danger-subtle text-danger border-danger-subtle' : 'bg-info-subtle text-info border-info-subtle');
-                        $statusText = $isSigned ? 'Firmado' : ($isRejected ? 'Rechazado' : 'Pendiente de Firma');
+                                     ($isRejected ? 'bg-danger-subtle text-danger border-danger-subtle' :
+                                     ($isRefundPending || $isRefunded ? 'bg-warning-subtle text-warning border-warning-subtle' : 'bg-info-subtle text-info border-info-subtle'));
+
+                        $statusText = $isSigned ? 'Firmado' :
+                                     ($isRejected ? 'Rechazado' :
+                                     ($isRefundPending ? 'Reembolso Pendiente' :
+                                     ($isRefunded ? 'Reembolsado' : 'Pendiente de Firma')));
                     @endphp
                     <span class="badge border {{ $badgeClass }} px-3 py-2">
                         {{ $statusText }}
@@ -115,8 +132,8 @@
                         </div>
                     </div>
 
-                    {{-- Motivo de Rechazo (Solo si aplica) --}}
-                    @if($isRejected)
+                    {{-- Motivo de Rechazo / Reembolso --}}
+                    @if($isRejected || $isRefundPending || $isRefunded)
                         <div class="col-12">
                             <div class="p-3 bg-danger-subtle border border-danger rounded">
                                 <label class="text-danger small text-uppercase fw-bold d-block mb-1">Motivo del Rechazo Profesional</label>
@@ -180,7 +197,7 @@
                         @if($isClosed)
                             <div class="text-center mt-2">
                                 <span class="badge bg-light text-muted border border-secondary-subtle">
-                                    <i class="bi bi-lock-fill me-1"></i> Chat cerrado ({{ $isSigned ? 'Documento firmado' : 'Orden rechazada' }})
+                                    <i class="bi bi-lock-fill me-1"></i> Chat cerrado ({{ $isSigned ? 'Documento firmado' : 'Orden cerrada' }})
                                 </span>
                             </div>
                         @endif
@@ -209,11 +226,16 @@
                             <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-danger btn-lg px-4 shadow ms-2">
                                 <i class="bi bi-file-pdf me-2"></i> Ver PDF Firmado
                             </a>
+                        @elseif($isRefundPending || $isRefunded)
+                             <span class="text-warning fw-bold me-3">
+                                <i class="bi bi-cash-stack me-1"></i> ORDEN EN PROCESO DE REEMBOLSO
+                             </span>
                         @elseif($isRejected)
                              <span class="text-danger fw-bold me-3">
                                 <i class="bi bi-x-octagon-fill me-1"></i> ESTE REQUERIMIENTO FUE RECHAZADO
                              </span>
                         @else
+                            {{-- Caso: Pendiente de Firma --}}
                             @if(!$order->exam_type_id)
                                 <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
                                     <i class="bi bi-person-gear me-1"></i> Derivar
@@ -251,7 +273,7 @@
                 <form action="{{ route('admin.orders.reject', ['order' => $order->id]) }}" method="POST">
                     @csrf
                     <div class="modal-body">
-                        <p class="text-muted small mb-3">Indique claramente el motivo por el cual no se puede emitir esta orden (ej: requiere evaluación presencial, datos insuficientes, etc.)</p>
+                        <p class="text-muted small mb-3">Indique claramente el motivo por el cual no se puede emitir esta orden. <strong>Esto disparará un reembolso automático al paciente.</strong></p>
                         <textarea name="rejection_reason" class="form-control" rows="4" required placeholder="Motivo del rechazo..."></textarea>
                     </div>
                     <div class="modal-footer bg-light">
@@ -300,6 +322,7 @@
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-success-subtle { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0 !important; }
     .bg-danger-subtle { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca !important; }
+    .bg-warning-subtle { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde68a !important; }
     .border-dashed { border-style: dashed !important; }
 </style>
 @endsection
