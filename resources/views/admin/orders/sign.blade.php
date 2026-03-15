@@ -4,13 +4,21 @@
 
 @section('header-actions')
     <div class="d-flex gap-2">
-        <form action="{{ route('admin.orders.release', ['order' => $order->id]) }}" method="POST">
-            @csrf
-            <input type="hidden" name="redirect_to" value="index">
-            <button type="submit" class="btn btn-outline-secondary btn-sm shadow-sm">
+        @if(!$isSigned)
+            {{-- Opción para liberar la reserva y que otro médico pueda tomarla --}}
+            <form action="{{ route('admin.orders.release', ['order' => $order->id]) }}" method="POST">
+                @csrf
+                <input type="hidden" name="redirect_to" value="index">
+                <button type="submit" class="btn btn-outline-danger btn-sm shadow-sm">
+                    <i class="bi bi-unlock me-1"></i> Liberar y Volver
+                </button>
+            </form>
+        @else
+            {{-- Simple retorno si ya está cerrada --}}
+            <a href="{{ route('admin.doctor.panel') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> Volver al Listado
-            </button>
-        </form>
+            </a>
+        @endif
     </div>
 @endsection
 

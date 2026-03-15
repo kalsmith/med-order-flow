@@ -72,7 +72,7 @@ public function index()
     }
 
     // Traemos las órdenes del paciente encontrado
-    $orders = \App\Models\Order::where('patient_id', $patient->id)
+    $orders = Order::where('patient_id', $patient->id)
         ->with(['examType', 'activePrescription'])
         ->latest()
         ->get();
