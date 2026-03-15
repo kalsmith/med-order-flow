@@ -19,14 +19,12 @@
     <div class="col-md-10 col-lg-8">
 
         @php
-            // Usamos la relación activePrescription cargada en el controlador
             $prescription = $order->activePrescription;
             $isSigned = $prescription && $prescription->status === 'signed';
 
             // Lógica de expiración (solo si no está firmada)
-            // Aseguramos que claimed_at sea Carbon, si no, parseamos
             $claimedAt = $order->claimed_at ? \Carbon\Carbon::parse($order->claimed_at) : now();
-            $expiresAt = $claimedAt->addMinutes(20);
+            $expiresAt = $claimedAt->copy()->addMinutes(20);
             $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
             $displayMinutes = ceil($minutesLeft);
         @endphp
@@ -160,6 +158,7 @@
                                 <i class="bi bi-trash3 me-1"></i> Anular Firma
                             </button>
 
+                            {{-- Corrección de la ruta: admin. + orders. + pdf --}}
                             <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-danger btn-lg px-4 shadow ms-2">
                                 <i class="bi bi-file-pdf me-2"></i> Ver PDF Firmado
                             </a>
