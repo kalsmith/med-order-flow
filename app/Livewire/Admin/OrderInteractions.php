@@ -3,22 +3,26 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use App\Models\Order; // <--- Cambiado de MedicalOrder a Order
+use App\Models\Order;
 
 class OrderInteractions extends Component
 {
-    public Order $order; // <--- Cambiado el type-hinting a Order
+    public Order $order;
     public $message = '';
     public $lastMessageCount = 0;
+    public $readOnly = false; // <-- Nueva propiedad
 
-    public function mount()
+    public function mount($readOnly = false)
     {
-        // Al ser un modelo de Eloquent, Livewire lo inyecta automáticamente si el nombre coincide
+        $this->readOnly = $readOnly;
         $this->lastMessageCount = $this->order->interactions()->count();
     }
 
     public function refreshMessages()
     {
+        // Si está firmado, no tiene sentido seguir consultando por nuevos mensajes
+        if ($this->readOnly) return;
+
         $this->order->load('interactions');
         $currentCount = $this->order->interactions->count();
 
@@ -30,7 +34,8 @@ class OrderInteractions extends Component
 
     public function sendMessage()
     {
-        if (empty(trim($this->message))) return;
+        // Bloqueo de seguridad en el servidor
+        if ($this->readOnly || empty(trim($this->message))) return;
 
         $this->validate([
             'message' => 'required|string|max:1000',
