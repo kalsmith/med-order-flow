@@ -48,10 +48,15 @@
                             $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
                             $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->status === 'paid' && $order->claimed_at?->gt(now()->subMinutes(20));
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
-                            $isRejected = $order->status === 'rejected';
                             $isSigned = $order->status === 'signed';
+
+                            // Lógica de Rechazos y Reembolsos
+                            $isRejected = $order->status === 'rejected';
+                            $isRefundPending = $order->status === 'refund_pending';
+                            $isRefunded = $order->status === 'refunded';
+                            $hasBeenRejected = $isRejected || $isRefundPending || $isRefunded;
                         @endphp
-                        <tr class="{{ $isRejected ? 'opacity-75' : '' }}">
+                        <tr class="{{ $hasBeenRejected ? 'opacity-75' : '' }}">
                             <td class="ps-4">
                                 <div class="fw-bold text-dark">{{ $order->patient->full_name ?? 'N/A' }}</div>
                                 <div class="text-muted small">{{ $order->patient->rut ?? '' }}</div>
@@ -79,6 +84,14 @@
                                 @if($isSigned)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium">
                                         <i class="bi bi-patch-check-fill me-1"></i> Firmado
+                                    </span>
+                                @elseif($isRefundPending)
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-medium">
+                                        <i class="bi bi-arrow-left-right me-1"></i> Reembolso en Proceso
+                                    </span>
+                                @elseif($isRefunded)
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-medium">
+                                        <i class="bi bi-cash-stack me-1"></i> Reembolsada
                                     </span>
                                 @elseif($isRejected)
                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-medium" title="{{ $order->rejection_reason }}">
@@ -108,7 +121,7 @@
                                             <i class="bi bi-file-pdf text-danger"></i>
                                         </a>
                                     </div>
-                                @elseif($isRejected)
+                                @elseif($hasBeenRejected)
                                     <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-outline-secondary px-3 rounded-pill fw-medium">
                                         <i class="bi bi-search me-1"></i> Detalle
                                     </a>
