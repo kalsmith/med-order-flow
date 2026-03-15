@@ -6,7 +6,7 @@ use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Renderer\Image\PngImageBackEnd; // Cambiado por compatibilidad
+use BaconQrCode\Renderer\Image\SvgImageBackEnd; // Cambiamos a SVG
 use BaconQrCode\Writer;
 
 class OrderPdfService
@@ -16,7 +16,7 @@ class OrderPdfService
      */
     public function generate(Order $order)
     {
-        // 1. CARGA DE RELACIONES: Aseguramos que todo esté disponible para la vista
+        // 1. CARGA DE RELACIONES
         $order->loadMissing([
             'patient',
             'activePrescription.doctor.user',
@@ -30,29 +30,23 @@ class OrderPdfService
             throw new \Exception("No existe una receta firmada para esta orden.");
         }
 
-        // 2. GENERACIÓN DE QR
-        // Usamos PngImageBackEnd para asegurar que DomPDF lo procese correctamente
+        // 2. GENERACIÓN DE QR EN FORMATO SVG
+        // El formato SVG es más compatible y no depende de extensiones de imagen en el servidor
         $renderer = new ImageRenderer(
             new RendererStyle(150, 0),
-            new PngImageBackEnd()
+            new SvgImageBackEnd()
         );
 
         $writer = new Writer($renderer);
 
-        /**
-         * SOLUCIÓN AL ERROR:
-         * Tu ruta en web.php dice: [URI: v/{id}]
-         * Por lo tanto, el parámetro DEBE llamarse 'id'.
-         * Pasamos el verification_code como el ID que espera la URL de validación.
-         */
+        // Generamos la URL de validación
         $url = route('validate.order', ['id' => $prescription->verification_code]);
 
+        // Escribimos el QR y lo pasamos a Base64 para que DomPDF lo renderice sin problemas
         $qrRaw = $writer->writeString($url);
         $qrCode = base64_encode($qrRaw);
 
         // 3. CONFIGURACIÓN DOMPDF
-        // Asegúrate de que la vista en 'resources/views/orders/pdf.blade.php'
-        // coincida con el código HTML que actualizamos anteriormente.
         return Pdf::loadView('orders.pdf', [
             'order' => $order,
             'prescription' => $prescription,
@@ -60,8 +54,8 @@ class OrderPdfService
         ])->setPaper('a4')
           ->setOptions([
             'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true, // Necesario para cargar el logo desde una URL externa
-            'defaultFont' => 'Roboto',
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'sans-serif',
         ]);
     }
 }

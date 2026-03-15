@@ -30,7 +30,6 @@
         .top-bar { height: 6px; background-color: #0d6efd; width: 100%; }
         .header { padding: 40px 50px 25px 50px; }
 
-        /* Ajuste de Logo */
         .logo-img { height: 45px; width: auto; display: block; margin-bottom: 5px; }
 
         .contact-info { font-size: 10px; color: #636e72; margin-top: 5px; }
@@ -69,7 +68,6 @@
         .label { font-size: 8px; color: #b2bec3; text-transform: uppercase; font-weight: bold; }
         .value { font-size: 12px; font-weight: bold; color: #2d3436; margin-bottom: 10px; }
 
-        /* Prestaciones y Packs */
         .prestacion-card {
             background-color: #f1f7ff;
             border-left: 4px solid #0d6efd;
@@ -91,7 +89,6 @@
             margin-right: 5px;
         }
 
-        /* Footer */
         .footer-fixed {
             position: absolute;
             bottom: 0;
@@ -208,10 +205,9 @@
             <td>
                 <div class="prestacion-card">
                     <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 8px; border-bottom: 1px solid #cce0ff; padding-bottom: 5px;">
-                        {{ $order->display_name }}
+                        {{ $order->examType->name ?? ($order->type === 'custom' ? 'Examen Personalizado' : 'Examen Estándar') }}
                     </div>
 
-                    {{-- Caso 1: Es un Pack/Perfil con hijos --}}
                     @if($order->examType && $order->examType->children->isNotEmpty())
                         <div style="margin-top: 10px;">
                             @foreach($order->examType->children as $child)
@@ -221,10 +217,8 @@
                                 </div>
                             @endforeach
                         </div>
-                    {{-- Caso 2: Es un Custom Order (Descripción libre) --}}
                     @elseif($order->type === 'custom')
                         <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap;">{{ $order->custom_description }}</div>
-                    {{-- Caso 3: Es un examen estándar único --}}
                     @elseif($order->examType)
                         <div class="exam-item">
                             <span class="exam-code">[{{ $order->examType->code_fonasa ?? 'S/C' }}]</span>
@@ -233,7 +227,7 @@
                     @endif
 
                     <div style="color: #636e72; font-style: italic; font-size: 9px; margin-top: 15px; border-top: 1px solid #edf2f7; padding-top: 8px;">
-                        <strong>Nota Importante:</strong> El paciente debe consultar directamente con el laboratorio sobre los requisitos de preparación técnica (ayuno, horarios o condiciones especiales) necesarios.
+                        <strong>Nota Importante:</strong> El paciente debe consultar directamente con el laboratorio sobre los requisitos de preparación técnica necesarios.
                     </div>
                 </div>
             </td>
@@ -257,7 +251,8 @@
         <table width="100%">
             <tr>
                 <td width="70">
-                    <img src="data:image/png;base64,{{ $qrCode }}" style="width: 70px; height: 70px;">
+                    {{-- CAMBIO CLAVE: Cambiado de image/png a image/svg+xml --}}
+                    <img src="data:image/svg+xml;base64,{{ $qrCode }}" style="width: 70px; height: 70px;">
                 </td>
                 <td style="padding-left: 15px; vertical-align: middle;">
                     <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
