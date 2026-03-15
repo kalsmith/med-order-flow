@@ -19,27 +19,25 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
+
+
     public function render()
-    {
-        $doctor = Auth::user()->doctor;
-        $query = Order::with(['patient', 'examType', 'doctor.user', 'prescriptions']);
+{
+    $doctor = Auth::user()->doctor;
+    $query = Order::with(['patient', 'examType', 'doctor.user', 'prescriptions']);
 
-        if ($this->tab === 'available') {
-            // DISPONIBLES: Órdenes pagadas de su especialidad que NO tienen firmas ni anulaciones.
-            $query->availableForDoctor($doctor->id, $doctor->specialty_id);
-
-        } elseif ($this->tab === 'reentry') {
-            // RE-ENTRY: Órdenes que tienen anulaciones pero no firmas.
-            $query->needsReentry();
-
-        } else {
-            // HISTORIAL: Firmadas o rechazadas.
-            $query->inHistory();
-        }
-
-        return view('livewire.medical-orders-table', [
-            'orders' => $query->latest('updated_at')->paginate(10)
-        ]);
+    if ($this->tab === 'available') {
+        $query->availableForDoctor($doctor->id, $doctor->specialty_id);
+    } elseif ($this->tab === 'reentry') {
+        $query->needsReentry();
+    } else {
+        $query->inHistory();
     }
+
+    return view('livewire.medical-orders-table', [
+        'orders' => $query->latest('updated_at')->paginate(10)
+    ]);
+}
+
 
 }

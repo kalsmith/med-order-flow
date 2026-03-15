@@ -123,35 +123,38 @@ class Order extends Model
 
 
 
+
     // En App\Models\Order.php
 
-    public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
-    {
-        return $query->where('status', 'paid')
-            ->where(function($q) use ($doctorId, $specialtyId) {
-                $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
-                ->orWhere('type', 'custom');
-            })
-            // Solo mostramos si NO hay ninguna firmada
-            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'))
-            // Y que no tenga anuladas (porque si tiene anuladas, es Re-entry)
-            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'));
-    }
+public function scopeAvailableForDoctor($query, $doctorId, $specialtyId)
+{
+    return $query->where('status', 'paid')
+        ->where(function($q) use ($doctorId, $specialtyId) {
+            $q->whereHas('examType', fn($e) => $e->where('specialty_id', $specialtyId))
+              ->orWhere('type', 'custom');
+        })
+        // No debe tener NINGUNA receta firmada (signed)
+        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'))
+        // No debe tener NINGUNA receta anulada (si tiene anuladas, va a la otra pestaña)
+        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'voided'));
+}
 
-    public function scopeNeedsReentry($query)
-    {
-        return $query->where('status', 'paid')
-            ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
-            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
-    }
+public function scopeNeedsReentry($query)
+{
+    // Una orden necesita re-firma si tiene alguna anulada (voided)
+    // PERO la receta más reciente aún no está firmada.
+    return $query->where('status', 'paid')
+        ->whereHas('prescriptions', fn($p) => $p->where('status', 'voided'))
+        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
+}
 
-    public function scopeInHistory($query)
-    {
-        return $query->where(function($q) {
-            $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
-            ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded', 'refunded_partial']);
-        });
-    }
+public function scopeInHistory($query)
+{
+    return $query->where(function($q) {
+        $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
+          ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
+    });
+}
 
 
 
