@@ -102,14 +102,18 @@
                         @endif
                     </div>
 
-                    <div class="actions-group d-flex gap-2 w-100 w-sm-auto">
-                        @if($canDownload)
-                            <a href="#" class="btn btn-primary px-4 py-2 rounded-4 shadow-sm d-flex align-items-center animate__animated animate__fadeInUp">
-                                <i class="bi bi-file-earmark-arrow-down-fill me-2 fs-5"></i>
-                                Descargar Orden
-                            </a>
-                        @endif
-                    </div>
+{{-- Busca este bloque en tu código --}}
+<div class="actions-group d-flex gap-2 w-100 w-sm-auto">
+    @if($canDownload)
+        {{-- Cambio: Añadimos la ruta y el atributo target="_blank" para no cerrar la página actual --}}
+        <a href="{{ route('orders.download', $order) }}"
+           target="_blank"
+           class="btn btn-primary px-4 py-2 rounded-4 shadow-sm d-flex align-items-center animate__animated animate__fadeInUp">
+            <i class="bi bi-file-earmark-arrow-down-fill me-2 fs-5"></i>
+            Descargar Orden
+        </a>
+    @endif
+</div>
                 </div>
 
                 @if($canShowChat)
