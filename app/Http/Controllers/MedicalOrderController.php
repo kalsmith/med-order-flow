@@ -43,7 +43,7 @@ public function index()
         $query->where(function($q) use ($doctor) {
             // A. Órdenes ya tomadas por este doctor
             $q->where('doctor_id', $doctor->id)
-              ->whereIn('status', ['paid', 'pending', 'signed'])
+              ->whereIn('status', ['paid', 'pending', 'signed', 'rejected']) // <--- Agrega 'rejected'
 
             // B. O órdenes pagadas de su especialidad disponibles
             ->orWhere(function($sq) use ($doctor) {
