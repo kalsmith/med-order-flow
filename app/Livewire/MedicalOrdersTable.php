@@ -19,61 +19,53 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
+
     public function render()
     {
         $user = Auth::user();
         $doctor = $user->doctor;
         $myDoctorId = $doctor->id ?? null;
 
-        // 1. Garbage Collector (Se mantiene igual)
-        Order::where('status', 'paid')
-            ->whereNotNull('claimed_at')
-            ->where('claimed_at', '<', now()->subMinutes(20))
-            ->update(['doctor_id' => null, 'claimed_at' => null]);
+        $query = Order::with(['patient' => fn($q) => $q->withTrashed(), 'examType', 'doctor.user', 'activePrescription', 'prescriptions'])->withCount('interactions');
 
-        // 2. Query Base
-        $query = Order::with([
-            'patient' => fn($q) => $q->withTrashed(),
-            'examType',
-            'doctor.user',
-            'activePrescription',
-            'prescriptions'
-        ])->withCount('interactions');
-
-        // 3. Lógica de Pestañas
         if ($this->tab === 'available') {
-            // SOLO órdenes nuevas (sin ninguna prescripción previa, ni firmadas)
+            // Órdenes pagadas, no firmadas Y QUE NUNCA han tenido una prescripción (Nuevas puras)
             $query->where('status', 'paid')
                 ->whereNull('signed_at')
-                ->whereDoesntHave('prescriptions') // No tiene intentos previos
+                ->whereDoesntHave('prescriptions')
                 ->where(function($q) use ($myDoctorId, $doctor) {
                     $q->where('doctor_id', $myDoctorId)
-                      ->orWhere(function($sq) use ($doctor) {
-                          $sq->whereNull('doctor_id')
-                             ->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id));
-                      })
-                      ->orWhere(function($sq) {
-                          $sq->whereNull('doctor_id')->where('type', 'custom');
-                      });
+                    ->orWhereNull('doctor_id');
                 });
 
         } elseif ($this->tab === 'reentry') {
-            // SOLO órdenes para RE-FIRMA (tienen prescripciones anuladas y no están firmadas actualmente)
+            // Órdenes que tienen al menos una anulada y NO están firmadas actualmente
+            // (OJO: En tu DB el signed_at tiene valor, por eso no la ves. La query debe ignorar el signed_at si hay una voided reciente)
             $query->where('status', 'paid')
-                ->whereNull('signed_at')
-                ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'));
+                ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
+                ->where(function($q) {
+                    $q->whereNull('signed_at')
+                    ->orWhereHas('prescriptions', fn($sq) => $sq->where('status', 'active')->whereNull('signed_at'));
+                });
 
         } else {
-            // HISTORIAL (Firmadas o Rechazadas)
+            // Historial: Solo lo que YO firmé o lo que fue rechazado/reembolsado
             $query->where('doctor_id', $myDoctorId)
-                  ->where(function($q) {
-                      $q->whereNotNull('signed_at')
+                ->where(function($q) {
+                    $q->whereNotNull('signed_at')
+                        ->whereDoesntHave('prescriptions', fn($sq) => $sq->where('status', 'voided'))
                         ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
-                  });
+                });
         }
 
         return view('livewire.medical-orders-table', [
             'orders' => $query->latest('updated_at')->paginate(10)
         ]);
     }
+
+
+
+
+
+
 }

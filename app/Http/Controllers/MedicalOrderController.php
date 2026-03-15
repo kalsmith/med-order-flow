@@ -21,69 +21,45 @@ public function index()
 {
     $user = Auth::user();
 
-    // 1. Garbage Collector
+    // 1. Garbage Collector: Liberamos bloqueos expirados
     Order::whereIn('status', ['pending', 'paid'])
         ->whereNotNull('claimed_at')
         ->where('claimed_at', '<', now()->subMinutes(20))
-        ->update([
-            'doctor_id' => null,
-            'claimed_at' => null
-        ]);
+        ->update(['doctor_id' => null, 'claimed_at' => null]);
 
-    // 2. Query Base (IMPORTANTE: añadimos 'prescriptions')
     $query = Order::with([
         'patient' => fn($q) => $q->withTrashed(),
         'doctor.user',
         'examType',
         'activePrescription',
-        'prescriptions', // <--- Agregado para que el contains() de la vista funcione
+        'prescriptions',
     ])->withCount('interactions');
 
-    // 3. Lógica para Doctores
     if ($user->hasRole('doctor')) {
         $doctor = $user->doctor;
 
         $query->where(function($q) use ($doctor) {
-            // A. Mis órdenes (Historial, Firmadas, Propias)
+            // A. Mis órdenes (Historial y actuales)
             $q->where('doctor_id', $doctor->id)
-              ->whereIn('status', ['paid', 'pending', 'signed', 'rejected', 'refund_pending', 'refunded'])
 
-            // B. Órdenes de mi especialidad DISPONIBLES (Nuevas)
+            // B. Disponibles de mi especialidad (Nuevas o Re-firmas sin dueño)
             ->orWhere(function($sq) use ($doctor) {
                 $sq->whereNull('doctor_id')
                    ->where('status', 'paid')
-                   ->whereHas('examType', function($eq) use ($doctor) {
-                       $eq->where('specialty_id', $doctor->specialty_id);
+                   ->where(function($sub) use ($doctor) {
+                       $sub->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id))
+                           ->orWhere('type', 'custom');
                    });
             })
 
-            // C. Especiales (Custom) DISPONIBLES
-            ->orWhere(function($sq) {
-                $sq->whereNull('doctor_id')
-                   ->where('type', 'custom')
-                   ->where('status', 'paid');
-            })
-
-            // D. LO NUEVO: Órdenes para RE-FIRMA (Cualquiera de mi especialidad puede verlas si están libres)
-            ->orWhere(function($sq) use ($doctor) {
-                $sq->where('status', 'paid')
-                   ->whereNull('signed_at')
-                   ->whereHas('prescriptions', function($pq) {
-                       $pq->where('status', 'voided');
-                   })
-                   ->where(function($internal) use ($doctor) {
-                       $internal->whereNull('doctor_id') // Está libre para tomar
-                               ->orWhere('doctor_id', $doctor->id); // O ya es mía
-                   });
-            });
+            // C. Órdenes que tienen prescripciones anuladas (Re-entry) aunque tengan signed_at residual
+            ->orWhereHas('prescriptions', fn($pq) => $pq->where('status', 'voided'));
         });
     }
 
     $orders = $query->latest('updated_at')->paginate(10);
     return view('admin.orders.index', compact('orders'));
 }
-
-
 
 
 
