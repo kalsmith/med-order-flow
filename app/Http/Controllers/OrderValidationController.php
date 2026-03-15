@@ -2,17 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MedicalOrder;
 use App\Models\Prescription;
 
 class OrderValidationController extends Controller
 {
-    public function show($id) // $id aquí recibirá el verification_code
+    public function show($id)
     {
+        // Buscamos la receta
         $prescription = Prescription::where('verification_code', $id)
-            ->with(['order', 'doctor'])
-            ->firstOrFail(); // Si no existe el código, ahí sí da 404 correctamente
+            ->with(['order.patient', 'doctor.user'])
+            ->first();
 
-        return view('orders.validation-success', ['order' => $prescription->order]);
+        // Si no existe, enviamos a una vista de error amigable en lugar de fallar
+        if (!$prescription) {
+            return response()->view('orders.validation-error', [
+                'code' => $id
+            ], 404);
+        }
+
+        return view('orders.validation-success', [
+            'order' => $prescription->order
+        ]);
     }
 }
