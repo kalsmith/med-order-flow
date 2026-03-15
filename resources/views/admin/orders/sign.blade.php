@@ -19,11 +19,14 @@
     <div class="col-md-10 col-lg-8">
 
         @php
-            // IMPORTANTE: Validamos la firma a través de la relación prescription
-            $isSigned = $order->prescription && !is_null($order->prescription->signed_at);
+            // Usamos la relación activePrescription cargada en el controlador
+            $prescription = $order->activePrescription;
+            $isSigned = $prescription && $prescription->status === 'signed';
 
             // Lógica de expiración (solo si no está firmada)
-            $expiresAt = $order->claimed_at ? $order->claimed_at->addMinutes(20) : now()->addMinutes(20);
+            // Aseguramos que claimed_at sea Carbon, si no, parseamos
+            $claimedAt = $order->claimed_at ? \Carbon\Carbon::parse($order->claimed_at) : now();
+            $expiresAt = $claimedAt->addMinutes(20);
             $minutesLeft = max(0, now()->diffInMinutes($expiresAt, false));
             $displayMinutes = ceil($minutesLeft);
         @endphp
@@ -44,7 +47,7 @@
                     <i class="bi bi-patch-check-fill me-1"></i> Documento Firmado y Cerrado
                 </small>
                 <span class="badge bg-success text-white">
-                    Emitido el {{ \Carbon\Carbon::parse($order->prescription->signed_at)->format('d/m/Y H:i') }}
+                    Emitido el {{ \Carbon\Carbon::parse($prescription->signed_at)->format('d/m/Y H:i') }}
                 </span>
             </div>
         @endif
@@ -79,9 +82,9 @@
                         <label class="text-muted small text-uppercase fw-bold">Fecha de Solicitud</label>
                         <div class="mt-1">
                             <p class="mb-0">{{ $order->created_at->format('d/m/Y H:i') }} hrs</p>
-                            @if($isSigned)
+                            @if($isSigned && $prescription->signed_at)
                                 <p class="text-success small mb-0">
-                                    <i class="bi bi-clock-history"></i> Firmado: {{ \Carbon\Carbon::parse($order->prescription->signed_at)->format('d/m/Y H:i') }}
+                                    <i class="bi bi-clock-history"></i> Firmado: {{ \Carbon\Carbon::parse($prescription->signed_at)->format('d/m/Y H:i') }}
                                 </p>
                             @endif
                         </div>
@@ -107,7 +110,7 @@
                         </div>
                     </div>
 
-                    {{-- 2. Indicación Médica (Bloqueado si está firmado) --}}
+                    {{-- 2. Indicación Médica --}}
                     <div class="col-12">
                         <div class="form-group">
                             <label class="{{ $isSigned ? 'text-muted' : 'text-primary' }} fw-bold mb-2 small text-uppercase">
@@ -118,7 +121,7 @@
                                       class="form-control {{ $isSigned ? 'bg-light border-secondary opacity-75' : 'border-primary shadow-sm' }}"
                                       rows="4"
                                       placeholder="Redacte aquí el diagnóstico y los exámenes solicitados..."
-                                      {{ $isSigned ? 'readonly' : 'required' }}>{{ old('clinical_context', $order->clinical_context) }}</textarea>
+                                      {{ $isSigned ? 'readonly' : 'required' }}>{{ old('clinical_context', $isSigned ? $prescription->clinical_context : $order->clinical_context) }}</textarea>
                             @if(!$isSigned)
                                 <div class="form-text small text-muted">
                                     <i class="bi bi-info-circle me-1"></i> Esta indicación aparecerá en el PDF final firmado.
@@ -153,8 +156,7 @@
 
                     <div class="col-md-9 text-md-end text-center">
                         @if($isSigned)
-                            {{-- BOTONES MODO LECTURA --}}
-                            <button type="button" class="btn btn-outline-dark px-4 shadow-sm" disabled title="Función próximamente disponible">
+                            <button type="button" class="btn btn-outline-dark px-4 shadow-sm" disabled>
                                 <i class="bi bi-trash3 me-1"></i> Anular Firma
                             </button>
 
@@ -162,7 +164,6 @@
                                 <i class="bi bi-file-pdf me-2"></i> Ver PDF Firmado
                             </a>
                         @else
-                            {{-- BOTONES MODO EDICIÓN --}}
                             @if(!$order->exam_type_id)
                                 <button type="button" class="btn btn-link text-decoration-none text-muted me-3 shadow-none" data-bs-toggle="modal" data-bs-target="#derivateModal">
                                     <i class="bi bi-person-gear me-1"></i> Derivar
@@ -189,7 +190,6 @@
 
 {{-- Modales --}}
 @if(!$isSigned)
-    {{-- MODAL RECHAZO --}}
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -211,7 +211,6 @@
         </div>
     </div>
 
-    {{-- MODAL DERIVACIÓN --}}
     @if(!$order->exam_type_id)
     <div class="modal fade" id="derivateModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -247,7 +246,6 @@
 <style>
     .bg-info-subtle { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd !important; }
     .bg-success-subtle { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0 !important; }
-    .bg-warning-subtle { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a !important; }
     .border-dashed { border-style: dashed !important; }
 </style>
 @endsection
