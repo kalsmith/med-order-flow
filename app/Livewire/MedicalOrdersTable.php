@@ -11,7 +11,8 @@ class MedicalOrdersTable extends Component
 {
     use WithPagination;
 
-    public $tab = 'available'; // available, reentry, signed
+    // Ahora manejamos 4 estados: disponibles, re-entrada, automáticas y firmadas (custom)
+    public $tab = 'available'; // available, reentry, standard, signed
 
     public function setTab($tab)
     {
@@ -19,37 +20,39 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
+    public function render()
+    {
+        $doctor = Auth::user()->doctor;
+        $query = Order::with(['patient', 'examType', 'doctor.user', 'prescriptions']);
 
+        if ($this->tab === 'available') {
+            // DISPONIBLES: Lo que nadie ha tomado o lo que tengo asignado sin firmar
+            $query->where(function($q) use ($doctor) {
+                $q->availableForDoctor($doctor->id, $doctor->specialty_id)
+                  ->orWhere('doctor_id', $doctor->id);
+            })
+            // Excluimos cualquier cosa que ya tenga una receta firmada
+            ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
 
-// App\Livewire\MedicalOrdersTable.php
+        } elseif ($this->tab === 'reentry') {
+            // RE-ENTRY: Solo mis órdenes que fueron anuladas y esperan corrección
+            $query->where('doctor_id', $doctor->id)->needsReentry();
 
-public function render()
-{
-    $doctor = Auth::user()->doctor;
-    $query = Order::with(['patient', 'examType', 'doctor.user', 'prescriptions']);
+        } elseif ($this->tab === 'standard') {
+            // STANDARD: El flujo automático (Ejem: #1010 de César)
+            // Filtramos por tu nuevo scope específico para este flujo
+            $query->autoSignedStandard($doctor->id);
 
-    if ($this->tab === 'available') {
-        // En "Disponibles" vemos lo que nadie ha tomado + lo que YO tengo asignado pero no firmado
-        $query->where(function($q) use ($doctor) {
-            $q->availableForDoctor($doctor->id, $doctor->specialty_id)
-              ->orWhere('doctor_id', $doctor->id);
-        })
-        // IMPORTANTE: Excluir explícitamente las ya firmadas de la pestaña "disponibles"
-        ->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
+        } else {
+            // FIRMADAS (Historial): Solo mis órdenes CUSTOM finalizadas
+            // Así separamos la carga de trabajo manual de la automática
+            $query->where('doctor_id', $doctor->id)
+                  ->where('type', 'custom')
+                  ->inHistory();
+        }
 
-    } elseif ($this->tab === 'reentry') {
-        // Solo MIS re-entradas
-        $query->where('doctor_id', $doctor->id)->needsReentry();
-
-    } else {
-        // Pestaña Historial: Solo MIS órdenes finalizadas
-        $query->where('doctor_id', $doctor->id)->inHistory();
+        return view('livewire.medical-orders-table', [
+            'orders' => $query->latest('updated_at')->paginate(10)
+        ]);
     }
-
-    return view('livewire.medical-orders-table', [
-        'orders' => $query->latest('updated_at')->paginate(10)
-    ]);
-}
-
-
 }

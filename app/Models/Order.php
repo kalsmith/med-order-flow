@@ -189,6 +189,16 @@ public function scopeInHistory($query)
     });
 }
 
+public function scopeAutoSignedStandard($query, $doctorId)
+{
+    return $query->where('doctor_id', $doctorId)
+                 ->where('type', 'standard')
+                 ->where('status', 'paid')
+                 ->whereHas('prescriptions', function($q) {
+                     $q->where('status', 'signed')
+                       ->whereNotNull('signed_at');
+                 });
+}
 
 
 
