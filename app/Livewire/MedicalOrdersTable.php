@@ -20,8 +20,7 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
-
-    public function render()
+public function render()
 {
     $doctor = Auth::user()->doctor;
 
@@ -32,6 +31,7 @@ class MedicalOrdersTable extends Component
     $query = Order::query()->with(['patient', 'examType', 'doctor.user', 'prescriptions']);
 
     if ($this->tab === 'available') {
+        // DISPONIBLES O TOMADAS PERO NO FIRMADAS
         $query->where(function($q) use ($doctor) {
             $q->availableForDoctor($doctor->id, $doctor->specialty_id)
               ->orWhere(function($sq) use ($doctor) {
@@ -42,18 +42,15 @@ class MedicalOrdersTable extends Component
         })->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
 
     } elseif ($this->tab === 'reentry') {
+        // Órdenes que requieren corrección
         $query->where('doctor_id', $doctor->id)->needsReentry();
 
     } elseif ($this->tab === 'standard') {
-        // Quitamos restricciones innecesarias para asegurar que la #1010 aparezca
-        $query->where('doctor_id', $doctor->id)
-              ->where('type', 'standard')
-              ->where(function($q) {
-                  $q->whereHas('prescriptions', fn($p) => $p->where('status', 'signed'))
-                    ->orWhereNotNull('signed_at');
-              });
+        // Pestaña donde vive la #1010: Filtrado por doctor_id en la receta vía Scope
+        $query->autoSignedStandard($doctor->id);
 
-    } else { // Historial (Signed)
+    } else {
+        // Historial Personal: Solo mis órdenes CUSTOM (manuales) firmadas o finalizadas
         $query->where('doctor_id', $doctor->id)
               ->where('type', 'custom')
               ->inHistory();

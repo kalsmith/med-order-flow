@@ -146,13 +146,13 @@ class Order extends Model
      * Si no te aparece nada, prueba quitando el ->whereNotNull('signed_at')
      * dentro del closure de prescriptions.
      */
-    public function scopeAutoSignedStandard($query, $doctorId)
-    {
-        return $query->where('doctor_id', $doctorId)
-                     ->where('type', 'standard')
-                     ->where('status', 'paid')
-                     ->whereHas('prescriptions', function($q) {
-                         $q->where('status', 'signed');
-                     });
-    }
+public function scopeAutoSignedStandard($query, $doctorId)
+{
+    return $query->where('type', 'standard')
+        ->where('status', 'paid')
+        ->whereHas('prescriptions', function($q) use ($doctorId) {
+            $q->where('doctor_id', $doctorId)
+              ->where('status', 'signed');
+        });
+}
 }
