@@ -16,7 +16,7 @@
             <li class="nav-item">
                 <button wire:click="setTab('available')"
                     class="nav-link {{ $tab === 'available' ? 'active fw-bold border-bottom border-primary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
-                    <i class="bi bi- megaphone me-1"></i> Nuevas Pendientes
+                    <i class="bi bi-megaphone me-1"></i> Nuevas Pendientes
                 </button>
             </li>
             <li class="nav-item">
@@ -24,8 +24,11 @@
                     class="nav-link {{ $tab === 'reentry' ? 'active fw-bold border-bottom border-warning border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Por Re-firmar
                     @php
-                        // Opcional: Esto asumiendo que pasas un conteo desde el componente
-                        $reentryCount = \App\Models\Order::where('status', 'paid')->whereNull('signed_at')->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))->count();
+                        // Conteo dinámico: pagadas, NO firmadas y con alguna prescripción anulada
+                        $reentryCount = \App\Models\Order::where('status', 'paid')
+                            ->whereNull('signed_at')
+                            ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
+                            ->count();
                     @endphp
                     @if($reentryCount > 0)
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
@@ -63,12 +66,13 @@
                             $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
                             $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->status === 'paid' && $order->claimed_at?->gt(now()->subMinutes(20));
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
+
+                            // Una orden está firmada si tiene fecha de firma
                             $isSigned = $order->signed_at !== null;
 
-                            // Lógica de Re-emisión detectada por historial de prescripciones
-                            $isReentry = !$isSigned && $order->prescriptions->contains('status', 'voided');
+                            // Es RE-ENTRY solo si NO está firmada actualmente pero TIENE historial de anulaciones
+                            $isReentry = !$isSigned && $order->prescriptions->where('status', 'voided')->count() > 0;
 
-                            // Estados de fin de ciclo
                             $isRejected = $order->status === 'rejected';
                             $isRefundPending = $order->status === 'refund_pending';
                             $isRefunded = $order->status === 'refunded';
@@ -106,12 +110,6 @@
                                         </span>
                                     </div>
                                 @endif
-
-                                @if($order->interactions_count > 0)
-                                    <div class="small text-info mt-1 fw-medium">
-                                        <i class="bi bi-chat-left-dots-fill me-1"></i> {{ $order->interactions_count }} interacción(es)
-                                    </div>
-                                @endif
                             </td>
 
                             <td class="py-3">
@@ -133,7 +131,7 @@
                                         <i class="bi bi-cash-stack me-1"></i> Reembolsada
                                     </span>
                                 @elseif($isRejected)
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3" title="{{ $order->rejection_reason }}">
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3">
                                         <i class="bi bi-x-octagon me-1"></i> Rechazado
                                     </span>
                                 @elseif($isClaimedByOther)
@@ -197,23 +195,3 @@
         {{ $orders->links() }}
     </div>
 </div>
-
-<style>
-    .nav-tabs .nav-link.active {
-        color: #0d6efd !important;
-    }
-    .anim-pulse {
-        animation: pulse-red 2s infinite;
-    }
-    @keyframes pulse-red {
-        0% { opacity: 1; }
-        50% { opacity: 0.6; }
-        100% { opacity: 1; }
-    }
-    .table-hover tbody tr:hover {
-        background-color: rgba(0,0,0,0.01) !important;
-    }
-    .btn-white {
-        background: white;
-    }
-</style>

@@ -53,7 +53,6 @@ class MedicalOrdersTable extends Component
             $query->where('doctor_id', $myDoctorId)
                 ->where(function($q) {
                     $q->whereNotNull('signed_at')
-                        ->whereDoesntHave('prescriptions', fn($sq) => $sq->where('status', 'voided'))
                         ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
                 });
         }
