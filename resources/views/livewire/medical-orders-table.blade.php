@@ -41,9 +41,9 @@
                 <button wire:click="setTab('standard')"
                     class="nav-link {{ $tab === 'standard' ? 'active fw-bold border-bottom border-info border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-robot me-1"></i> Auto-Firmadas
-                    {{-- @php
+                    @php
                         $standardCount = \App\Models\Order::autoSignedStandard(auth()->user()->doctor->id ?? 0)->count();
-                    @endphp --}}
+                    @endphp
                     @if($standardCount > 0)
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size: 0.6rem;">
                             {{ $standardCount }}
@@ -62,7 +62,7 @@
     </div>
 
     <div class="card-body p-0">
-        {{-- @if(auth()->user()->hasRole('doctor') || auth()->user()->hasRole('admin') || in_array(auth()->id(), [1, 2]))
+        @if(auth()->user()->hasRole('doctor') || auth()->user()->hasRole('admin') || in_array(auth()->id(), [1, 2]))
             <div class="alert alert-dark mx-4 mt-3 py-2 small shadow-sm" style="font-family: monospace; font-size: 0.7rem; border-left: 4px solid #0dcaf0; background-color: #1e1e1e; color: #d4d4d4;">
                 <div class="d-flex justify-content-between align-items-center">
                     <span><strong class="text-info">DEBUG DOCTOR</strong> | Tab: <strong>{{ $tab }}</strong></span>
@@ -75,7 +75,7 @@
                     <div class="col-md-4 text-end">Total Global: {{ $orders->total() }}</div>
                 </div>
             </div>
-        @endif --}}
+        @endif
 
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
