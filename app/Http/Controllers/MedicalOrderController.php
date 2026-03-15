@@ -17,12 +17,14 @@ class MedicalOrderController extends Controller
      * Listado de órdenes: Inteligente según el Rol con liberación de bloqueos.
      */
 
-public function index()
+
+
+    public function index()
 {
     $user = Auth::user();
 
-    // 1. Garbage Collector: Liberamos bloqueos expirados
-    Order::whereIn('status', ['pending', 'paid'])
+    // 1. Garbage Collector: Liberamos bloqueos expirados (20 min)
+    Order::where('status', 'paid')
         ->whereNotNull('claimed_at')
         ->where('claimed_at', '<', now()->subMinutes(20))
         ->update(['doctor_id' => null, 'claimed_at' => null]);
@@ -39,29 +41,40 @@ public function index()
         $doctor = $user->doctor;
 
         $query->where(function($q) use ($doctor) {
-            // A. Mis órdenes (Historial y actuales)
+            // A. MIS ÓRDENES: Todo lo que yo haya firmado o rechazado
             $q->where('doctor_id', $doctor->id)
 
-            // B. Disponibles de mi especialidad (Nuevas o Re-firmas sin dueño)
+            // B. DISPONIBLES (Nuevas): Pagadas, de mi especialidad/custom y que NO tengan finalización
             ->orWhere(function($sq) use ($doctor) {
-                $sq->whereNull('doctor_id')
-                   ->where('status', 'paid')
+                $sq->where('status', 'paid')
                    ->where(function($sub) use ($doctor) {
                        $sub->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id))
                            ->orWhere('type', 'custom');
+                   })
+                   // Importante: Que no tengan ninguna firma válida ni estén anuladas
+                   ->whereDoesntHave('prescriptions', function($pq) {
+                       $pq->whereIn('status', ['signed', 'voided']);
                    });
             })
 
-            // C. Órdenes que tienen prescripciones anuladas (Re-entry) aunque tengan signed_at residual
-            ->orWhereHas('prescriptions', fn($pq) => $pq->where('status', 'voided'));
+            // C. RE-ENTRY (Cualquiera de mi especialidad que necesite re-firma)
+            ->orWhere(function($sq) use ($doctor) {
+                $sq->where('status', 'paid')
+                   ->where(function($sub) use ($doctor) {
+                        $sub->whereHas('examType', fn($eq) => $eq->where('specialty_id', $doctor->specialty_id))
+                            ->orWhere('type', 'custom');
+                   })
+                   ->whereHas('prescriptions', fn($pq) => $pq->where('status', 'voided'))
+                   ->whereDoesntHave('prescriptions', fn($pq) => $pq->where('status', 'signed'));
+            });
         });
     }
 
+    // Usamos updated_at para que las que se acaban de tocar suban al principio
     $orders = $query->latest('updated_at')->paginate(10);
+
     return view('admin.orders.index', compact('orders'));
 }
-
-
 
 
 

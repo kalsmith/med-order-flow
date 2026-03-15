@@ -19,8 +19,7 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
-
-    public function render()
+public function render()
 {
     $user = Auth::user();
     $doctor = $user->doctor;
@@ -30,25 +29,26 @@ class MedicalOrdersTable extends Component
         ->withCount('interactions');
 
     if ($this->tab === 'available') {
-        // NUEVAS: Pagadas, sin dueño (o mías) y NUNCA han tenido prescripciones
+        // DISPONIBLES: Órdenes pagadas que NO tienen ninguna prescripción FIRMADA ni ANULADA.
+        // Esto incluye órdenes sin prescripciones y órdenes con prescripciones en estado 'active'.
         $query->where('status', 'paid')
-            ->whereDoesntHave('prescriptions')
+            ->whereDoesntHave('prescriptions', function($q) {
+                $q->whereIn('status', ['signed', 'voided']);
+            })
             ->where(function($q) use ($myDoctorId) {
                 $q->where('doctor_id', $myDoctorId)->orWhereNull('doctor_id');
             });
 
     } elseif ($this->tab === 'reentry') {
-        // POR RE-FIRMAR: Tienen algo anulado Y la prescripción actual NO está firmada
-        // Ignoramos el signed_at de la orden porque puede ser "basura" de la versión anterior
+        // POR RE-FIRMAR: Tiene al menos una anulada (voided) PERO aún no tiene ninguna firmada.
         $query->where('status', 'paid')
             ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
-            ->whereHas('prescriptions', fn($q) => $q->where('status', '!=', 'signed'));
+            ->whereDoesntHave('prescriptions', fn($q) => $q->where('status', 'signed'));
 
     } else {
-        // HISTORIAL: La prescripción más reciente SÍ está firmada (o fue rechazada/reembolsada)
+        // HISTORIAL: Ya tiene una firmada O la orden fue rechazada/reembolsada globalmente.
         $query->where(function($q) use ($myDoctorId) {
-            $q->where('doctor_id', $myDoctorId)
-              ->whereHas('prescriptions', fn($sq) => $sq->where('status', 'signed'))
+            $q->whereHas('prescriptions', fn($sq) => $sq->where('status', 'signed'))
               ->orWhereIn('status', ['rejected', 'refund_pending', 'refunded']);
         });
     }
@@ -57,7 +57,6 @@ class MedicalOrdersTable extends Component
         'orders' => $query->latest('updated_at')->paginate(10)
     ]);
 }
-
 
 
 }
