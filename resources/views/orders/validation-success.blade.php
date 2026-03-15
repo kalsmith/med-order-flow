@@ -34,7 +34,7 @@
                 <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-2">Análisis Solicitados</p>
                 <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg">
                     <p class="text-blue-700 font-bold text-sm mb-1">
-                        {{ $order->examType->name ?? ($order->type === 'custom' ? 'Orden Médica Personalizada' : 'Examen Estándar') }}
+                        {{ $order->examType->name ?? ($order->type === 'custom' ? 'Orden Médica ' : 'Examen Estándar') }}
                     </p>
 
                     @if($order->type === 'custom')

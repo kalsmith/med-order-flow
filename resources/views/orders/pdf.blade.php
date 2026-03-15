@@ -206,7 +206,7 @@
                 <div class="prestacion-card">
                     <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 8px; border-bottom: 1px solid #cce0ff; padding-bottom: 5px;">
                         @if($order->type === 'custom')
-                            ORDEN MÉDICA PERSONALIZADA
+                            ORDEN MÉDICA
                         @else
                             {{ $order->examType->name ?? 'EXAMEN ESTÁNDAR' }}
                         @endif
