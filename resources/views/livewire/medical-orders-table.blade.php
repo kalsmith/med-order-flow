@@ -22,7 +22,7 @@
             <li class="nav-item">
                 <button wire:click="setTab('signed')"
                     class="nav-link {{ $tab === 'signed' ? 'active fw-bold border-bottom border-primary border-3' : 'text-muted' }} border-0 bg-transparent pb-3">
-                    Historial de Firmas
+                    Historial y Rechazos
                 </button>
             </li>
         </ul>
@@ -46,10 +46,12 @@
                     @forelse($orders as $order)
                         @php
                             $orderDocId = $order->doctor_id ? strval($order->doctor_id) : null;
-                            $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->claimed_at?->gt(now()->subMinutes(20));
+                            $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->status === 'paid' && $order->claimed_at?->gt(now()->subMinutes(20));
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
+                            $isRejected = $order->status === 'rejected';
+                            $isSigned = $order->status === 'signed';
                         @endphp
-                        <tr>
+                        <tr class="{{ $isRejected ? 'opacity-75' : '' }}">
                             <td class="ps-4">
                                 <div class="fw-bold text-dark">{{ $order->patient->full_name ?? 'N/A' }}</div>
                                 <div class="text-muted small">{{ $order->patient->rut ?? '' }}</div>
@@ -59,13 +61,14 @@
                                     <span class="badge border" style="background-color: #f3e8ff; color: #6b21a8; border-color: #d8b4fe;">
                                         <i class="bi bi-stars me-1"></i> Especial (Custom)
                                     </span>
-                                    @if($isClaimedByMe && $order->interactions_count > 0)
-                                        <div class="small text-info mt-1"><i class="bi bi-chat-text me-1"></i> {{ $order->interactions_count }} mensajes</div>
-                                    @endif
                                 @else
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium">
                                         {{ $order->examType->name ?? 'Estándar' }}
                                     </span>
+                                @endif
+
+                                @if($order->interactions_count > 0)
+                                    <div class="small text-info mt-1"><i class="bi bi-chat-text me-1"></i> {{ $order->interactions_count }} mensajes</div>
                                 @endif
                             </td>
                             <td>
@@ -73,9 +76,13 @@
                                 <div class="text-muted small" style="font-size: 0.7rem;">{{ $order->created_at->format('H:i') }} hrs</div>
                             </td>
                             <td>
-                                @if($order->status === 'signed')
+                                @if($isSigned)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium">
                                         <i class="bi bi-patch-check-fill me-1"></i> Firmado
+                                    </span>
+                                @elseif($isRejected)
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-medium" title="{{ $order->rejection_reason }}">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Rechazado
                                     </span>
                                 @elseif($isClaimedByOther)
                                     <span class="badge bg-light text-muted border border-secondary-subtle fw-normal">
@@ -92,7 +99,20 @@
                                 @endif
                             </td>
                             <td class="text-end pe-4">
-                                @if($order->status !== 'signed')
+                                @if($isSigned)
+                                    <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
+                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-white border border-end-0" title="Ver detalles">
+                                            <i class="bi bi-eye text-primary"></i>
+                                        </a>
+                                        <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-sm btn-white border" title="Descargar PDF">
+                                            <i class="bi bi-file-pdf text-danger"></i>
+                                        </a>
+                                    </div>
+                                @elseif($isRejected)
+                                    <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-outline-secondary px-3 rounded-pill fw-medium">
+                                        <i class="bi bi-search me-1"></i> Detalle
+                                    </a>
+                                @else
                                     @if($isClaimedByOther)
                                         <button class="btn btn-sm btn-light border text-muted" disabled>
                                             <i class="bi bi-lock-fill"></i>
@@ -104,15 +124,6 @@
                                             {{ $isClaimedByMe ? 'Continuar' : 'Atender' }}
                                         </a>
                                     @endif
-                                @else
-                                    <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
-                                        <a href="{{ route('admin.orders.sign.form', ['order' => $order->id]) }}" class="btn btn-sm btn-white border border-end-0">
-                                            <i class="bi bi-eye text-primary"></i>
-                                        </a>
-                                        <a href="{{ route('admin.orders.pdf', ['order' => $order->id]) }}" target="_blank" class="btn btn-sm btn-white border">
-                                            <i class="bi bi-file-pdf text-danger"></i>
-                                        </a>
-                                    </div>
                                 @endif
                             </td>
                         </tr>
