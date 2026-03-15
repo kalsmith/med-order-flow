@@ -24,10 +24,10 @@
                     class="nav-link {{ $tab === 'reentry' ? 'active fw-bold border-bottom border-warning border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Por Re-firmar
                     @php
-                        // Conteo dinámico: pagadas, NO firmadas y con alguna prescripción anulada
+                        // Conteo dinámico corregido: Pagadas que tienen alguna anulada Y cuya prescripción más reciente NO está firmada
                         $reentryCount = \App\Models\Order::where('status', 'paid')
-                            ->whereNull('signed_at')
                             ->whereHas('prescriptions', fn($q) => $q->where('status', 'voided'))
+                            ->whereHas('prescriptions', fn($q) => $q->where('status', '!=', 'signed'))
                             ->count();
                     @endphp
                     @if($reentryCount > 0)
@@ -67,11 +67,13 @@
                             $isClaimedByOther = $orderDocId && $orderDocId !== $meId && $order->status === 'paid' && $order->claimed_at?->gt(now()->subMinutes(20));
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid';
 
-                            // Una orden está firmada si tiene fecha de firma
-                            $isSigned = $order->signed_at !== null;
+                            // LÓGICA DE FIRMA: Basada en la prescripción más reciente
+                            $latestPrescription = $order->prescriptions->sortByDesc('created_at')->first();
+                            $isSigned = $latestPrescription && $latestPrescription->status === 'signed';
 
-                            // Es RE-ENTRY solo si NO está firmada actualmente pero TIENE historial de anulaciones
-                            $isReentry = !$isSigned && $order->prescriptions->where('status', 'voided')->count() > 0;
+                            // LÓGICA DE RE-ENTRY: Tiene historial de anulación pero la última no está firmada
+                            $hasVoided = $order->prescriptions->where('status', 'voided')->count() > 0;
+                            $isReentry = $hasVoided && !$isSigned;
 
                             $isRejected = $order->status === 'rejected';
                             $isRefundPending = $order->status === 'refund_pending';
