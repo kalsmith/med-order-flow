@@ -1,10 +1,20 @@
 <div class="card border-0 shadow-sm mb-4 card-order overflow-hidden">
     <div class="card-body p-0">
         <div class="d-flex flex-column flex-md-row">
+            {{-- Bloque Izquierdo: Identificadores --}}
             <div class="p-4 bg-light text-center d-flex flex-column justify-content-center border-end" style="min-width: 140px;">
-                <span class="text-uppercase small fw-bold text-muted mb-2">Orden</span>
-                <span class="h5 fw-800 mb-0">#{{ substr($order->id, 0, 8) }}</span>
-                <div class="mt-3">
+                <span class="text-uppercase small fw-bold text-muted mb-1">Orden</span>
+                <span class="h6 fw-800 mb-2">#{{ substr($order->id, 0, 8) }}</span>
+
+                {{-- Correlativo de Receta: Se muestra si hay una receta activa/firmada --}}
+                @if($order->activePrescription)
+                    <div class="mb-2">
+                        <span class="text-uppercase display-9 fw-bold text-primary d-block" style="font-size: 0.7rem;">Documento</span>
+                        <span class="fw-bold text-dark">#{{ $order->activePrescription->correlative_number }}</span>
+                    </div>
+                @endif
+
+                <div class="mt-2">
                     @php
                         $statusColors = [
                             'paid' => 'bg-success-subtle text-success',
@@ -25,6 +35,7 @@
                 </div>
             </div>
 
+            {{-- Bloque Derecho: Información y Acciones --}}
             <div class="p-4 flex-grow-1">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
@@ -40,49 +51,43 @@
                     </div>
                 </div>
 
+                <div class="d-flex flex-wrap gap-2">
+                    {{-- BOTÓN DESCARGAR --}}
+                    @if($canDownload)
+                        <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Descargar Orden #{{ $order->activePrescription->correlative_number }}
+                        </button>
 
-{{-- ... (cabecera de la card igual) ... --}}
+                    {{-- PROCESANDO FIRMA --}}
+                    @elseif($isProcessing)
+                        <span class="badge bg-light text-primary border py-2 px-3 rounded-pill">
+                            <i class="bi bi-hourglass-split me-1"></i> Procesando firma médica
+                        </span>
+                    @endif
 
-<div class="d-flex flex-wrap gap-2">
-    {{-- BOTÓN DESCARGAR: Solo si está firmada --}}
-    @if($canDownload)
-        <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
-            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Descargar Orden
-        </button>
+                    {{-- CHAT --}}
+                    @if($canShowChat)
+                        <button class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#chat-collapse-{{ $order->id }}">
+                            <i class="bi bi-chat-dots-fill me-1"></i> Consultar al Médico
+                        </button>
 
-    {{-- PROCESANDO FIRMA: Pagada, pero aún no firmada ni reembolsada --}}
-    @elseif($isProcessing)
-        <span class="badge bg-light text-primary border py-2 px-3 rounded-pill">
-            <i class="bi bi-hourglass-split me-1"></i> Procesando firma médica
-        </span>
-    @endif
+                    {{-- ESPERANDO CONTACTO --}}
+                    @elseif($waitingContact)
+                        <span class="badge bg-light text-muted border py-2 px-3 rounded-pill">
+                            <i class="bi bi-clock me-1"></i> Esperando contacto del médico
+                        </span>
+                    @endif
 
-    {{-- CHAT: Solo si el doctor ya habló --}}
-    @if($canShowChat)
-        <button class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#chat-collapse-{{ $order->id }}">
-            <i class="bi bi-chat-dots-fill me-1"></i> Consultar al Médico
-        </button>
-
-    {{-- ESPERANDO CONTACTO: Solo si es custom, no hay chat aún, no está firmada y no es reembolso --}}
-    @elseif($waitingContact)
-        <span class="badge bg-light text-muted border py-2 px-3 rounded-pill">
-            <i class="bi bi-clock me-1"></i> Esperando contacto del médico
-        </span>
-    @endif
-
-    {{-- REEMBOLSO: Mensaje informativo si está en ese estado --}}
-    @if($isRefunded)
-        <span class="badge bg-light text-danger border py-2 px-3 rounded-pill">
-            <i class="bi bi-info-circle me-1"></i> Proceso médico detenido por reembolso
-        </span>
-    @endif
-</div>
-
-
-
+                    {{-- REEMBOLSO --}}
+                    @if($isRefunded)
+                        <span class="badge bg-light text-danger border py-2 px-3 rounded-pill">
+                            <i class="bi bi-info-circle me-1"></i> Proceso médico detenido por reembolso
+                        </span>
+                    @endif
+                </div>
 
                 @if($canShowChat)
                     <div class="collapse mt-3" id="chat-collapse-{{ $order->id }}" wire:ignore>
