@@ -13,6 +13,6 @@ class OrderValidationController extends Controller
             ->with(['order', 'doctor'])
             ->firstOrFail(); // Si no existe el código, ahí sí da 404 correctamente
 
-        return view('validate.show', compact('prescription'));
+        return view('orders.validation-success', ['order' => $prescription->order]);
     }
 }
