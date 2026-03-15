@@ -114,8 +114,10 @@ public function index()
      */
 
 
-    public function processSignature(Request $request, Order $order)
+public function processSignature(Request $request, Order $order)
 {
+    Log::info("--- INICIO PROCESO FIRMA ---", ['order_id' => $order->id]);
+
     $request->validate([
         'clinical_context' => 'required|string|min:10'
     ]);
@@ -126,23 +128,26 @@ public function index()
     try {
         DB::transaction(function () use ($order, $doctor, $request, $user) {
 
-            // 1. Buscamos la prescripción 'active' vinculada a esta orden
-            // Esto mantiene el correlativo original que se creó al pagar.
+            // 1. Buscar prescripción activa
             $prescription = $order->prescriptions()
                 ->where('status', 'active')
                 ->first();
 
             if ($prescription) {
-                $prescription->update([
+                Log::info("Prescripción encontrada", ['id' => $prescription->id, 'correlativo' => $prescription->correlative_number]);
+
+                $updated = $prescription->update([
                     'doctor_id' => $doctor->id,
                     'status' => 'signed',
                     'signed_at' => now(),
                     'clinical_context' => $request->clinical_context,
                     'type' => $order->type === 'custom' ? 'custom' : 'standard',
                 ]);
+
+                Log::info("Resultado update prescripción", ['success' => $updated]);
             } else {
-                // Si por alguna razón no existe la 'active', la creamos firmada
-                $order->prescriptions()->create([
+                Log::warning("No se encontró prescripción activa, creando una nueva.");
+                $newPrescription = $order->prescriptions()->create([
                     'doctor_id' => $doctor->id,
                     'exam_type_id' => $order->exam_type_id,
                     'status' => 'signed',
@@ -150,30 +155,39 @@ public function index()
                     'clinical_context' => $request->clinical_context,
                     'type' => $order->type === 'custom' ? 'custom' : 'standard',
                 ]);
+                Log::info("Nueva prescripción creada", ['id' => $newPrescription->id]);
             }
 
-            // 2. En la ORDEN: Solo quitamos el bloqueo y marcamos firma
-            // NO tocamos el 'status' porque ya es 'paid' y el ENUM no tiene 'signed'
-            $order->update([
-                'signed_at' => now(),
-                'claimed_at' => null
+            // 2. Actualizar Orden
+            // Forzamos el guardado con save() por si el update() ignora los cambios
+            $order->signed_at = now();
+            $order->claimed_at = null;
+            $order_saved = $order->save();
+
+            Log::info("Orden actualizada", [
+                'id' => $order->id,
+                'signed_at' => $order->signed_at,
+                'success' => $order_saved
             ]);
 
-            // 3. Registrar honorario/transacción para el médico
-            // Transaction::where('reference_id', $order->id)
-            //     ->update(['receiver_id' => $user->id]);
-
+            // 3. Actividad Médico
             $doctor->update(['last_assigned_at' => now()]);
+            Log::info("Actividad médico actualizada");
+
         });
 
+        Log::info("--- TRANSACCIÓN COMPLETADA ---");
         return redirect()->route('admin.doctor.panel')->with('success', 'Documento firmado exitosamente.');
 
     } catch (\Exception $e) {
-        Log::error("Error en firma: " . $e->getMessage());
-        return redirect()->back()->with('error', 'No se pudo procesar la firma.');
+        Log::error("ERROR CRÍTICO EN FIRMA", [
+            'mensaje' => $e->getMessage(),
+            'linea' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return redirect()->back()->with('error', 'Error interno: ' . $e->getMessage());
     }
 }
-
 
 
     /**
