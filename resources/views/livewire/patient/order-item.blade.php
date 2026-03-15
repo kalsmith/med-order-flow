@@ -40,32 +40,49 @@
                     </div>
                 </div>
 
+
+{{-- ... (cabecera de la card igual) ... --}}
+
 <div class="d-flex flex-wrap gap-2">
+    {{-- BOTÓN DESCARGAR: Solo si está firmada --}}
     @if($canDownload)
         <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
             <i class="bi bi-file-earmark-pdf-fill me-1"></i> Descargar Orden
         </button>
-    @elseif($order->status === 'paid')
-        {{-- Si ya pagó pero la receta no está firmada (está en 'active' u otro) --}}
+
+    {{-- PROCESANDO FIRMA: Pagada, pero aún no firmada ni reembolsada --}}
+    @elseif($isProcessing)
         <span class="badge bg-light text-primary border py-2 px-3 rounded-pill">
-            <i class="bi bi- hourglass-split me-1"></i> Procesando firma médica
+            <i class="bi bi-hourglass-split me-1"></i> Procesando firma médica
         </span>
     @endif
 
+    {{-- CHAT: Solo si el doctor ya habló --}}
     @if($canShowChat)
         <button class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm"
                 type="button"
                 data-bs-toggle="collapse"
-                data-bs-target="#chat-collapse-{{ $order->id }}"
-                aria-expanded="false">
+                data-bs-target="#chat-collapse-{{ $order->id }}">
             <i class="bi bi-chat-dots-fill me-1"></i> Consultar al Médico
         </button>
-    @elseif($order->type === 'custom')
+
+    {{-- ESPERANDO CONTACTO: Solo si es custom, no hay chat aún, no está firmada y no es reembolso --}}
+    @elseif($waitingContact)
         <span class="badge bg-light text-muted border py-2 px-3 rounded-pill">
             <i class="bi bi-clock me-1"></i> Esperando contacto del médico
         </span>
     @endif
+
+    {{-- REEMBOLSO: Mensaje informativo si está en ese estado --}}
+    @if($isRefunded)
+        <span class="badge bg-light text-danger border py-2 px-3 rounded-pill">
+            <i class="bi bi-info-circle me-1"></i> Proceso médico detenido por reembolso
+        </span>
+    @endif
 </div>
+
+
+
 
                 @if($canShowChat)
                     <div class="collapse mt-3" id="chat-collapse-{{ $order->id }}" wire:ignore>

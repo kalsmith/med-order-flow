@@ -15,21 +15,33 @@ class OrderItem extends Component
         $this->order = $order->loadMissing(['examType', 'activePrescription', 'interactions']);
     }
 
+// App\Livewire\Patient\OrderItem.php
+
     public function render()
     {
-        // 1. Lógica para el Chat
-        $isCustom = $this->order->type === 'custom';
-        $hasDoctorMessage = $this->order->interactions
+        $order = $this->order;
+        $activePrescription = $order->activePrescription;
+
+        // 1. ¿Está firmada?
+        $isSigned = $activePrescription && $activePrescription->status === 'signed';
+
+        // 2. ¿Está en proceso de reembolso o ya reembolsada?
+        $isRefunded = in_array($order->status, ['refund_pending', 'refunded']);
+
+        // 3. ¿El doctor ha iniciado contacto? (Solo para custom)
+        $hasDoctorMessage = $order->interactions
             ->where('sender_type', 'doctor')
             ->isNotEmpty();
 
-        // 2. Lógica para el Botón de Descarga
-        // Verificamos si la receta activa tiene el status 'signed'
-        $isSigned = $this->order->activePrescription && $this->order->activePrescription->status === 'signed';
-
         return view('livewire.patient.order-item', [
-            'canShowChat' => $isCustom && $hasDoctorMessage,
-            'canDownload' => $this->order->status === 'paid' && $isSigned
+            'isSigned'    => $isSigned,
+            'isRefunded'  => $isRefunded,
+            'canShowChat' => ($order->type === 'custom') && $hasDoctorMessage,
+            'canDownload' => ($order->status === 'paid') && $isSigned,
+            // Solo mostramos "Procesando" si está pagada, no está firmada y no es reembolso
+            'isProcessing' => ($order->status === 'paid') && !$isSigned && !$isRefunded,
+            // Solo mostramos "Esperando contacto" si es custom, no hay mensajes y no es reembolso
+            'waitingContact' => ($order->type === 'custom') && !$hasDoctorMessage && !$isRefunded && !$isSigned
         ]);
     }
 }
