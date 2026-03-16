@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Doctor;
 use App\Models\Order;
+use App\Models\PayoutRequest;
 use App\Models\Prescription;
 use Illuminate\Support\Facades\DB;
 
@@ -24,27 +25,44 @@ class DashboardController extends Controller
     /**
      * admin.accounting.index -> view('admin.accounting.index')
      */
-public function reports()
+
+    public function reports()
     {
+        // 1. Estadísticas Globales
+        $totalRevenue = Order::where('status', 'paid')->sum('amount');
+
+        // Calculamos cuánto se ha pagado en total a todos los médicos
+        $totalAlreadyPaid = PayoutRequest::where('status', 'paid')->sum('amount');
+
+        // Calculamos cuánto han generado en total todos los médicos (Honorarios totales)
+        $totalGeneratedByDoctors = Prescription::where('status', 'signed')->count() * 1500;
+
         $stats = [
-            'total_revenue'  => Order::where('status', 'paid')->sum('amount'),
-            // La deuda real es lo que hay en los balances de los médicos ahora mismo
-            'total_to_pay'   => Doctor::sum('balance'),
+            'total_revenue'  => $totalRevenue,
+            'total_to_pay'   => $totalGeneratedByDoctors - $totalAlreadyPaid, // Deuda real global
             'pending_orders' => Order::where('status', 'paid')->whereNull('signed_at')->count(),
         ];
 
+        // 2. Reporte Detallado por Médico
         $doctorReports = Doctor::with(['user'])->get()->map(function ($doctor) {
-            // 1. Rendimiento Histórico (Todo lo que ha firmado)
-            $prescriptions = Prescription::where('doctor_id', $doctor->id)
+
+            // Lo que ha firmado (Histórico)
+            $signedCount = Prescription::where('doctor_id', $doctor->id)
                 ->where('status', 'signed')
-                ->get();
+                ->count();
 
-            $orderIds = $prescriptions->pluck('order_id');
+            // Ingresos brutos de las órdenes que él firmó
+            $orderIds = Prescription::where('doctor_id', $doctor->id)
+                ->where('status', 'signed')
+                ->pluck('order_id');
+
             $grossRevenue = Order::whereIn('id', $orderIds)->sum('amount');
-            $historicEarnings = $prescriptions->count() * 1500;
 
-            // 2. Pagos ya realizados (Para saber cuánto se ha llevado)
-            $totalPaidOut = PayoutRequest::where('doctor_id', $doctor->id)
+            // Cálculo de Honorarios
+            $historicEarnings = $signedCount * 1500;
+
+            // Lo que YA se le pagó (según tabla payout_requests)
+            $alreadyPaid = PayoutRequest::where('doctor_id', $doctor->id)
                 ->where('status', 'paid')
                 ->sum('amount');
 
@@ -52,12 +70,12 @@ public function reports()
 
             return [
                 'id'               => $doctor->id,
-                'name'             => $doctor->prefix . ' ' . $doctor->user->name,
-                'signed_count'     => $prescriptions->count(),
+                'name'             => ($doctor->prefix ?? 'Dr.') . ' ' . $doctor->user->name,
+                'signed_count'     => $signedCount,
                 'gross_revenue'    => $grossRevenue,
-                'historic_earning' => $historicEarnings, // Lo que ganó en total
-                'current_balance'  => $doctor->balance,   // Lo que le queda por cobrar (Saldo 0 si retiró)
-                'total_paid_out'   => $totalPaidOut,     // Lo que ya se le transfirió
+                'historic_earning' => $historicEarnings,
+                'current_balance'  => $historicEarnings - $alreadyPaid, // SALDO DINÁMICO
+                'total_paid_out'   => $alreadyPaid,
                 'flow_fees'        => $flowFees,
                 'net_platform'     => $grossRevenue - $historicEarnings - $flowFees,
             ];
@@ -65,6 +83,7 @@ public function reports()
 
         return view('admin.accounting.index', compact('stats', 'doctorReports'));
     }
+
 
 
     /**
