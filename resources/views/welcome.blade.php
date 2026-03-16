@@ -16,6 +16,11 @@
     <meta property="twitter:description" content="Obtén tu orden oficial firmada por médicos colegiados, válida para Fonasa e Isapre.">
     <meta property="twitter:image" content="{{ asset('assets/img/og-image.jpg') }}">
 
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="PideTuExamen - Tu orden médica lista en minutos">
+    <meta name="twitter:description" content="Obtén tu orden oficial firmada por médicos en Chile.">
+    <meta name="twitter:image" content="{{ asset('assets/img/og-image.jpg') }}">
+
     <meta name="description" content="Evita esperas innecesarias. Obtén tu orden oficial firmada por médicos colegiados en Chile de forma 100% online.">
     <meta name="keywords" content="orden medica online, examenes de sangre chile, pidetuexamen, receta medica digital">
 @endsection
