@@ -45,6 +45,12 @@
                     <i class="bi bi-pen-fill"></i> Panel de Firma
                 </a>
             </li>
+            {{-- NUEVO: Billetera del Médico --}}
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.payouts.wallet') ? 'active' : '' }}" href="{{ route('admin.payouts.wallet') }}">
+                    <i class="bi bi-cash-stack"></i> Mi Billetera
+                </a>
+            </li>
             @endrole
 
             {{-- Rol Admin o DT --}}
@@ -67,6 +73,12 @@
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.accounting.index') ? 'active' : '' }}" href="{{ route('admin.accounting.index') }}">
                     <i class="bi bi-wallet2"></i> Contabilidad / Pagos
+                </a>
+            </li>
+            {{-- NUEVO: Gestión de Retiros para Admin --}}
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.payouts.index') ? 'active' : '' }}" href="{{ route('admin.payouts.index') }}">
+                    <i class="bi bi-bank"></i> Pagos a Médicos
                 </a>
             </li>
             @endrole
