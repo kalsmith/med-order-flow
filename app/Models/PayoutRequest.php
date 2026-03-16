@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
 
 class PayoutRequest extends Model
 {
-    use LogsActivity;
+    use HasFactory;
 
+    // ESTO ES LO QUE FALTA:
     protected $fillable = [
         'doctor_id',
         'amount',
@@ -20,22 +19,12 @@ class PayoutRequest extends Model
         'admin_notes'
     ];
 
+    // Para que paid_at sea tratado como fecha automáticamente
     protected $casts = [
         'paid_at' => 'datetime',
-        'amount' => 'integer',
     ];
 
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['status', 'paid_at'])
-            ->logOnlyDirty()
-            ->setDescriptionForEvent(fn(string $eventName) => "Solicitud de retiro {$eventName}");
-    }
-
-    // --- Relaciones ---
-
-    public function doctor(): BelongsTo
+    public function doctor()
     {
         return $this->belongsTo(Doctor::class);
     }

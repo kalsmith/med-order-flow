@@ -13,27 +13,30 @@ class PayoutController extends Controller
     /**
      * EL MÉDICO PIDE EL DINERO
      */
-    public function requestStore(Request $request)
-    {
-        // En un caso real, aquí usas el doctor autenticado: $doctor = auth()->user()->doctor;
-        // Por ahora simulamos que viene de un formulario
-        $doctor = Doctor::findOrFail($request->doctor_id);
+public function requestStore(Request $request)
+{
+    // Usamos el doctor autenticado de verdad
+    $doctor = auth()->user()->doctor;
 
-        $availableBalance = $doctor->balance; // Usamos el Accessor que creamos antes
-
-        if ($availableBalance <= 0) {
-            return back()->with('error', 'No tienes saldo disponible para retirar.');
-        }
-
-        // Creamos la solicitud de retiro por el total
-        PayoutRequest::create([
-            'doctor_id' => $doctor->id,
-            'amount' => $availableBalance,
-            'status' => 'pending'
-        ]);
-
-        return back()->with('success', 'Solicitud de retiro enviada. Se procesará en breve.');
+    if (!$doctor) {
+        return back()->with('error', 'No se encontró perfil médico.');
     }
+
+    $availableBalance = $doctor->balance;
+
+    if ($availableBalance <= 0) {
+        return back()->with('error', 'No tienes saldo disponible.');
+    }
+
+    // El crear también requiere $fillable en el modelo
+    PayoutRequest::create([
+        'doctor_id' => $doctor->id,
+        'amount' => $availableBalance,
+        'status' => 'pending'
+    ]);
+
+    return back()->with('success', 'Solicitud enviada correctamente.');
+}
 
     /**
      * TÚ (ADMIN) VES TODAS LAS SOLICITUDES
