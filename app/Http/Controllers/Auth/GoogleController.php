@@ -37,7 +37,7 @@ public function redirectToGoogle()
 public function handleGoogleCallback()
 {
     try {
-        // Usamos stateless para evitar el error de "mismatch state"
+        // stateless() es OBLIGATORIO cuando usas SameSite=none para evitar errores de state
         $googleUser = Socialite::driver('google')->stateless()->user();
 
         $user = User::where('google_id', $googleUser->id)
@@ -55,24 +55,25 @@ public function handleGoogleCallback()
             ]);
         }
 
-        // Asignación de rol paciente si no es staff
+        // Asignar rol si no es staff
         if (!$user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
             if (!$user->hasRole('paciente')) {
                 $user->assignRole('paciente');
             }
         }
 
-        // LOGIN MANUAL
+        // --- LOGIN Y PERSISTENCIA ---
         Auth::login($user, true);
 
-        // FORZAR PERSISTENCIA
+        // Forzamos la regeneración y el guardado inmediato
         request()->session()->regenerate();
-        session()->save(); // <--- AGREGA ESTA LÍNEA
+        request()->session()->save();
 
         return redirect()->route('user.dispatch');
 
     } catch (\Exception $e) {
-        return redirect()->route('login')->with('error', 'Error: ' . $e->getMessage());
+        // Si falla, regrésalo a la home con el error para saber qué pasó
+        return redirect('/')->with('error', 'Error Google: ' . $e->getMessage());
     }
 }
 
