@@ -4,25 +4,22 @@
 
 
 @section('meta')
+    {{-- Open Graph / Facebook / WhatsApp --}}
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
     <meta property="og:title" content="PideTuExamen - Tu orden médica lista en minutos">
-    <meta property="og:description" content="Obtén tu orden oficial firmada por médicos colegiados, válida para todos los laboratorios de Chile. 100% online.">
-    <meta property="og:image" content="{{ asset('assets/img/og-image.jpg') }}"> {{-- Asegúrate de tener esta imagen --}}
+    <meta property="og:description" content="Obtén tu orden oficial firmada por médicos colegiados, válida para Fonasa, Isapre y todos los laboratorios de Chile.">
+    <meta property="og:image" content="{{ asset('assets/img/og-main.jpg') }}">
 
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{{ url('/') }}">
-    <meta property="twitter:title" content="PideTuExamen - Tu orden médica lista en minutos">
-    <meta property="twitter:description" content="Obtén tu orden oficial firmada por médicos colegiados, válida para Fonasa e Isapre.">
-    <meta property="twitter:image" content="{{ asset('assets/img/og-image.jpg') }}">
-
+    {{-- Twitter / X --}}
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ url('/') }}">
     <meta name="twitter:title" content="PideTuExamen - Tu orden médica lista en minutos">
-    <meta name="twitter:description" content="Obtén tu orden oficial firmada por médicos en Chile.">
-    <meta name="twitter:image" content="{{ asset('assets/img/og-image.jpg') }}">
+    <meta name="twitter:description" content="Obtén tu orden oficial firmada por médicos en Chile. 100% online.">
+    <meta name="twitter:image" content="{{ asset('assets/img/og-main.jpg') }}">
 
-    <meta name="description" content="Evita esperas innecesarias. Obtén tu orden oficial firmada por médicos colegiados en Chile de forma 100% online.">
-    <meta name="keywords" content="orden medica online, examenes de sangre chile, pidetuexamen, receta medica digital">
+    {{-- SEO Standard --}}
+    <meta name="description" content="Obtén tu orden oficial firmada por médicos colegiados, válida para Fonasa, Isapre y todos los laboratorios de Chile.">
 @endsection
 
 @section('content')
