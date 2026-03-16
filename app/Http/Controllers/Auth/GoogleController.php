@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\URL;
+
 
 class GoogleController extends Controller
 {
@@ -35,70 +35,64 @@ public function redirectToGoogle()
      * Obtiene la información del usuario de Google.
      */
 
-
     public function handleGoogleCallback()
-{
-    try {
-        $googleUser = Socialite::driver('google')->user();
+    {
+        try {
+            // Usamos stateless() para evitar errores de mismatch de estado en algunos navegadores
+            $googleUser = Socialite::driver('google')->stateless()->user();
 
-        // 1. Buscar por Google ID o por Email (por si ya se registró manualmente antes)
-        $user = User::where('google_id', $googleUser->id)
-                    ->orWhere('email', $googleUser->email)
-                    ->first();
+            // 1. Buscar o vincular usuario
+            $user = User::where('google_id', $googleUser->id)
+                        ->orWhere('email', $googleUser->email)
+                        ->first();
 
-        if (!$user) {
-            // 2. Crear usuario nuevo
-            $user = User::create([
-                'name' => $googleUser->name,
-                'email' => $googleUser->email,
-                'google_id' => $googleUser->id,
-                'avatar' => $googleUser->avatar,
-                'password' => Hash::make(Str::random(24)),
-                'email_verified_at' => now(),
-            ]);
-        } else {
-            // 3. Si el usuario existía pero no tenía vinculado Google, lo vinculamos
-            if (!$user->google_id) {
-                $user->update([
+            if (!$user) {
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
                     'google_id' => $googleUser->id,
                     'avatar' => $googleUser->avatar,
+                    'password' => Hash::make(Str::random(24)),
+                    'email_verified_at' => now(),
                 ]);
-            }
-        }
-
-        // --- BLINDAJE DE ROLES ---
-        // Si no tiene ningún rol administrativo/staff, nos aseguramos de que sea 'paciente'
-        if (!$user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
-
-            // Verificación de emergencia: Si el rol no existe en la tabla 'roles', lo creamos
-            if (!\Spatie\Permission\Models\Role::where('name', 'paciente')->exists()) {
-                \Spatie\Permission\Models\Role::create(['name' => 'paciente']);
+            } else {
+                if (!$user->google_id) {
+                    $user->update([
+                        'google_id' => $googleUser->id,
+                        'avatar' => $googleUser->avatar,
+                    ]);
+                }
             }
 
-            // Asignamos el rol si no lo tiene (evita el error 403 en las rutas protegidas)
-            if (!$user->hasRole('paciente')) {
-                $user->assignRole('paciente');
+            // 2. Blindaje de roles
+            if (!$user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
+                if (!\Spatie\Permission\Models\Role::where('name', 'paciente')->exists()) {
+                    \Spatie\Permission\Models\Role::create(['name' => 'paciente']);
+                }
+                if (!$user->hasRole('paciente')) {
+                    $user->assignRole('paciente');
+                }
             }
+
+            // 3. LOGIN Y REGENERACIÓN (Vital para romper el bucle)
+            Auth::login($user, true);
+            request()->session()->regenerate();
+
+            // 4. Redirección limpia
+            $intendedUrl = session()->pull('url.intended');
+
+            // Si no hay URL previa o es una ruta de auth, vamos al dispatch
+            if (!$intendedUrl || Str::contains($intendedUrl, 'auth') || $intendedUrl == url('/')) {
+                return redirect()->route('user.dispatch');
+            }
+
+            return redirect()->to($intendedUrl);
+
+        } catch (\Exception $e) {
+            return redirect()->route('login')
+                            ->with('error', 'Error al autenticar: ' . $e->getMessage());
         }
-
-        Auth::login($user);
-
-        // 4. PERSISTENCIA DEL INTENTO (URL INTENDED)
-        $intendedUrl = session()->pull('url.intended', route('user.dispatch'));
-
-        // Limpieza de redirección para evitar bucles en el login
-        if ($intendedUrl == url('/') || Str::contains($intendedUrl, 'auth/google')) {
-            return redirect()->route('user.dispatch');
-        }
-
-        return redirect()->to($intendedUrl)
-                         ->with('success', 'Sesión iniciada correctamente.');
-
-    } catch (Exception $e) {
-        return redirect()->route('home')
-                         ->with('error', 'Error al autenticar: ' . $e->getMessage());
     }
-}
 
 
 }
