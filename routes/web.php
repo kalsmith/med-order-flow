@@ -22,7 +22,9 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FlowController;
 use App\Http\Controllers\OrderValidationController;
+use App\Http\Controllers\ProfileController;
 use App\Models\Faq;
+use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,7 +48,8 @@ Route::get('/legal/{slug}', function ($slug) {
 // Login & Auth
 Route::get('/login', function () { abort(404); });
 Route::get('/acceso', function() { return view('auth.login'); })->name('login');
-Route::post('/acceso', [\Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class, 'store']);
+Route::post('/acceso', [AuthenticatedSessionController::class, 'store']);
+
 
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
@@ -133,6 +136,7 @@ Route::middleware([
 });
 
 
+
 /*
 |--------------------------------------------------------------------------
 | 4. PORTAL DE PACIENTES & PAGOS
@@ -145,33 +149,32 @@ Route::middleware([
     'role:paciente'
 ])->group(function () {
 
+    // --- NUEVO: SEGURIDAD Y BORRADO DE CUENTA ---
+    // Estas van primero para que estén disponibles siempre
+    Route::get('/cuenta/configuracion', [ProfileController::class, 'showDeletePage'])->name('profile.delete.view');
+    Route::post('/cuenta/solicitar-borrado', [ProfileController::class, 'requestAccountDeletion'])->name('profile.delete.request');
+    Route::post('/cuenta/confirmar-borrado', [ProfileController::class, 'confirmAccountDeletion'])->name('profile.delete.confirm');
 
-Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])
-    ->defaults('type', 'personalizada')
-    ->name('profile.complete');
+    // --- PERFIL Y CÍRCULO FAMILIAR ---
+    Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])
+        ->defaults('type', 'personalizada')
+        ->name('profile.complete');
 
-// La nueva ruta para el Micro-Panel de Gestión de Familiares
     Route::get('/mi-circulo', [PatientCircleController::class, 'index'])->name('patient.circle');
-
-    // Rutas para acciones del círculo (opcional para después)
     Route::post('/mi-circulo/agregar', [PatientCircleController::class, 'store'])->name('patient.circle.store');
     Route::delete('/mi-circulo/{patient}', [PatientCircleController::class, 'destroy'])->name('patient.circle.destroy');
 
-
-
-    // Embudo de compra inicial
+    // --- EMBUDO DE COMPRA ---
     Route::get('/solicitar/{type}/{id?}', [OrderFlowController::class, 'handle'])->name('order.flow');
     Route::post('/validar-perfil-flow', [OrderFlowController::class, 'storeProfile'])->name('profile.store.flow');
 
-    // Acciones con Perfil Completo
-    // --- Acciones con Perfil Completo ---
+    // --- ACCIONES CON PERFIL COMPLETO (Middleware check.profile) ---
     Route::middleware(['check.profile'])->group(function () {
         Route::get('/mis-ordenes', [PatientOrderController::class, 'index'])->name('patient.orders');
         Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
 
-        // CHECKOUT: Una sola ruta clara para procesar el pago
-        // Cuando el controlador de la orden termina, redirige aquí.
+        // CHECKOUT: Procesamiento de pago
         Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
 
         Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])
@@ -182,6 +185,7 @@ Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle
         Route::get('/pago-exitoso/{order?}', [PatientOrderController::class, 'showSuccess'])->name('payment.success');
     });
 });
+
 
 /*
 |--------------------------------------------------------------------------

@@ -46,6 +46,7 @@
 <body>
 
 {{-- NAVEGACIÓN --}}
+{{-- NAVEGACIÓN --}}
 <nav class="navbar navbar-expand-lg navbar-light sticky-top border-bottom bg-white">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="/">
@@ -62,10 +63,21 @@
                         <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=0D6EFD&color=fff&rounded=true" width="24" alt="Avatar">
                         <span class="d-none d-md-inline">Mi Cuenta</span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userMenu" style="border-radius: 15px; min-width: 200px;">
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userMenu" style="border-radius: 15px; min-width: 220px;">
                         <li><h6 class="dropdown-header text-uppercase small opacity-50">Gestión de Salud</h6></li>
                         <li><a class="dropdown-item fw-bold py-2" href="{{ route('patient.orders') }}"><i class="bi bi-file-earmark-medical me-2 text-primary"></i> Mis Órdenes</a></li>
                         <li><a class="dropdown-item fw-bold py-2" href="{{ route('patient.circle') }}"><i class="bi bi-people me-2 text-primary"></i> Mi Círculo Familiar</a></li>
+
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header text-uppercase small opacity-50">Seguridad</h6></li>
+
+                        {{-- Nueva Ruta de Configuración / Borrado --}}
+                        <li>
+                            <a class="dropdown-item fw-bold py-2 text-muted" href="{{ route('profile.delete.view') }}">
+                                <i class="bi bi-shield-lock me-2"></i> Configuración de Cuenta
+                            </a>
+                        </li>
+
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="POST" action="{{ route('logout') }}">
