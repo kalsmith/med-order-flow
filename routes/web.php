@@ -124,7 +124,7 @@ Route::middleware([
 
     // 3. CONTABILIDAD
     Route::middleware(['role:contable|admin'])->group(function () {
-        Route::get('/reportes', [DashboardController::class, 'reports'])->name('reports');
+        Route::get('/reportes', [DashboardController::class, 'businessReports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
     });
 });

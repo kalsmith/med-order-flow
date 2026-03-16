@@ -16,32 +16,29 @@
                     <i class="bi bi-clipboard2-pulse-fill"></i> Especialidades
                 </a>
             </li>
-<li class="nav-item">
-    <a class="nav-link {{ request()->routeIs('admin.admin.doctors.*') ? 'active' : '' }}"
-       href="{{ route('admin.doctors.index') }}">
-        <i class="bi bi-people-fill"></i> Médicos
-    </a>
-</li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.doctors.*') ? 'active' : '' }}" href="{{ route('admin.doctors.index') }}">
+                    <i class="bi bi-people-fill"></i> Médicos
+                </a>
+            </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.exam-types.*') ? 'active' : '' }}" href="{{ route('admin.exam-types.index') }}">
                     <i class="bi bi-flask"></i> Catálogo Exámenes
                 </a>
             </li>
 
-
-            {{-- NUEVO ITEM: CONTENIDOS / FAQ --}}
+            {{-- CONTENIDOS / FAQ --}}
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.faqs.*') ? 'active' : '' }}" href="{{ route('admin.faqs.index') }}">
                     <i class="bi bi-info-circle-fill"></i> Contenidos / FAQ
                 </a>
             </li>
-
             @endrole
 
-            {{-- MODULO: OPERACIONES (Diferenciado por Rol) --}}
+            {{-- MODULO: OPERACIONES --}}
             <h6 class="sidebar-heading">Operaciones</h6>
 
-            {{-- Si es Médico: Acceso directo a su panel de firma --}}
+            {{-- Rol Médico --}}
             @role('doctor')
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.doctor.panel') ? 'active' : '' }}" href="{{ route('admin.doctor.panel') }}">
@@ -50,7 +47,7 @@
             </li>
             @endrole
 
-            {{-- Si es Admin o Director Técnico: Gestión global de órdenes --}}
+            {{-- Rol Admin o DT --}}
             @role('admin|director_tecnico')
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
@@ -64,12 +61,12 @@
             <h6 class="sidebar-heading">Finanzas</h6>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.reports') ? 'active' : '' }}" href="{{ route('admin.reports') }}">
-                    <i class="bi bi-graph-up-arrow"></i> Reportes
+                    <i class="bi bi-graph-up-arrow"></i> Reportes de Gestión
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.accounting.index') ? 'active' : '' }}" href="{{ route('admin.accounting.index') }}">
-                    <i class="bi bi-wallet2"></i> Contabilidad
+                    <i class="bi bi-wallet2"></i> Contabilidad / Pagos
                 </a>
             </li>
             @endrole
