@@ -12,7 +12,7 @@
                     <div>
                         <h6 class="text-uppercase opacity-50 small mb-3">Saldo disponible para retiro</h6>
                         <h1 class="display-4 fw-bold mb-0">${{ number_format($doctor->balance, 0, ',', '.') }}</h1>
-                        <p class="text-muted mt-2">Corresponde a firmas realizadas no cobradas.</p>
+                        <p class="text-muted mt-2 small">Corresponde a firmas realizadas no liquidadas.</p>
                     </div>
 
                     <div class="mt-4">
@@ -52,10 +52,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($doctor->payoutRequests()->latest()->take(5)->get() as $req)
+                                @forelse($doctor->payoutRequests()->latest()->take(10)->get() as $req)
                                 <tr>
                                     <td class="ps-4">{{ $req->created_at->format('d/m/Y') }}</td>
-                                    <td class="fw-bold">${{ number_format($req->amount, 0, ',', '.') }}</td>
+                                    <td class="fw-bold text-dark">${{ number_format($req->amount, 0, ',', '.') }}</td>
                                     <td>
                                         @if($req->status == 'pending')
                                             <span class="badge bg-warning-subtle text-warning rounded-pill px-3">En Revisión</span>
@@ -66,12 +66,13 @@
                                         @endif
                                     </td>
                                     <td class="pe-4 text-end">
-                                        @if($req->evidence_path)
-                                            <a href="{{ Storage::url($req->evidence_path) }}" target="_blank" class="text-primary fw-bold text-decoration-none">
-                                                <i class="bi bi-download me-1"></i> Ver
+                                        @if($req->status == 'paid' && $req->evidence_path)
+                                            {{-- CAMBIO AQUÍ: Usamos la ruta segura del controlador --}}
+                                            <a href="{{ route('admin.payouts.download', $req) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                <i class="bi bi-file-earmark-pdf me-1"></i> Ver Pago
                                             </a>
                                         @else
-                                            <span class="text-muted small">Pendiente</span>
+                                            <span class="text-muted small italic">--</span>
                                         @endif
                                     </td>
                                 </tr>

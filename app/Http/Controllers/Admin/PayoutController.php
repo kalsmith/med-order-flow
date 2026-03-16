@@ -117,4 +117,19 @@ class PayoutController extends Controller
 
         return view('doctor.wallet', compact('doctor'));
     }
+
+
+public function downloadEvidence(PayoutRequest $payout)
+{
+    // Verificamos si el archivo existe físicamente
+    if (!$payout->evidence_path || !Storage::disk('public')->exists($payout->evidence_path)) {
+        Log::error("Archivo no encontrado: " . $payout->evidence_path);
+        abort(404, 'El archivo no existe en el servidor.');
+    }
+
+    // Retornamos el archivo directamente desde el storage interno
+    return Storage::disk('public')->response($payout->evidence_path);
+}
+
+
 }

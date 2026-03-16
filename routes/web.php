@@ -82,6 +82,7 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
 | 3. PANEL DE GESTIÓN (STAFF)
 |--------------------------------------------------------------------------
 */
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -91,16 +92,18 @@ Route::middleware([
 
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
 
-    // 1. RUTAS ESPECÍFICAS DEL DOCTOR (Prioridad alta)
+    // --- NUEVA RUTA: Descarga segura de comprobantes ---
+    // Se coloca aquí para que la hereden todos los roles del grupo
+    Route::get('/payouts/{payout}/comprobante', [PayoutController::class, 'downloadEvidence'])->name('payouts.download');
+
+    // 1. RUTAS ESPECÍFICAS DEL DOCTOR
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
-
-        // --- GESTIÓN DE BILLETERA (FUERA DE ORDERS PARA EVITAR admin.orders.payouts...) ---
         Route::get('/mi-billetera', [PayoutController::class, 'doctorWallet'])->name('payouts.wallet');
         Route::post('/retiros/solicitar', [PayoutController::class, 'requestStore'])->name('payouts.request');
 
-        // Agrupamos las acciones clínicas.
         Route::prefix('ordenes-clinicas')->name('orders.')->group(function () {
+            // ... (tus rutas de órdenes clínicas se mantienen igual)
             Route::get('/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('sign.form');
             Route::post('/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('sign.process');
             Route::post('/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('reject');
@@ -116,27 +119,20 @@ Route::middleware([
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
-
-        Route::resource('preguntas-frecuentes', FaqController::class)
-            ->names('faqs')
-            ->parameters(['preguntas-frecuentes' => 'faq']);
-
-        Route::resource('ordenes', MedicalOrderController::class)
-            ->names('orders')
-            ->parameters(['ordenes' => 'order'])
-            ->except(['create', 'store']);
+        Route::resource('preguntas-frecuentes', FaqController::class)->names('faqs')->parameters(['preguntas-frecuentes' => 'faq']);
+        Route::resource('ordenes', MedicalOrderController::class)->names('orders')->parameters(['ordenes' => 'order'])->except(['create', 'store']);
     });
 
     // 3. CONTABILIDAD
     Route::middleware(['role:contable|admin'])->group(function () {
         Route::get('/reportes', [DashboardController::class, 'businessReports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
-
-        // --- GESTIÓN ADMINISTRATIVA DE PAGOS ---
         Route::get('/pagos-medicos', [PayoutController::class, 'index'])->name('payouts.index');
         Route::post('/pagos-medicos/{payout}/procesar', [PayoutController::class, 'process'])->name('payouts.process');
     });
 });
+
+
 /*
 |--------------------------------------------------------------------------
 | 4. PORTAL DE PACIENTES & PAGOS

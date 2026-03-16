@@ -33,7 +33,6 @@
                             <td class="fw-bold text-dark">${{ number_format($payout->amount, 0, ',', '.') }}</td>
                             <td>{{ $payout->created_at->format('d/m/Y H:i') }}</td>
                             <td class="text-end pe-4">
-                                {{-- El botón solo dispara el modal --}}
                                 <button class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalPay{{ $payout->id }}">
                                     <i class="bi bi-check-circle me-1"></i> Procesar Pago
                                 </button>
@@ -58,24 +57,35 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table align-middle mb-0">
-                    <thead class="text-muted small uppercase">
+                    <thead class="text-muted small text-uppercase">
                         <tr>
                             <th class="ps-4">Médico</th>
                             <th>Monto</th>
                             <th>Fecha Pago</th>
-                            <th class="text-center">Comprobante</th>
+                            <th>Notas Admin</th>
+                            <th class="text-center pe-4">Comprobante</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($historyPayouts as $history)
                         <tr>
-                            <td class="ps-4">{{ $history->doctor->user->name }}</td>
-                            <td class="fw-medium">${{ number_format($history->amount, 0, ',', '.') }}</td>
-                            <td>{{ $history->paid_at->format('d/m/Y') }}</td>
-                            <td class="text-center">
-                                <a href="{{ Storage::url($history->evidence_path) }}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-circle">
-                                    <i class="bi bi-file-earmark-text"></i>
-                                </a>
+                            <td class="ps-4">
+                                <div class="fw-medium">{{ $history->doctor->user->name }}</div>
+                            </td>
+                            <td class="fw-bold text-dark">${{ number_format($history->amount, 0, ',', '.') }}</td>
+                            <td>{{ $history->paid_at ? $history->paid_at->format('d/m/Y') : 'N/A' }}</td>
+                            <td class="small text-muted">
+                                {{ Str::limit($history->admin_notes, 30) ?: '--' }}
+                            </td>
+                            <td class="text-center pe-4">
+                                @if($history->evidence_path)
+                                    {{-- ACTUALIZADO: Ruta segura para evitar 404 --}}
+                                    <a href="{{ route('admin.payouts.download', $history) }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                        <i class="bi bi-file-earmark-text me-1"></i> Ver
+                                    </a>
+                                @else
+                                    <span class="text-muted small">Sin archivo</span>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
@@ -89,31 +99,30 @@
     </div>
 </div>
 
-{{-- MODALES: Movidos fuera de la estructura de tablas para evitar problemas de transparencia/z-index --}}
+{{-- MODALES --}}
 @foreach($pendingPayouts as $payout)
-<div class="modal fade" id="modalPay{{ $payout->id }}" tabindex="-1" aria-labelledby="modalLabel{{ $payout->id }}" aria-hidden="true">
+<div class="modal fade" id="modalPay{{ $payout->id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        {{-- Añadimos bg-white explícitamente --}}
         <form action="{{ route('admin.payouts.process', $payout) }}" method="POST" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-4 bg-white">
             @csrf
             <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold" id="modalLabel{{ $payout->id }}">Procesar Pago</h5>
+                <h5 class="modal-title fw-bold">Procesar Pago</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-start">
                 <p class="mb-1 text-muted">Médico: <strong>{{ $payout->doctor->user->name }}</strong></p>
-                <div class="alert alert-info border-0 rounded-4 mb-4">
+                <div class="alert alert-primary border-0 rounded-4 mb-4">
                     Monto a transferir: <span class="fw-bold h5 mb-0">${{ number_format($payout->amount, 0, ',', '.') }}</span>
                 </div>
 
-                <div class="mb-3 text-dark">
-                    <label class="form-label fw-bold small">Subir Comprobante (JPG, PNG o PDF)</label>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark">Subir Comprobante (JPG, PNG o PDF)</label>
                     <input type="file" name="evidence" class="form-control rounded-3" required accept="image/*,.pdf">
                 </div>
 
-                <div class="mb-0 text-dark">
-                    <label class="form-label fw-bold small">Notas Internas</label>
-                    <textarea name="admin_notes" class="form-control rounded-3" rows="2" placeholder="Ej: Transferencia Banco Estado..."></textarea>
+                <div class="mb-0">
+                    <label class="form-label fw-bold small text-dark">Notas Internas</label>
+                    <textarea name="admin_notes" class="form-control rounded-3" rows="2" placeholder="Ej: Transf. Banco Estado..."></textarea>
                 </div>
             </div>
             <div class="modal-footer border-0">
