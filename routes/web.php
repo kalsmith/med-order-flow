@@ -77,6 +77,10 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
 |--------------------------------------------------------------------------
 | 3. PANEL DE GESTIÓN (STAFF)
 |--------------------------------------------------------------------------
+*//*
+|--------------------------------------------------------------------------
+| 3. PANEL DE GESTIÓN (STAFF)
+|--------------------------------------------------------------------------
 */
 Route::middleware([
     'auth:sanctum',
@@ -91,24 +95,19 @@ Route::middleware([
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
 
-        // --- GESTIÓN DE BILLETERA / RETIROS (NUEVO) ---
+        // --- GESTIÓN DE BILLETERA (FUERA DE ORDERS PARA EVITAR admin.orders.payouts...) ---
+        Route::get('/mi-billetera', [PayoutController::class, 'doctorWallet'])->name('payouts.wallet');
         Route::post('/retiros/solicitar', [PayoutController::class, 'requestStore'])->name('payouts.request');
 
         // Agrupamos las acciones clínicas.
         Route::prefix('ordenes-clinicas')->name('orders.')->group(function () {
             Route::get('/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('sign.form');
-            // ... (resto de rutas de firma sin cambios)
             Route::post('/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('sign.process');
             Route::post('/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('reject');
             Route::post('/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('release');
             Route::post('/{order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('derivate');
             Route::post('/{order}/anular-firma', [MedicalOrderController::class, 'voidSignature'])->name('void');
             Route::get('/{order}/pdf', [MedicalOrderController::class, 'generatePdf'])->name('pdf');
-
-            // --- GESTIÓN DE BILLETERA (Centralizado en PayoutController) ---
-            Route::get('/mi-billetera', [PayoutController::class, 'doctorWallet'])->name('payouts.wallet');
-            Route::post('/retiros/solicitar', [PayoutController::class, 'requestStore'])->name('payouts.request');
-
         });
     });
 
@@ -133,7 +132,7 @@ Route::middleware([
         Route::get('/reportes', [DashboardController::class, 'businessReports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
 
-        // --- GESTIÓN ADMINISTRATIVA DE PAGOS (NUEVO) ---
+        // --- GESTIÓN ADMINISTRATIVA DE PAGOS ---
         Route::get('/pagos-medicos', [PayoutController::class, 'index'])->name('payouts.index');
         Route::post('/pagos-medicos/{payout}/procesar', [PayoutController::class, 'process'])->name('payouts.process');
     });
