@@ -33,41 +33,12 @@
                             <td class="fw-bold text-dark">${{ number_format($payout->amount, 0, ',', '.') }}</td>
                             <td>{{ $payout->created_at->format('d/m/Y H:i') }}</td>
                             <td class="text-end pe-4">
+                                {{-- El botón solo dispara el modal --}}
                                 <button class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalPay{{ $payout->id }}">
                                     <i class="bi bi-check-circle me-1"></i> Procesar Pago
                                 </button>
                             </td>
                         </tr>
-
-                        {{-- Modal de Procesamiento --}}
-                        <div class="modal fade" id="modalPay{{ $payout->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <form action="{{ route('admin.payouts.process', $payout) }}" method="POST" enctype="multipart/form-data" class="modal-content border-0 shadow rounded-4">
-                                    @csrf
-                                    <div class="modal-header border-0">
-                                        <h5 class="modal-title fw-bold">Procesar Pago a {{ $payout->doctor->user->name }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="alert alert-info border-0 rounded-4 small">
-                                            Monto a transferir: <strong>${{ number_format($payout->amount, 0, ',', '.') }}</strong>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label fw-bold small">Comprobante (Imagen o PDF)</label>
-                                            <input type="file" name="evidence" class="form-control rounded-3" required accept="image/*,.pdf">
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label fw-bold small">Notas Internas (Opcional)</label>
-                                            <textarea name="admin_notes" class="form-control rounded-3" rows="2" placeholder="Ej: Transferencia Banco Estado..."></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer border-0">
-                                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
-                                        <button type="submit" class="btn btn-primary rounded-pill px-4">Finalizar Pago</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
                         @empty
                         <tr>
                             <td colspan="4" class="text-center py-5 text-muted">No hay retiros pendientes.</td>
@@ -79,7 +50,7 @@
         </div>
     </div>
 
-    {{-- Historial de Pagos Realizados --}}
+    {{-- Historial de Pagos --}}
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-header bg-white py-3 border-0">
             <h5 class="mb-0 fw-bold"><i class="bi bi-journal-check me-2"></i>Historial de Liquidaciones</h5>
@@ -117,4 +88,41 @@
         </div>
     </div>
 </div>
+
+{{-- MODALES: Movidos fuera de la estructura de tablas para evitar problemas de transparencia/z-index --}}
+@foreach($pendingPayouts as $payout)
+<div class="modal fade" id="modalPay{{ $payout->id }}" tabindex="-1" aria-labelledby="modalLabel{{ $payout->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        {{-- Añadimos bg-white explícitamente --}}
+        <form action="{{ route('admin.payouts.process', $payout) }}" method="POST" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-4 bg-white">
+            @csrf
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold" id="modalLabel{{ $payout->id }}">Procesar Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-start">
+                <p class="mb-1 text-muted">Médico: <strong>{{ $payout->doctor->user->name }}</strong></p>
+                <div class="alert alert-info border-0 rounded-4 mb-4">
+                    Monto a transferir: <span class="fw-bold h5 mb-0">${{ number_format($payout->amount, 0, ',', '.') }}</span>
+                </div>
+
+                <div class="mb-3 text-dark">
+                    <label class="form-label fw-bold small">Subir Comprobante (JPG, PNG o PDF)</label>
+                    <input type="file" name="evidence" class="form-control rounded-3" required accept="image/*,.pdf">
+                </div>
+
+                <div class="mb-0 text-dark">
+                    <label class="form-label fw-bold small">Notas Internas</label>
+                    <textarea name="admin_notes" class="form-control rounded-3" rows="2" placeholder="Ej: Transferencia Banco Estado..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cerrar</button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">Confirmar y Pagar</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endforeach
+
 @endsection
