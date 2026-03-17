@@ -16,6 +16,7 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ExamTypeController;
 use App\Http\Controllers\MedicalOrderController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\Public\LandingController;
 use App\Http\Controllers\Patient\OrderFlowController;
 use App\Http\Controllers\Patient\PatientOrderController;
