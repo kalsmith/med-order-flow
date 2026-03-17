@@ -51,8 +51,8 @@
                 <div class="card-header bg-white py-3 fw-bold border-0">
                     <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Rendimiento Médico
                 </div>
-                <div class="card-body pt-0 text-nowrap">
-                    <div class="table-responsive">
+                <div class="card-body pt-0">
+                    <div class="table-responsive text-nowrap">
                         <table class="table table-hover align-middle">
                             <thead class="small text-muted text-uppercase">
                                 <tr>
@@ -97,7 +97,6 @@
                         <div class="list-group-item list-group-item-action py-3 border-0 border-bottom">
                             <div class="d-flex w-100 justify-content-between align-items-start mb-2">
                                 <div>
-                                    {{-- CAMBIO AQUÍ: Manejo de cuenta eliminada --}}
                                     <h6 class="mb-0 fw-bold {{ !$order->patient ? 'text-danger italic' : '' }}">
                                         @if($order->patient)
                                             {{ $order->patient->full_name }}
@@ -109,13 +108,13 @@
                                         <i class="bi bi-clock me-1"></i>{{ $order->created_at->diffForHumans() }}
                                     </small>
                                 </div>
-                                <div class="text-end">
+                                <div class="text-end text-nowrap">
                                     <span class="badge mb-1 d-block"
                                           style="font-size: 0.65rem; background-color: {{ $order->status == 'paid' ? '#e7f1ff' : '#f8f9fa' }}; color: {{ $order->status == 'paid' ? '#0d6efd' : '#6c757d' }}; border: 1px solid {{ $order->status == 'paid' ? '#cfe2ff' : '#dee2e6' }};">
                                         {{ strtoupper($order->status) }}
                                     </span>
                                     @php $signed = $order->activePrescription && $order->activePrescription->status === 'signed'; @endphp
-                                    <span class="badge"
+                                    <span class="badge d-block"
                                           style="font-size: 0.65rem; background-color: {{ $signed ? '#e8f5e9' : '#fff3cd' }}; color: {{ $signed ? '#198754' : '#856404' }}; border: 1px solid {{ $signed ? '#c3e6cb' : '#ffeeba' }};">
                                         {{ $signed ? 'FIRMADA' : 'PENDIENTE' }}
                                     </span>
@@ -130,7 +129,13 @@
                                     </div>
                                     <div class="text-muted" style="font-size: 0.75rem;">
                                         <i class="bi bi-person-badge me-1"></i>
-                                        {{ $order->doctor ? $order->doctor->user->name : ($order->activePrescription->doctor->user->name ?? 'Sin médico asignado') }}
+                                        @if($order->doctor)
+                                            {{ $order->doctor->user->name }}
+                                        @elseif($order->activePrescription && $order->activePrescription->doctor)
+                                            {{ $order->activePrescription->doctor->user->name }}
+                                        @else
+                                            <span class="text-warning italic" style="font-size: 0.7rem;">Sin médico asignado</span>
+                                        @endif
                                     </div>
                                 </div>
                                 <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-light border px-3 rounded-pill" style="font-size: 0.75rem;">
@@ -144,6 +149,12 @@
                         </div>
                         @endforelse
                     </div>
+                </div>
+                {{-- AQUÍ ESTÁ EL LINK RECUPERADO --}}
+                <div class="card-footer bg-light py-3 text-center border-0">
+                    <a href="{{ route('admin.orders.index') }}" class="text-primary fw-bold small text-decoration-none">
+                        Ver todas las órdenes generadas <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>
