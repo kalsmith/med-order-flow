@@ -155,7 +155,7 @@
                             <div class="d-flex flex-column flex-md-row align-items-center gap-4 p-3 border rounded">
                                 <div class="text-center bg-white p-2 border rounded" style="min-width: 150px;">
 <img id="signature-preview"
-     src="{{ $doctor->signature_path ? route('signatures.show', basename($doctor->signature_path)) : 'https://via.placeholder.com/150x80' }}?v={{ time() }}"
+     src="{{ $doctor->signature_path ? route('admin.signatures.show', basename($doctor->signature_path)): 'https://via.placeholder.com/150x80' }}?v={{ time() }}"
      class="img-fluid" style="max-height: 80px; object-fit: contain;">
 
                                 </div>
