@@ -11,13 +11,13 @@
 @section('content')
 
 {{-- Alertas de estado --}}
-@if (session('status'))
+{{-- @if (session('status'))
     <div class="alert alert-success border-0 shadow-sm mb-4 alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle-fill me-2"></i>
         {{ session('status') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-@endif
+@endif --}}
 
 <div class="card shadow-sm border-0">
     <div class="table-responsive">
