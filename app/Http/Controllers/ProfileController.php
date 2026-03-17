@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rules\Password; // Asegúrate de agregar esta al inicio
 
 class ProfileController extends Controller
 {
@@ -122,5 +123,39 @@ public function confirmAccountDeletion(Request $request)
     }
 }
 
+public function show()
+{
+    $user = auth()->user();
+    return view('admin.profile.show', compact('user'));
+}
 
+/**
+ * Paso 5: Procesar el cambio de contraseña (POST)
+ */
+public function updatePassword(Request $request)
+{
+    $request->validate([
+        'current_password' => ['required', 'current_password'],
+        'password' => [
+            'required',
+            'confirmed',
+            Password::min(8)->mixedCase()->numbers()
+        ],
+    ], [
+        'current_password.current_password' => 'La contraseña actual no es correcta.',
+        'password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
+        'password.min' => 'La nueva contraseña debe tener al menos 8 caracteres.'
+    ]);
+
+    $user = auth()->user();
+
+    $user->update([
+        'password' => Hash::make($request->password),
+    ]);
+
+    Log::info("Contraseña actualizada exitosamente", ['user_id' => $user->id]);
+
+    // Redirigimos a la misma vista de perfil con el mensaje de éxito
+    return redirect()->route('admin.profile.show')->with('success_password', 'Tu contraseña ha sido actualizada correctamente.');
+}
 }

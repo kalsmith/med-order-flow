@@ -90,6 +90,12 @@ Route::middleware([
     'role:admin|doctor|director_tecnico|contable'
 ])->prefix('gestion')->name('admin.')->group(function () {
 
+
+    // --- ASÍ DEBEN QUEDAR ---
+    Route::get('/mi-perfil', [ProfileController::class, 'show'])->name('profile.show');
+    // El POST se queda para procesar el formulario que estará dentro de 'show'
+    Route::post('/mi-perfil/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
     Route::get('/payouts/{payout}/comprobante', [PayoutController::class, 'downloadEvidence'])->name('payouts.download');
 

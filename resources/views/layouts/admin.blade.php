@@ -139,42 +139,57 @@ main {
 </head>
 <body>
 
-    <header class="navbar navbar-light sticky-top shadow-sm px-0">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="{{ route('admin.panel') }}">
-                <img src="{{ asset('assets/logo/logo.png') }}" alt="Logo" style="max-height: 40px;" class="ms-3">
-            </a>
+<header class="navbar navbar-light sticky-top shadow-sm px-0">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{{ route('admin.panel') }}">
+            <img src="{{ asset('assets/logo/logo.png') }}" alt="Logo" style="max-height: 40px;" class="ms-3">
+        </a>
 
-            <button class="navbar-toggler d-md-none border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
-                <i class="bi bi-list fs-1"></i>
-            </button>
+        <button class="navbar-toggler d-md-none border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+            <i class="bi bi-list fs-1"></i>
+        </button>
 
-            <div class="ms-auto me-3">
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle fw-semibold text-dark d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=0D6EFD&color=fff" class="avatar-admin">
-                        <span class="d-none d-md-inline">{{ Auth::user()->name }}</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                        <li class="px-3 py-2 small text-muted border-bottom">
-                            <div class="fw-bold text-dark">{{ Auth::user()->name }}</div>
-                            <div>{{ Auth::user()->getRoleNames()->first() }}</div>
-                        </li>
-                        <li><a class="dropdown-item py-2" href="/"><i class="bi bi-house-door me-2"></i> Ver Sitio</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="dropdown-item text-danger py-2">
-                                    <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
+        <div class="ms-auto me-3">
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle fw-semibold text-dark d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=0D6EFD&color=fff" class="avatar-admin">
+                    <span class="d-none d-md-inline">{{ Auth::user()->name }}</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                    <li class="px-3 py-2 small text-muted border-bottom">
+                        <div class="fw-bold text-dark">{{ Auth::user()->name }}</div>
+                        {{-- Formateamos el rol para que se vea limpio --}}
+                        <div class="text-capitalize">{{ str_replace('_', ' ', Auth::user()->getRoleNames()->first()) }}</div>
+                    </li>
+
+                    <li>
+                        <a class="dropdown-item py-2" href="/">
+                            <i class="bi bi-house-door me-2 text-muted"></i> Ver Sitio
+                        </a>
+                    </li>
+
+                    {{-- NUEVO ACCESO A PERFIL --}}
+                    <li>
+                        <a class="dropdown-item py-2" href="{{ route('admin.profile.show') }}">
+                            <i class="bi bi-gear me-2 text-muted"></i> Mi Configuración
+                        </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger py-2">
+                                <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+                            </button>
+                        </form>
+                    </li>
+                </ul>
             </div>
         </div>
-    </header>
+    </div>
+</header>
 
     <div class="main-wrapper">
         @include('admin.partials._sidebar')
