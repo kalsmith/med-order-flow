@@ -54,11 +54,7 @@
 
             {{-- SOLO DIRECTOR TÉCNICO: Supervisión de Órdenes (Privacidad Médica) --}}
             @role('director_tecnico')
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
-                    <i class="bi bi-file-earmark-text-fill"></i> Órdenes Médicas
-                </a>
-            </li>
+
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.reports.clinical') ? 'active' : '' }}" href="{{ route('admin.reports.clinical') }}">
                     <i class="bi bi-clipboard-check-fill"></i> Calidad Clínica

@@ -64,32 +64,65 @@
             </div>
         </div>
 
-        {{-- Órdenes Recientes para Supervisar --}}
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold">Últimas Órdenes Generadas</div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        @foreach($latestOrders as $order)
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ $order->patient->full_name }}</h6>
-                                <small class="text-muted">{{ $order->created_at->diffForHumans() }}</small>
-                            </div>
-                            <p class="mb-1 text-sm text-muted">
-                                Examen: {{ $order->display_name }} <br>
-                                Médico: {{ $order->doctor ? $order->doctor->name : 'Pendiente' }}
-                            </p>
-                            <span class="badge {{ $order->status == 'paid' ? 'bg-primary' : 'bg-secondary' }}">
+     {{-- Órdenes Recientes para Supervisar --}}
+<div class="col-md-6">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+            <span>Últimas Órdenes Generadas</span>
+            <span class="badge bg-light text-dark border fw-normal">Total: {{ count($latestOrders) }}</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                @foreach($latestOrders as $order)
+                <div class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ $order->patient->full_name }}</h6>
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                <i class="bi bi-clock"></i> {{ $order->created_at->diffForHumans() }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            {{-- Estado de Pago --}}
+                            <span class="badge {{ $order->status == 'paid' ? 'bg-primary' : 'bg-secondary' }} mb-1 d-block" style="font-size: 0.65rem;">
                                 {{ strtoupper($order->status) }}
                             </span>
-                            <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-link p-0 float-end text-decoration-none">Ver Ficha</a>
+
+                            {{-- ESTADO DE FIRMA MÉDICA --}}
+                            @if($order->activePrescription && $order->activePrescription->status === 'signed')
+                                <span class="badge bg-success" style="font-size: 0.65rem;">
+                                    <i class="bi bi-pen-fill"></i> FIRMADA
+                                </span>
+                            @else
+                                <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">
+                                    <i class="bi bi-hourglass-split"></i> PENDIENTE FIRMA
+                                </span>
+                            @endif
                         </div>
-                        @endforeach
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-end">
+                        <p class="mb-0 text-muted small">
+                            <span class="d-block text-dark">
+                                <strong>Examen:</strong> {{ Str::limit($order->display_name, 40) }}
+                            </span>
+                            <span class="d-block">
+                                <strong>Médico:</strong> {{ $order->doctor ? $order->doctor->user->name : 'No asignado' }}
+                            </span>
+                        </p>
+                        <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                            Ver Auditoría <i class="bi bi-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
+                @endforeach
             </div>
         </div>
+        <div class="card-footer bg-light text-center">
+            <a href="{{ route('admin.orders.index') }}" class="small text-decoration-none">Ver todas las órdenes</a>
+        </div>
+    </div>
+</div>
     </div>
 </div>
 @endsection
