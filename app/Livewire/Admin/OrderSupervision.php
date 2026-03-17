@@ -18,26 +18,35 @@ class OrderSupervision extends Component
     public $doctorId = '';
     public $dateFrom = '';
     public $dateTo = '';
-    public $status = ''; // Por si quieres filtrar uno específico después
 
-    // Resetear página cuando cambian los filtros
+    // Resetear página al filtrar
     public function updatingSearchPatient() { $this->resetPage(); }
     public function updatingDoctorId() { $this->resetPage(); }
     public function updatingDateFrom() { $this->resetPage(); }
     public function updatingDateTo() { $this->resetPage(); }
+
+    public function clearFilters()
+    {
+        $this->reset(['searchPatient', 'doctorId', 'dateFrom', 'dateTo']);
+        $this->resetPage();
+    }
 
     public function render()
     {
         $doctors = Doctor::with('user')->get();
 
         $orders = Order::with(['patient', 'doctor.user', 'activePrescription'])
-            // --- FILTRO BASE OBLIGATORIO ---
+            // --- FILTRO BASE OBLIGATORIO (Solo lo que sirve al DT) ---
             ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
-            // -------------------------------
+            // ---------------------------------------------------------
             ->when($this->searchPatient, function($query) {
-                $query->whereHas('patient', function($q) {
-                    $q->where('full_name', 'like', '%' . $this->searchPatient . '%')
-                      ->orWhere('rut', 'like', '%' . $this->searchPatient . '%');
+                $term = '%' . strtolower($this->searchPatient) . '%';
+                $query->whereHas('patient', function($q) use ($term) {
+                    $q->where(function($sub) use ($term) {
+                        // Forzamos LOWER para ignorar mayúsculas/minúsculas
+                        $sub->whereRaw('LOWER(full_name) LIKE ?', [$term])
+                            ->orWhereRaw('LOWER(rut) LIKE ?', [$term]);
+                    });
                 });
             })
             ->when($this->doctorId, function($query) {
