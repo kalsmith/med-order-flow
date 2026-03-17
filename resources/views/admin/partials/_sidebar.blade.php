@@ -23,7 +23,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.exam-types.*') ? 'active' : '' }}" href="{{ route('admin.exam-types.index') }}">
-                    <i class="bi bi-flask"></i> Catálogo Exámenes
+                    <i class="bi bi-flask-fill fs-5"></i> Catálogo Exámenes
                 </a>
             </li>
 
