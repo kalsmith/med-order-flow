@@ -105,7 +105,7 @@
     <header class="navbar navbar-light sticky-top flex-md-nowrap p-0 shadow-sm">
         {{-- Logotipo dinámico --}}
         <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4" href="{{ route('admin.panel') }}">
-            <img src="{{ asset('assets/logo/logo.png') }}" alt="PideTuExamen Admin">asdasd
+            <img src="{{ asset('assets/logo/logo.png') }}" alt="PideTuExamen Admin">
         </a>
 
         <button class="navbar-toggler position-absolute d-md-none collapsed border-0" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
