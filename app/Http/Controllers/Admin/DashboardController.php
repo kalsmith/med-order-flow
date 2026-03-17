@@ -113,23 +113,38 @@ class DashboardController extends Controller
 
 public function clinicalQualityReports()
 {
-    // 1. Estadísticas básicas (resumen rápido)
+    // 1. Estadísticas básicas (Conteo de hoy y globales)
     $stats = [
-        'signed_today' => Prescription::where('status', 'signed')->whereDate('signed_at', today())->count(),
+        'signed_today' => Prescription::where('status', 'signed')
+            ->whereDate('signed_at', today())
+            ->count(),
         'rejected_orders' => Order::where('status', 'rejected')->count(),
         'voided_prescriptions' => Prescription::where('status', 'voided')->count(),
     ];
 
-    // 2. Rendimiento Médico (Solo médicos con órdenes para evitar errores)
-    $doctorPerformance = Doctor::withCount(['signedPrescriptions', 'medicalOrders'])
-        ->has('user') // Evita errores si hay un médico sin usuario
-        ->get();
+    // 2. Rendimiento Médico (Basado en Prescriptions según tu SQL)
+    $doctorPerformance = Doctor::with('user')
+        ->get()
+        ->map(function ($doctor) {
+            // Contamos sobre la tabla prescriptions donde sí hay data en tu SQL
+            $total = Prescription::where('doctor_id', $doctor->id)->count();
+            $signed = Prescription::where('doctor_id', $doctor->id)
+                ->where('status', 'signed')
+                ->count();
 
-    // 3. Últimas órdenes (Protección contra NULLS)
-    // Usamos whereHas para asegurar que solo traiga órdenes con paciente existente
-    $latestOrders = Order::where('status', 'paid')
-        ->whereHas('patient')
-        ->with(['doctor.user', 'patient', 'examType'])
+            return [
+                'name' => ($doctor->prefix ?? 'Dr.') . ' ' . ($doctor->user->name ?? 'N/A'),
+                'total' => $total,
+                'signed' => $signed,
+                'efficiency' => $total > 0 ? round(($signed / $total) * 100) : 0,
+            ];
+        });
+
+    // 3. Últimas órdenes (Filtrado por pagadas para auditar)
+    // Quitamos 'whereHas' de paciente si quieres ver incluso los errores (opcional)
+    // pero mantenemos la carga de relaciones para evitar N+1
+    $latestOrders = Order::with(['doctor.user', 'patient', 'activePrescription'])
+        ->whereIn('status', ['paid', 'pending']) // Ajustado según tu SQL que tiene muchos pending
         ->latest()
         ->take(15)
         ->get();
