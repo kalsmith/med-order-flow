@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Doctor;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
 
 class OrderSupervision extends Component
 {
@@ -13,13 +14,11 @@ class OrderSupervision extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-    // Propiedades de filtrado
     public $searchPatient = '';
     public $doctorId = '';
     public $dateFrom = '';
     public $dateTo = '';
 
-    // Resetear página al filtrar
     public function updatingSearchPatient() { $this->resetPage(); }
     public function updatingDoctorId() { $this->resetPage(); }
     public function updatingDateFrom() { $this->resetPage(); }
@@ -36,14 +35,14 @@ class OrderSupervision extends Component
         $doctors = Doctor::with('user')->get();
 
         $orders = Order::with(['patient', 'doctor.user', 'activePrescription'])
-            // --- FILTRO BASE OBLIGATORIO (Solo lo que sirve al DT) ---
             ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
-            // ---------------------------------------------------------
             ->when($this->searchPatient, function($query) {
-                $term = '%' . strtolower($this->searchPatient) . '%';
+                // Convertimos la búsqueda a minúsculas desde PHP
+                $term = '%' . mb_strtolower($this->searchPatient, 'UTF-8') . '%';
+
                 $query->whereHas('patient', function($q) use ($term) {
                     $q->where(function($sub) use ($term) {
-                        // Forzamos LOWER para ignorar mayúsculas/minúsculas
+                        // Forzamos LOWER tanto en la columna como en el parámetro para máxima compatibilidad
                         $sub->whereRaw('LOWER(full_name) LIKE ?', [$term])
                             ->orWhereRaw('LOWER(rut) LIKE ?', [$term]);
                     });

@@ -8,10 +8,11 @@
                         Paciente (Nombre o RUT)
                         <span wire:loading wire:target="searchPatient" class="spinner-border spinner-border-sm text-primary"></span>
                     </label>
+                    {{-- .live para que busque mientras escribes --}}
                     <input wire:model.live.debounce.300ms="searchPatient" type="text" class="form-control form-control-sm" placeholder="Buscar paciente...">
                 </div>
                 <div class="col-md-3">
-                    <label class="small fw-bold text-muted text-uppercase text-truncate">Médico Responsable</label>
+                    <label class="small fw-bold text-muted text-uppercase">Médico Responsable</label>
                     <select wire:model.live="doctorId" class="form-select form-select-sm">
                         <option value="">Todos los médicos</option>
                         @foreach($doctors as $doc)
@@ -29,7 +30,7 @@
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button wire:click="clearFilters" class="btn btn-sm btn-outline-secondary w-100">
-                        <i class="bi bi-eraser me-1"></i> Limpiar
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar
                     </button>
                 </div>
             </div>
@@ -83,7 +84,6 @@
                             </td>
                             <td>
                                 <div class="d-flex flex-column gap-1">
-                                    {{-- Lógica de Colores para Estados de Pago --}}
                                     @php
                                         $statusConfig = [
                                             'paid'           => ['class' => 'bg-primary', 'label' => 'PAGADA'],
@@ -93,12 +93,10 @@
                                         ];
                                         $currentStatus = $statusConfig[$order->status] ?? ['class' => 'bg-secondary', 'label' => strtoupper($order->status)];
                                     @endphp
-
                                     <span class="badge {{ $currentStatus['class'] }}" style="font-size: 0.6rem; width: fit-content;">
                                         {{ $currentStatus['label'] }}
                                     </span>
 
-                                    {{-- Estado de Firma --}}
                                     @php $isSigned = $order->activePrescription && $order->activePrescription->status === 'signed'; @endphp
                                     <span class="badge {{ $isSigned ? 'bg-success' : 'bg-light text-muted border' }}" style="font-size: 0.6rem; width: fit-content;">
                                         {{ $isSigned ? 'FIRMADA' : 'PTE. FIRMA' }}
@@ -113,9 +111,9 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="6" class="text-center py-5 text-muted small">
                                 <i class="bi bi-search fs-2 d-block mb-2"></i>
-                                No se encontraron órdenes bajo estos criterios.
+                                No se encontraron registros con los filtros actuales.
                             </td>
                         </tr>
                         @endforelse
