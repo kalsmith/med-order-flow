@@ -7,6 +7,7 @@ use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
@@ -36,18 +37,21 @@ public function redirectToGoogle()
      */
 
 
-    public function handleGoogleCallback()
+public function handleGoogleCallback()
 {
     try {
-        $googleUser = Socialite::driver('google')->user();
+        Log::info('--- INICIO CALLBACK GOOGLE ---');
 
-        // 1. Buscar por Google ID o por Email (por si ya se registró manualmente antes)
+        // Usamos stateless() para evitar el error de mismatch de estado que causa el loop
+        $googleUser = Socialite::driver('google')->stateless()->user();
+        Log::info('Usuario obtenido de Google: ' . $googleUser->email);
+
         $user = User::where('google_id', $googleUser->id)
                     ->orWhere('email', $googleUser->email)
                     ->first();
 
         if (!$user) {
-            // 2. Crear usuario nuevo
+            Log::info('Creando nuevo usuario');
             $user = User::create([
                 'name' => $googleUser->name,
                 'email' => $googleUser->email,
@@ -56,47 +60,33 @@ public function redirectToGoogle()
                 'password' => Hash::make(Str::random(24)),
                 'email_verified_at' => now(),
             ]);
-        } else {
-            // 3. Si el usuario existía pero no tenía vinculado Google, lo vinculamos
-            if (!$user->google_id) {
-                $user->update([
-                    'google_id' => $googleUser->id,
-                    'avatar' => $googleUser->avatar,
-                ]);
-            }
         }
 
-        // --- BLINDAJE DE ROLES ---
-        // Si no tiene ningún rol administrativo/staff, nos aseguramos de que sea 'paciente'
+        // Blindaje de roles
         if (!$user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
-
-            // Verificación de emergencia: Si el rol no existe en la tabla 'roles', lo creamos
-            if (!\Spatie\Permission\Models\Role::where('name', 'paciente')->exists()) {
-                \Spatie\Permission\Models\Role::create(['name' => 'paciente']);
-            }
-
-            // Asignamos el rol si no lo tiene (evita el error 403 en las rutas protegidas)
             if (!$user->hasRole('paciente')) {
                 $user->assignRole('paciente');
+                Log::info('Rol paciente asignado');
             }
         }
 
-        Auth::login($user);
+        Log::info('Intentando Auth::login para ID: ' . $user->id);
+        Auth::login($user, true);
 
-        // 4. PERSISTENCIA DEL INTENTO (URL INTENDED)
+        // PERSISTENCIA CRÍTICA
+        request()->session()->regenerate();
+        session()->save();
+
+        Log::info('Sesión regenerada y guardada. ID Sesión: ' . session()->getId());
+
         $intendedUrl = session()->pull('url.intended', route('user.dispatch'));
+        Log::info('Redirigiendo a: ' . $intendedUrl);
 
-        // Limpieza de redirección para evitar bucles en el login
-        if ($intendedUrl == url('/') || Str::contains($intendedUrl, 'auth/google')) {
-            return redirect()->route('user.dispatch');
-        }
-
-        return redirect()->to($intendedUrl)
-                         ->with('success', 'Sesión iniciada correctamente.');
+        return redirect()->to($intendedUrl);
 
     } catch (Exception $e) {
-        return redirect()->route('home')
-                         ->with('error', 'Error al autenticar: ' . $e->getMessage());
+        Log::error('ERROR EN GOOGLE CALLBACK: ' . $e->getMessage());
+        return redirect()->route('home')->with('error', 'Error crítico: ' . $e->getMessage());
     }
 }
 
