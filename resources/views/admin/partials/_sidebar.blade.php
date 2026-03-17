@@ -7,6 +7,7 @@
                 </a>
             </li>
 
+            {{-- GESTIÓN MÉDICA Y OPERATIVA --}}
             @role('admin|director_tecnico')
             <h6 class="sidebar-heading">Gestión Médica</h6>
             <li class="nav-item">
@@ -24,6 +25,10 @@
                     <i class="bi bi-eyedropper fs-5"></i> Catálogo
                 </a>
             </li>
+            @endrole
+
+            {{-- SOLO ADMIN: Contenidos --}}
+            @role('admin')
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.faqs.*') ? 'active' : '' }}" href="{{ route('admin.faqs.index') }}">
                     <i class="bi bi-info-circle-fill"></i> FAQ / Contenidos
@@ -32,6 +37,8 @@
             @endrole
 
             <h6 class="sidebar-heading">Operaciones</h6>
+
+            {{-- SOLO DOCTOR --}}
             @role('doctor')
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.doctor.panel') ? 'active' : '' }}" href="{{ route('admin.doctor.panel') }}">
@@ -45,19 +52,26 @@
             </li>
             @endrole
 
-            @role('admin|director_tecnico')
+            {{-- SOLO DIRECTOR TÉCNICO: Supervisión de Órdenes (Privacidad Médica) --}}
+            @role('director_tecnico')
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
                     <i class="bi bi-file-earmark-text-fill"></i> Órdenes Médicas
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.reports.clinical') ? 'active' : '' }}" href="{{ route('admin.reports.clinical') }}">
+                    <i class="bi bi-clipboard-check-fill"></i> Calidad Clínica
+                </a>
+            </li>
             @endrole
 
+            {{-- FINANZAS: Admin y Contable --}}
             @role('contable|admin')
             <h6 class="sidebar-heading">Finanzas</h6>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.reports') ? 'active' : '' }}" href="{{ route('admin.reports') }}">
-                    <i class="bi bi-graph-up-arrow"></i> Reportes
+                    <i class="bi bi-graph-up-arrow"></i> Reportes Negocio
                 </a>
             </li>
             <li class="nav-item">

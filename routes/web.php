@@ -33,8 +33,7 @@ use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 */
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
-
-// --- AGREGAR ESTA LÍNEA AQUÍ (FUERA DE AUTH) ---
+// --- ACCESO A FIRMAS ---
 Route::get('/view-signature/{filename}', [DoctorController::class, 'showSignature'])->name('public.signature.show');
 
 // Validación pública de órdenes
@@ -82,7 +81,7 @@ Route::middleware(['auth', 'verified'])->get('/home', function () {
 |--------------------------------------------------------------------------
 | 3. PANEL DE GESTIÓN (STAFF)
 |--------------------------------------------------------------------------
-cambio previo a nuevas rutas dt*/
+*/
 Route::middleware([
     'auth',
     config('jetstream.auth_session'),
@@ -93,7 +92,7 @@ Route::middleware([
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
     Route::get('/payouts/{payout}/comprobante', [PayoutController::class, 'downloadEvidence'])->name('payouts.download');
 
-    // Rutas Doctor
+    // --- RUTAS EXCLUSIVAS DEL DOCTOR ---
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
         Route::get('/mi-billetera', [PayoutController::class, 'doctorWallet'])->name('payouts.wallet');
@@ -110,18 +109,28 @@ Route::middleware([
         });
     });
 
-    // Rutas Administración & Contabilidad
+    // --- RUTAS EXCLUSIVAS DEL DIRECTOR TÉCNICO (Supervisión Clínica) ---
+    Route::middleware(['role:director_tecnico'])->group(function () {
+        // El DT supervisa todas las órdenes (Acceso a datos clínicos)
+        Route::resource('ordenes', MedicalOrderController::class)
+            ->names('orders')
+            ->parameters(['ordenes' => 'order'])
+            ->except(['create', 'store']);
 
+        // Reportes de calidad (Rechazos, tiempos médicos, etc.)
+        Route::get('/reportes-calidad-clinica', [DashboardController::class, 'clinicalQualityReports'])->name('reports.clinical');
+    });
 
+    // --- RUTAS COMPARTIDAS (ADMIN & DIRECTOR TÉCNICO) ---
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
         Route::get('/signatures/{filename}', [DoctorController::class, 'showSignature'])->name('signatures.show');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
         Route::resource('preguntas-frecuentes', FaqController::class)->names('faqs')->parameters(['preguntas-frecuentes' => 'faq']);
-        Route::resource('ordenes', MedicalOrderController::class)->names('orders')->parameters(['ordenes' => 'order'])->except(['create', 'store']);
     });
 
+    // --- RUTAS EXCLUSIVAS DE ADMINISTRACIÓN & CONTABILIDAD (Negocio) ---
     Route::middleware(['role:contable|admin'])->group(function () {
         Route::get('/reportes', [DashboardController::class, 'businessReports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
@@ -142,7 +151,7 @@ Route::middleware([
     'role:paciente'
 ])->group(function () {
 
-    // Gestión de Perfil y Eliminación
+    // Gestión de Perfil
     Route::get('/perfil/eliminar', [ProfileController::class, 'showDeletePage'])->name('profile.delete.view');
     Route::post('/perfil/eliminar/solicitar', [ProfileController::class, 'requestAccountDeletion'])->name('profile.delete.request');
     Route::post('/perfil/eliminar/confirmar', [ProfileController::class, 'confirmAccountDeletion'])->name('profile.delete.execute');
@@ -167,11 +176,10 @@ Route::middleware([
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
 
         // Checkout
-Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
-
-Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])
-    ->name('checkout.process')
-    ->where('order', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
+        Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])
+            ->name('checkout.process')
+            ->where('order', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         Route::get('/pago-exitoso/{order?}', [PatientOrderController::class, 'showSuccess'])->name('payment.success');
     });
