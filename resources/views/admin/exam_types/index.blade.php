@@ -11,7 +11,7 @@
 @section('content')
 
 {{-- Mensajes de Feedback --}}
-@if (session('status'))
+{{-- @if (session('status'))
     <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px; background-color: #d1e7dd; color: #0f5132;">
         <div class="d-flex align-items-center">
             <i class="bi bi-check-circle-fill fs-4 me-3"></i>
@@ -21,7 +21,7 @@
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-@endif
+@endif --}}
 
 @if ($errors->any())
     <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">

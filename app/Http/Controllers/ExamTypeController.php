@@ -125,8 +125,8 @@ public function edit(ExamType $examType)
             DB::commit();
 
             // CAMBIO AQUÍ: Agregamos 'admin.' a la ruta y enviamos el mensaje
-            return redirect()->route('admin.exam-types.index');
-                           // ->with('status', '¡Éxito! El examen "' . $examType->name . '" ha sido actualizado correctamente.');
+            return redirect()->route('admin.exam-types.index')
+                            ->with('status', '¡Éxito! El examen "' . $examType->name . '" ha sido actualizado correctamente.');
 
         } catch (\Exception $e) {
             DB::rollBack();
