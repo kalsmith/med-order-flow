@@ -146,7 +146,7 @@ public function clinicalQualityReports()
     $latestOrders = Order::with(['doctor.user', 'patient', 'activePrescription'])
         ->whereIn('status', ['paid', 'pending']) // Ajustado según tu SQL que tiene muchos pending
         ->latest()
-        ->take(7)
+        ->take(5)
         ->get();
 
     return view('admin.reports.clinical', compact('stats', 'doctorPerformance', 'latestOrders'));
