@@ -41,9 +41,10 @@ class ProfileController extends Controller
         );
 
         // Enviar el correo (Usando raw para probar rápido, luego puedes hacer un Mailable)
-        Mail::raw("Tu código de seguridad para eliminar tu cuenta en PideTuExamen es: $code. Si no solicitaste esto, ignora este mensaje.", function ($message) use ($user) {
-            $message->to($user->email)->subject($code . ' es tu código de verificación');
-        });
+    // Busca la parte del Mail::raw y déjala así:
+    Mail::raw("Tu código de seguridad para eliminar tu cuenta en PideTuExamen es: $code. Si no solicitaste esto, ignora este mensaje.", function ($message) use ($user, $code) { // <--- AGREGAR $code AQUÍ
+        $message->to($user->email)->subject($code . ' es tu código de verificación');
+    });
 
         return back()->with('status', 'code_sent');
     }
