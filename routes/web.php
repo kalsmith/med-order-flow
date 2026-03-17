@@ -151,7 +151,9 @@ Route::middleware([
 
         Route::resource('preguntas-frecuentes', FaqController::class)->names('faqs')->parameters(['preguntas-frecuentes' => 'faq']);
 
-        Route::resource('usuarios', UserController::class)->names('users');
+        Route::resource('usuarios', UserController::class)
+            ->names('users')
+            ->parameters(['usuarios' => 'user']); // <--- ESTO ES LA CLAVE
     });
 
     // --- RUTAS DE FINANZAS (ADMIN & CONTABLE) ---
