@@ -147,7 +147,10 @@ Route::middleware([
 
     // --- RUTAS EXCLUSIVAS DE ADMINISTRACIÓN (FAQ / Contenidos) ---
     Route::middleware(['role:admin'])->group(function () {
+
         Route::resource('preguntas-frecuentes', FaqController::class)->names('faqs')->parameters(['preguntas-frecuentes' => 'faq']);
+
+        Route::resource('usuarios', UserController::class)->names('users');
     });
 
     // --- RUTAS DE FINANZAS (ADMIN & CONTABLE) ---

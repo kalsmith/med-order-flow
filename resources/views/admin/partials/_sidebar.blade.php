@@ -81,6 +81,16 @@
                 </a>
             </li>
             @endrole
+
+            {{-- CONFIGURACIÓN / ACCESO: Solo Admin --}}
+            @role('admin')
+            <h6 class="sidebar-heading">Sistema</h6>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                    <i class="bi bi-person-gear"></i> Gestión de Staff
+                </a>
+            </li>
+            @endrole
         </ul>
     </div>
 </nav>
