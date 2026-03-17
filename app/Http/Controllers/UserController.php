@@ -24,12 +24,12 @@ class UserController extends Controller
         return view('admin.users.create', compact('roles'));
     }
 
-    public function store(Request(Request $request)
+public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed',Password::defaults()],
             'role' => 'required|exists:roles,name',
         ]);
 
