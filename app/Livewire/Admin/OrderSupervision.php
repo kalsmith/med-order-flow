@@ -7,6 +7,7 @@ use App\Models\Doctor;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; // <-- Importante
 
 class OrderSupervision extends Component
 {
@@ -34,15 +35,16 @@ class OrderSupervision extends Component
     {
         $doctors = Doctor::with('user')->get();
 
-        $orders = Order::with(['patient', 'doctor.user', 'activePrescription'])
+        $query = Order::with(['patient', 'doctor.user', 'activePrescription'])
             ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
-            ->when($this->searchPatient, function($query) {
-                // Convertimos la búsqueda a minúsculas desde PHP
+            ->when($this->searchPatient, function($q_parent) {
                 $term = '%' . mb_strtolower($this->searchPatient, 'UTF-8') . '%';
 
-                $query->whereHas('patient', function($q) use ($term) {
+                // Logueamos qué está buscando el usuario
+                Log::info('Buscando Paciente:', ['input' => $this->searchPatient, 'procesado' => $term]);
+
+                $q_parent->whereHas('patient', function($q) use ($term) {
                     $q->where(function($sub) use ($term) {
-                        // Forzamos LOWER tanto en la columna como en el parámetro para máxima compatibilidad
                         $sub->whereRaw('LOWER(full_name) LIKE ?', [$term])
                             ->orWhereRaw('LOWER(rut) LIKE ?', [$term]);
                     });
@@ -57,8 +59,17 @@ class OrderSupervision extends Component
             ->when($this->dateTo, function($query) {
                 $query->whereDate('created_at', '<=', $this->dateTo);
             })
-            ->latest()
-            ->paginate(15);
+            ->latest();
+
+        // LOG DEL SQL FINAL (Para ver si se están cruzando los WHERE)
+        // Log::debug('SQL Ejecutado: ' . $query->toSql());
+
+        $orders = $query->paginate(15);
+
+        // LOG DE RESULTADOS
+        if($this->searchPatient) {
+            Log::info('Resultados encontrados:', ['count' => $orders->total()]);
+        }
 
         return view('livewire.admin.order-supervision', [
             'orders' => $orders,
