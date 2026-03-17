@@ -133,6 +133,10 @@ Route::middleware([
 });
 
 
+Route::get('/perfil/eliminar', function() {
+    return "Vista de eliminación de perfil en construcción";
+})->name('profile.delete.view');
+
 /*
 |--------------------------------------------------------------------------
 | 4. PORTAL DE PACIENTES & PAGOS
@@ -144,6 +148,7 @@ Route::middleware([
     'verified',
     'role:paciente'
 ])->group(function () {
+
 
 
 Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])

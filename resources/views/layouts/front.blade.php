@@ -73,9 +73,9 @@
 
                         {{-- Nueva Ruta de Configuración / Borrado --}}
                         <li>
-                            <a class="dropdown-item fw-bold py-2 text-muted" href="{{ route('profile.delete.view') }}">
+                            {{-- <a class="dropdown-item fw-bold py-2 text-muted" href="{{ route('profile.delete.view') }}">
                                 <i class="bi bi-shield-lock me-2"></i> Configuración de Cuenta
-                            </a>
+                            </a> --}}
                         </li>
 
                         <li><hr class="dropdown-divider"></li>
