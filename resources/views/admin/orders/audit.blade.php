@@ -7,120 +7,98 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="{{ route('admin.orders.index') }}">Órdenes</a></li>
-                    <li class="breadcrumb-item active">Auditoría</li>
+                    <li class="breadcrumb-item active">Auditoría Clínica</li>
                 </ol>
             </nav>
-            <h2 class="h3 mb-0">Ficha de Auditoría: #{{ substr($order->id, 0, 8) }}</h2>
+            <h2 class="h3 mb-0">Auditoría: #{{ substr($order->id, 0, 8) }}</h2>
         </div>
-        <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> Volver al listado
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
     </div>
 
     <div class="row">
         <div class="col-md-8">
-            {{-- Card de Detalles del Examen / Pack / Custom --}}
+            {{-- SECCIÓN 1: Intención Original del Paciente --}}
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                    <span>Contenido de la Orden ({{ ucfirst($order->type) }})</span>
-                    <span class="badge bg-{{ $order->status == 'paid' ? 'primary' : 'success' }}">
+                    <span>Solicitud del Paciente</span>
+                    <span class="badge bg-{{ $order->status == 'paid' ? 'primary' : 'secondary' }}">
                         {{ strtoupper($order->status) }}
                     </span>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label class="text-muted small d-block">Examen Solicitado</label>
-                            <h4 class="fw-bold text-dark">
-                                @if($order->type === 'custom')
-                                    <span class="text-primary"><i class="bi bi-pencil-square"></i> Orden Personalizada</span>
-                                @else
-                                    {{ $order->examType->name ?? 'Examen no encontrado' }}
-                                    @if($order->examType?->isProfile())
-                                        <span class="badge bg-info text-dark ms-2" style="font-size: 0.5em; vertical-align: middle;">
-                                            <i class="bi bi-box-seam"></i> PACK / PERFIL
-                                        </span>
-                                    @endif
-                                @endif
-                            </h4>
-                        </div>
+                    <div class="mb-4">
+                        <label class="text-muted small d-block fw-bold text-uppercase">Tipo de Servicio</label>
+                        <h5 class="fw-bold">
+                            @if($order->type === 'custom')
+                                <i class="bi bi-pencil-square text-primary"></i> ORDEN PERSONALIZADA (Texto Libre)
+                            @else
+                                <i class="bi bi-card-list text-success"></i> {{ $order->examType->name ?? 'Examen Estándar' }}
+                            @endif
+                        </h5>
                     </div>
 
-                    {{-- Lógica para Packs Standard --}}
-                    @if($order->type === 'standard' && $order->examType?->isProfile())
-                        <div class="p-3 border rounded bg-light mb-3">
-                            <label class="text-muted small d-block mb-2 fw-bold text-uppercase">
-                                <i class="bi bi-list-check"></i> Exámenes incluidos en este pack:
-                            </label>
-                            <div class="row">
-                                @foreach($order->examType->children->chunk(ceil($order->examType->children->count() / 2)) as $chunk)
-                                    <div class="col-md-6">
-                                        <ul class="list-unstyled mb-0 small">
-                                            @foreach($chunk as $child)
-                                                <li class="mb-1">
-                                                    <i class="bi bi-check2-circle text-success"></i>
-                                                    {{ $child->name }}
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    {{-- Lógica para Órdenes Custom --}}
                     @if($order->type === 'custom')
-                        <div class="p-3 border border-primary rounded bg-light mb-3">
-                            <label class="text-primary small d-block mb-2 fw-bold text-uppercase">
-                                <i class="bi bi-info-circle"></i> Detalle de exámenes solicitados por el paciente:
-                            </label>
-                            <p class="mb-0 fw-bold text-secondary" style="white-space: pre-line;">{{ $order->custom_description }}</p>
+                        <div class="p-3 bg-light rounded border border-primary mb-3">
+                            <label class="text-primary small d-block mb-1 fw-bold">EXÁMENES SOLICITADOS POR EL USUARIO:</label>
+                            <p class="mb-0 fw-bold" style="white-space: pre-line;">{{ $order->custom_description }}</p>
                         </div>
                     @endif
-
-                    <hr>
 
                     <div class="row">
                         <div class="col-md-12">
-                            <label class="text-muted small d-block fw-bold text-uppercase mb-2">Contexto Clínico (Anamnesis)</label>
+                            <label class="text-muted small d-block fw-bold mb-1">ANAMNESIS / CONTEXTO CLÍNICO:</label>
                             <div class="p-3 bg-light rounded border-start border-4 border-info">
-                                {{ $order->clinical_context ?: 'Sin información clínica adicional.' }}
+                                {{ $order->clinical_context ?: 'No se proporcionó información clínica adicional por parte del paciente.' }}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Historial de Prescripciones --}}
+            {{-- SECCIÓN 2: Resolución Médica (Prescriptions) --}}
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold">Documentos Médicos y Firmas</div>
-                <div class="card-body p-0 text-center">
+                <div class="card-header bg-dark text-white fw-bold">Resolución y Documentos Médicos</div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="bg-light text-start">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Correlativo</th>
-                                    <th>Médico Responsable</th>
-                                    <th>Fecha Firma</th>
+                                    <th>Folio</th>
+                                    <th>Médico</th>
+                                    <th>Indicación Clínica/Validación</th>
                                     <th>Estado</th>
-                                    <th class="text-end">Documento</th>
+                                    <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody class="text-start">
+                            <tbody>
                                 @forelse($order->prescriptions as $p)
                                 <tr>
-                                    <td class="align-middle fw-bold">#{{ $p->correlative_number }}</td>
+                                    <td class="align-middle">
+                                        <span class="fw-bold">#{{ $p->correlative_number }}</span><br>
+                                        <small class="text-muted">{{ $p->created_at->format('d/m/y') }}</small>
+                                    </td>
                                     <td class="align-middle">
                                         @if($p->doctor)
-                                            {{ $p->doctor->user->name }}<br>
-                                            <small class="text-muted font-monospace">RNPI: {{ $p->doctor->rnpi_number }}</small>
+                                            <span class="fw-bold">{{ $p->doctor->prefix }} {{ $p->doctor->user->name }}</span><br>
+                                            <small class="text-muted">RNPI: {{ $p->doctor->rnpi_number }}</small>
                                         @else
-                                            <span class="text-muted small italic">Pendiente de asignación</span>
+                                            <span class="badge bg-light text-warning border border-warning">Pendiente de Médico</span>
                                         @endif
                                     </td>
-                                    <td class="align-middle small">
-                                        {{ $p->signed_at ? $p->signed_at->format('d/m/Y H:i') : '---' }}
+                                    <td class="align-middle">
+                                        {{-- Aquí mostramos lo que el médico escribió o validó --}}
+                                        @if($p->type === 'custom')
+                                            <div class="small bg-light p-2 rounded border">
+                                                <strong>Indicación Médica:</strong><br>
+                                                {{ $p->clinical_context ?: 'El médico validó la solicitud original sin observaciones adicionales.' }}
+                                            </div>
+                                        @else
+                                            <small class="text-muted">Validación de Examen Estándar</small>
+                                        @endif
                                     </td>
                                     <td class="align-middle">
                                         <span class="badge {{ $p->status == 'signed' ? 'bg-success' : 'bg-warning text-dark' }}">
@@ -129,14 +107,14 @@
                                     </td>
                                     <td class="align-middle text-end">
                                         @if($p->status == 'signed')
-                                        <a href="{{ route('admin.orders.pdf', $order) }}" target="_blank" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-file-earmark-pdf"></i> PDF
-                                        </a>
+                                            <a href="{{ route('admin.orders.pdf', $order) }}" target="_blank" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                                            </a>
                                         @endif
                                     </td>
                                 </tr>
                                 @empty
-                                <tr><td colspan="5" class="py-4 text-muted text-center">No se han generado prescripciones.</td></tr>
+                                <tr><td colspan="5" class="py-5 text-center text-muted">No se han generado prescripciones para esta orden.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -145,35 +123,35 @@
             </div>
         </div>
 
-        {{-- Bloque Derecho --}}
+        {{-- Bloque Derecho: Info Paciente y Trazabilidad --}}
         <div class="col-md-4">
-            {{-- Card Paciente --}}
             <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white fw-bold">Información del Paciente</div>
+                <div class="card-header bg-white fw-bold">Paciente</div>
                 <div class="card-body">
-                    <h6 class="mb-1 fw-bold">{{ $order->patient->full_name ?? 'N/A' }}</h6>
+                    <h6 class="fw-bold mb-1">{{ $order->patient->full_name ?? 'N/A' }}</h6>
                     <p class="text-muted small mb-3">RUT: {{ $order->patient->rut ?? 'N/A' }}</p>
-                    <ul class="list-group list-group-flush small">
-                        <li class="list-group-item d-flex justify-content-between px-0">
+                    <hr>
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-1">
                             <span>Previsión:</span> <span class="fw-bold">{{ $order->patient->prevision ?? 'N/A' }}</span>
-                        </li>
-                    </ul>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Monto Pagado:</span> <span class="fw-bold text-success">${{ number_format($order->amount, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {{-- Activity Log --}}
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold small">Log de Eventos</div>
+                <div class="card-header bg-white fw-bold small">Historial de Auditoría</div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush small">
-                        @forelse($order->activities ?? [] as $activity)
+                        @foreach($order->activities ?? [] as $activity)
                         <li class="list-group-item border-0">
-                            <p class="mb-0 fw-bold">{{ $activity->description }}</p>
-                            <small class="text-muted">{{ $activity->created_at->diffForHumans() }}</small>
+                            <i class="bi bi-dot text-primary"></i> <strong>{{ $activity->description }}</strong><br>
+                            <span class="text-muted ms-3" style="font-size: 0.85em;">{{ $activity->created_at->format('d/m/y H:i') }}</span>
                         </li>
-                        @empty
-                        <li class="list-group-item text-muted text-center italic">Sin registros.</li>
-                        @endforelse
+                        @endforeach
                     </ul>
                 </div>
             </div>
