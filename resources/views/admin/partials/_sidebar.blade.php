@@ -27,11 +27,6 @@
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.exam-types.*') ? 'active' : '' }}" href="{{ route('admin.exam-types.index') }}">
-                    <i class="bi bi-flask fs-5 me-2"></i> 1. Flask (Frasco)
-                </a>
-            </li>
 
             {{-- CONTENIDOS / FAQ --}}
             <li class="nav-item">
