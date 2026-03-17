@@ -18,17 +18,22 @@ class OrderSupervision extends Component
     public $doctorId = '';
     public $dateFrom = '';
     public $dateTo = '';
-    public $status = '';
+    public $status = ''; // Por si quieres filtrar uno específico después
 
     // Resetear página cuando cambian los filtros
     public function updatingSearchPatient() { $this->resetPage(); }
     public function updatingDoctorId() { $this->resetPage(); }
+    public function updatingDateFrom() { $this->resetPage(); }
+    public function updatingDateTo() { $this->resetPage(); }
 
     public function render()
     {
         $doctors = Doctor::with('user')->get();
 
         $orders = Order::with(['patient', 'doctor.user', 'activePrescription'])
+            // --- FILTRO BASE OBLIGATORIO ---
+            ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
+            // -------------------------------
             ->when($this->searchPatient, function($query) {
                 $query->whereHas('patient', function($q) {
                     $q->where('full_name', 'like', '%' . $this->searchPatient . '%')
