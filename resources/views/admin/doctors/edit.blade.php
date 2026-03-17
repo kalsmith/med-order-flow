@@ -9,6 +9,9 @@
 @endsection
 
 @section('content')
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
 
@@ -181,16 +184,58 @@
     </div>
 </div>
 
-<script>
-    // Vista previa de la firma al seleccionar archivo
-    document.getElementById('signature-input').onchange = function (evt) {
-        const [file] = this.files;
-        if (file) {
-            document.getElementById('signature-preview').src = URL.createObjectURL(file);
-        }
-    }
 
-    // Confirmación rápida para desactivar
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    let cropper;
+    const input = document.getElementById('signature-input');
+    const image = document.getElementById('image-to-crop');
+    const preview = document.getElementById('signature-preview');
+    const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
+
+    // Crear un input hidden para enviar la imagen recortada
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'signature_cropped';
+    document.getElementById('doctor-form').appendChild(hiddenInput);
+
+    input.onchange = function (e) {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                image.src = event.target.result;
+                modal.show();
+            };
+            reader.readAsDataURL(files[0]);
+        }
+    };
+
+    document.getElementById('cropperModal').addEventListener('shown.bs.modal', function () {
+        cropper = new Cropper(image, {
+            aspectRatio: 2 / 1, // Proporción estándar para firmas
+            viewMode: 1,
+            autoCropArea: 1,
+        });
+    }).addEventListener('hidden.bs.modal', function () {
+        cropper.destroy();
+        cropper = null;
+    });
+
+    document.getElementById('crop-button').addEventListener('click', function () {
+        // Definimos el tamaño estándar de salida (ej: 400x200)
+        const canvas = cropper.getCroppedCanvas({
+            width: 400,
+            height: 200,
+        });
+
+        const croppedImageDataURL = canvas.toDataURL('image/png');
+        preview.src = croppedImageDataURL; // Actualiza la vista previa en el form
+        hiddenInput.value = croppedImageDataURL; // Guarda el Base64 para el servidor
+        modal.hide();
+    });
+
     function confirmDeactivation() {
         if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo?')) {
             document.getElementById('is_active_select').value = "0";
@@ -198,4 +243,27 @@
         }
     }
 </script>
+
+
+<div class="modal fade" id="cropperModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajustar Firma</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="img-container">
+                    <img id="image-to-crop" src="" style="max-width: 100%;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="crop-button">Cortar y Usar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 @endsection

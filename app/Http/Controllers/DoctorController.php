@@ -81,58 +81,86 @@ class DoctorController extends Controller
 
     // Cambiamos el TypeHint aquí también
     // Cambiamos el TypeHint aquí también
+
+
     public function update(Request $request, Doctor $medico)
-    {
-        $doctor = $medico;
+{
+    $doctor = $medico;
 
-        $request->validate([
-            'prefix'      => 'required|string|in:Dr.,Dra.', // Validación del nuevo campo
-            'name'        => 'required|string|max:255',
-            'email'       => ['required', 'email', Rule::unique('users')->ignore($doctor->user_id)],
-            'rut'         => ['required', Rule::unique('doctors')->ignore($doctor->id)],
-            'specialties' => 'required|array|min:1',
-            'is_active'   => 'required|boolean',
-            'signature'   => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-            'password'    => 'nullable|string|min:8|confirmed',
-        ]);
+    $request->validate([
+        'prefix'             => 'required|string|in:Dr.,Dra.',
+        'name'               => 'required|string|max:255',
+        'email'              => ['required', 'email', Rule::unique('users')->ignore($doctor->user_id)],
+        'rut'                => ['required', Rule::unique('doctors')->ignore($doctor->id)],
+        'specialties'        => 'required|array|min:1',
+        'is_active'          => 'required|boolean',
+        'signature_cropped'  => 'nullable|string', // El Base64 del recorte
+        'signature'          => 'nullable|image|mimes:png,jpg,jpeg|max:2048', // El archivo original
+        'password'           => 'nullable|string|min:8|confirmed',
+    ]);
 
-        try {
-            DB::transaction(function () use ($request, $doctor) {
-                // 1. Actualizar datos básicos del usuario
-                $userData = [
-                    'name'  => $request->name,
-                    'email' => $request->email,
-                ];
+    try {
+        DB::transaction(function () use ($request, $doctor) {
+            // 1. Actualizar datos básicos del usuario
+            $userData = [
+                'name'  => $request->name,
+                'email' => $request->email,
+            ];
 
-                // 2. Si se ingresó una contraseña, la hasheamos
-                if ($request->filled('password')) {
-                    $userData['password'] = Hash::make($request->password);
+            if ($request->filled('password')) {
+                $userData['password'] = Hash::make($request->password);
+            }
+
+            $doctor->user->update($userData);
+
+            // 2. Manejo de la firma digital (Priorizamos la recortada de JS)
+            if ($request->filled('signature_cropped')) {
+                // Eliminar firma anterior si existe
+                if ($doctor->signature_path) {
+                    Storage::disk('public')->delete($doctor->signature_path);
                 }
 
-                $doctor->user->update($userData);
+                // Procesar el string Base64
+                $imageData = $request->input('signature_cropped');
+                // Separamos el encabezado del contenido (data:image/png;base64,xxxx)
+                if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
+                    $imageContent = substr($imageData, strpos($imageData, ',') + 1);
+                    $extension = strtolower($type[1]); // png, jpg, etc.
+                    $imageContent = base64_decode($imageContent);
 
-                // 3. Manejo de la firma digital
-                if ($request->hasFile('signature')) {
-                    if ($doctor->signature_path) {
-                        Storage::disk('public')->delete($doctor->signature_path);
+                    if ($imageContent === false) {
+                        throw new \Exception('La decodificación de la imagen falló.');
                     }
-                    // Guardamos el nuevo archivo
-                    $path = $request->file('signature')->store('signatures', 'public');
-                    $doctor->signature_path = $path;
+
+                    $fileName = 'signatures/sig_' . uniqid() . '.' . $extension;
+                    Storage::disk('public')->put($fileName, $imageContent);
+
+                    $doctor->signature_path = $fileName;
                 }
+            }
+            // Fallback: Si no hay recorte pero sí un archivo directo
+            elseif ($request->hasFile('signature')) {
+                if ($doctor->signature_path) {
+                    Storage::disk('public')->delete($doctor->signature_path);
+                }
+                $doctor->signature_path = $request->file('signature')->store('signatures', 'public');
+            }
 
-                // 4. Actualizar datos específicos del doctor (incluyendo el prefix)
-                $doctor->fill($request->only(['prefix', 'rut', 'rnpi_number', 'is_active']));
-                $doctor->save();
+            // 3. Actualizar datos específicos del doctor
+            $doctor->fill($request->only(['prefix', 'rut', 'rnpi_number', 'is_active']));
+            $doctor->save();
 
-                // 5. Sincronizar especialidades
-                $doctor->specialties()->sync($request->specialties);
-            });
+            // 4. Sincronizar especialidades
+            $doctor->specialties()->sync($request->specialties);
+        });
 
-            return redirect()->route("{$this->routePrefix}.index")
-                ->with('status', 'Perfil del médico actualizado correctamente.');
-        } catch (\Exception $e) {
-            return back()->withInput()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
-        }
+        return redirect()->route("{$this->routePrefix}.index")
+            ->with('status', 'Perfil del médico actualizado correctamente.');
+
+    } catch (\Exception $e) {
+        return back()->withInput()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
     }
+}
+
+
 }
