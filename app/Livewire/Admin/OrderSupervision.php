@@ -38,42 +38,35 @@ class OrderSupervision extends Component
         $query = Order::with(['patient', 'doctor.user', 'activePrescription'])
             ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
             ->when($this->searchPatient, function($q_parent) {
-                // 1. Limpiamos espacios al inicio/final del input (TRIM de PHP)
                 $cleanInput = trim($this->searchPatient);
                 $term = '%' . mb_strtolower($cleanInput, 'UTF-8') . '%';
 
-                Log::info('--- INICIO BÚSQUEDA ---');
-                Log::info('Input original: "' . $this->searchPatient . '"');
-                Log::info('Término procesado: "' . $term . '"');
+                Log::info('--- BÚSQUEDA ---', ['input' => $cleanInput]);
 
                 $q_parent->whereHas('patient', function($q) use ($term) {
                     $q->where(function($sub) use ($term) {
-                        // 2. Aplicamos TRIM() en la base de datos para ignorar espacios fantasmas
                         $sub->whereRaw('LOWER(TRIM(full_name)) LIKE ?', [$term])
                             ->orWhereRaw('LOWER(TRIM(rut)) LIKE ?', [$term]);
                     });
                 });
             })
-            ->when($this->doctorId, function($q) {
-                $q->where('doctor_id', $this->doctorId);
-            })
-            ->when($this->dateFrom, function($q) {
-                $q->whereDate('created_at', '>=', $this->dateFrom);
-            })
-            ->when($this->dateTo, function($q) {
-                $q->whereDate('created_at', '<=', $this->dateTo);
-            })
+            ->when($this->doctorId, function($q) { $q->where('doctor_id', $this->doctorId); })
+            ->when($this->dateFrom, function($q) { $q->whereDate('created_at', '>=', $this->dateFrom); })
+            ->when($this->dateTo, function($q) { $q->whereDate('created_at', '<=', $this->dateTo); })
             ->latest();
-
-        // 3. LOG DEL SQL GENERADO (Descomenta si necesitas ver la query exacta)
-        // Log::debug('SQL: ' . $query->toSql());
-        // Log::debug('Bindings: ', $query->getBindings());
 
         $orders = $query->paginate(15);
 
+        // --- SCANNER DE DEPURACIÓN ---
         if($this->searchPatient) {
-            Log::info('Resultados encontrados: ' . $orders->total());
-            Log::info('--- FIN BÚSQUEDA ---');
+            $nombresEncontrados = $orders->map(function($o) {
+                return $o->patient ? $o->patient->full_name : 'Sin Paciente';
+            })->toArray();
+
+            Log::info('Nombres en grilla:', [
+                'total' => $orders->total(),
+                'listado' => $nombresEncontrados
+            ]);
         }
 
         return view('livewire.admin.order-supervision', [
