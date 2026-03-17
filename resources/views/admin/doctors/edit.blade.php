@@ -154,9 +154,9 @@
                             <label class="form-label fw-bold small text-muted">Firma Digital (Sello)</label>
                             <div class="d-flex flex-column flex-md-row align-items-center gap-4 p-3 border rounded">
                                 <div class="text-center bg-white p-2 border rounded" style="min-width: 150px;">
-                                    <img id="signature-preview"
-                                         src="{{ $doctor->signature_path ? asset('storage/' . $doctor->signature_path) : 'https://via.placeholder.com/150x80?text=Sin+Firma' }}"
-                                         class="img-fluid" style="max-height: 80px; object-fit: contain;">
+<img id="signature-preview"
+     src="{{ $doctor->signature_path ? asset('storage/' . $doctor->signature_path) : 'https://via.placeholder.com/150x80?text=Sin+Firma' }}?v={{ time() }}"
+     class="img-fluid" style="max-height: 80px; object-fit: contain;">
                                 </div>
                                 <div class="flex-grow-1">
                                     <input type="file" id="signature-input" class="form-control form-control-sm" accept="image/png, image/jpeg">
