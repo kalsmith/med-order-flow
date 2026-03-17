@@ -416,22 +416,39 @@ public function rejectOrder(Request $request, Order $order, RefundService $refun
 
 
 
-public function clinicalIndex()
-{
-    // Solo permitimos al DT (y quizás al Admin si quieres supervisar)
-    if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
-        abort(403, 'No tienes permisos para supervisión clínica.');
+    public function clinicalIndex()
+    {
+        // Solo permitimos al DT (y quizás al Admin si quieres supervisar)
+        if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
+            abort(403, 'No tienes permisos para supervisión clínica.');
+        }
+
+        $orders = Order::with(['patient', 'doctor.user', 'examType'])
+            ->latest()
+            ->paginate(20); // Paginación clásica para Blade
+
+        return view('admin.orders.supervision', compact('orders'));
     }
 
-    $orders = \App\Models\Order::with(['patient', 'doctor.user', 'examType'])
-        ->latest()
-        ->paginate(20); // Paginación clásica para Blade
 
-    return view('admin.orders.supervision', compact('orders'));
-}
+    public function show(Order $order)
+    {
+        // Solo permitimos al DT o Admin ver esta ficha de auditoría
+        if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
+            abort(403, 'No tienes permiso para auditar esta orden.');
+        }
 
+        // Cargamos todo lo necesario para una auditoría clínica completa
+        $order->load([
+            'patient',
+            'doctor.user',
+            'examType.specialty',
+            'prescriptions.doctor.user',
+            'interactions'
+        ]);
 
-
+        return view('admin.orders.audit', compact('order'));
+    }
 
 
 
