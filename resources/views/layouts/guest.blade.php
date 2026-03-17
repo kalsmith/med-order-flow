@@ -8,7 +8,6 @@
         <title>{{ config('app.name', 'Med Order Flow') }}</title>
 
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,36 +17,25 @@
         <style>
             body {
                 font-family: 'Inter', sans-serif;
-                background-color: #f8f9fa; /* Un gris muy sutil de fondo */
+                background-color: #f8f9fa;
                 background-image: radial-gradient(#dee2e6 0.5px, transparent 0.5px);
-                background-size: 20px 20px; /* Sutil patrón de puntos para dar textura profesional */
+                background-size: 20px 20px;
             }
-            .btn-primary {
-                background-color: #0d6efd;
-                border: none;
-                transition: all 0.3s ease;
-            }
-            .btn-primary:hover {
-                background-color: #0b5ed7;
-                transform: translateY(-1px);
-                shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
-            }
-            .card {
-                border-radius: 1rem;
-            }
+            .btn-primary { background-color: #0d6efd; border: none; transition: all 0.3s ease; }
+            .btn-primary:hover { background-color: #0b5ed7; transform: translateY(-1px); }
+            .card { border-radius: 1rem; }
         </style>
 
         @livewireStyles
     </head>
     <body>
 
-        {{-- Aquí se inyectará el contenido de login.blade.php --}}
         <main>
-            {{ $slot }}
+            {{-- CAMBIO AQUÍ: Usamos yield en lugar de slot --}}
+            @yield('content')
         </main>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
         @livewireScripts
     </body>
 </html>
