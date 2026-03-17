@@ -8,27 +8,29 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class ProfileController extends Controller
 {
-
+    /**
+     * Paso 1: Mostrar la vista de confirmación inicial
+     */
     public function showDeletePage()
     {
-        return view('patient.profile.delete');
+        return view('patient.profile.delete-confirm');
     }
 
     /**
-     * Solicita el borrado de cuenta generando un código de verificación.
+     * Paso 2: Generar código y enviar Mail
      */
     public function requestAccountDeletion(Request $request)
     {
         $user = auth()->user();
 
-        // Generamos un código de 6 caracteres (mezcla letras y números)
-        $code = strtoupper(Str::random(6));
+        // Generamos un código de 6 dígitos numéricos (más fácil para el usuario)
+        $code = rand(100000, 999999);
 
-        // Guardamos en la tabla de tokens de reset de contraseña para reusar infraestructura
-        // Nota: En versiones recientes de Laravel la tabla es 'password_reset_tokens'
+        // Guardamos en password_reset_tokens
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $user->email],
             [
@@ -37,16 +39,16 @@ class ProfileController extends Controller
             ]
         );
 
-        // Aquí enviarías el correo. Puedes usar un closure rápido para pruebas:
-        // Mail::raw("Tu código de confirmación para eliminar tu cuenta en MedOrder es: $code", function ($message) use ($user) {
-        //     $message->to($user->email)->subject('Código de Verificación - Borrado de Cuenta');
-        // });
+        // Enviar el correo (Usando raw para probar rápido, luego puedes hacer un Mailable)
+        Mail::raw("Tu código de seguridad para eliminar tu cuenta en PideTuExamen es: $code. Si no solicitaste esto, ignora este mensaje.", function ($message) use ($user) {
+            $message->to($user->email)->subject($code . ' es tu código de verificación');
+        });
 
-        return back()->with('status', 'Hemos enviado un código de seguridad a su correo para confirmar el cierre de la cuenta.');
+        return back()->with('status', 'code_sent');
     }
 
     /**
-     * Confirma el código y ejecuta el Soft Delete.
+     * Paso 3: Validar código y ejecutar Soft Delete con renombrado
      */
     public function confirmAccountDeletion(Request $request)
     {
@@ -57,30 +59,43 @@ class ProfileController extends Controller
         $user = auth()->user();
         $record = DB::table('password_reset_tokens')->where('email', $user->email)->first();
 
-        if (!$record || !Hash::check(strtoupper($request->code), $record->token)) {
+        // Validar si el código existe y es correcto
+        if (!$record || !Hash::check($request->code, $record->token)) {
             return back()->withErrors(['code' => 'El código ingresado es incorrecto o ha expirado.']);
         }
 
-        // 1. Renombrar correo para liberar el original (Ej: borrado_1710594321_cesar@gmail.com)
         $originalEmail = $user->email;
-        $newEmail = 'deleted_' . time() . '_' . $originalEmail;
 
-        // 2. Borrado lógico de pacientes asociados
-        if (method_exists($user, 'patients')) {
-            $user->patients()->delete();
+        // MARCA VISIBLE: DEL_TIMESTAMP_EMAIL
+        $newEmail = 'DEL_' . time() . '_' . $originalEmail;
+
+        DB::beginTransaction();
+        try {
+            // 1. Borrado lógico de pacientes asociados (si existe la relación)
+            if (method_exists($user, 'patients')) {
+                $user->patients()->delete();
+            }
+
+            // 2. Renombrar y Soft Delete del usuario
+            $user->email = $newEmail;
+            $user->save();
+            $user->delete();
+
+            // 3. Limpiar token
+            DB::table('password_reset_tokens')->where('email', $originalEmail)->delete();
+
+            DB::commit();
+
+            // 4. Logout y limpieza de sesión
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect('/')->with('success', 'Cuenta eliminada con éxito. El correo ' . $originalEmail . ' ha sido liberado.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['code' => 'Error al procesar la eliminación: ' . $e->getMessage()]);
         }
-
-        // 3. Actualizar correo y ejecutar Soft Delete
-        $user->update(['email' => $newEmail]);
-        $user->delete();
-
-        // 4. Limpiar token y cerrar sesión
-        DB::table('password_reset_tokens')->where('email', $originalEmail)->delete();
-
-        auth()->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/')->with('success', 'Su cuenta ha sido eliminada. El correo ' . $originalEmail . ' ha sido liberado.');
     }
 }

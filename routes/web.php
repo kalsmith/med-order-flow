@@ -14,6 +14,7 @@ use App\Http\Controllers\SpecialtyController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ExamTypeController;
 use App\Http\Controllers\MedicalOrderController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\LandingController;
 use App\Http\Controllers\Patient\OrderFlowController;
 use App\Http\Controllers\Patient\PatientOrderController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FlowController;
 use App\Http\Controllers\OrderValidationController;
 use App\Models\Faq;
+use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,7 +48,7 @@ Route::get('/legal/{slug}', function ($slug) {
 // Login & Auth
 Route::get('/login', function () { abort(404); });
 Route::get('/acceso', function() { return view('auth.login'); })->name('login');
-Route::post('/acceso', [\Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class, 'store']);
+Route::post('/acceso', [AuthenticatedSessionController::class, 'store']);
 
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
@@ -148,25 +150,10 @@ Route::middleware([
 
 // --- GESTIÓN DE PERFIL ---
     // Vista de confirmación
-    Route::get('/perfil/eliminar', function() {
-        return view('patient.profile.delete-confirm');
-    })->name('profile.delete.view');
-
-    // Acción de eliminación (Soft Delete)
-    Route::post('/perfil/eliminar', function() {
-        $user = Auth::user();
-
-        // 1. Cerrar sesión
-        Auth::logout();
-
-        // 2. Aplicar Soft Delete
-        $user->delete();
-
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-
-        return redirect('/')->with('success', 'Tu cuenta ha sido desactivada correctamente.');
-    })->name('profile.delete.execute');
+// Dentro del grupo de middleware 'auth:sanctum', 'role:paciente'
+Route::get('/perfil/eliminar', [ProfileController::class, 'showDeletePage'])->name('profile.delete.view');
+Route::post('/perfil/eliminar/solicitar', [ProfileController::class, 'requestAccountDeletion'])->name('profile.delete.request');
+Route::post('/perfil/eliminar/confirmar', [ProfileController::class, 'confirmAccountDeletion'])->name('profile.delete.execute');
 
 
 Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])

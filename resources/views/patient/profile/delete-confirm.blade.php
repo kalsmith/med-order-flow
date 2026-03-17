@@ -3,29 +3,42 @@
 @section('content')
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card border-danger shadow">
-                <div class="card-body text-center p-5">
-                    <div class="mb-4">
-                        <i class="fas fa-exclamation-triangle text-danger fa-4x"></i>
-                    </div>
-                    <h2 class="fw-bold">¿Eliminar tu cuenta?</h2>
-                    <p class="text-muted">
-                        Esta acción desactivará tu acceso a <strong>PideTuExamen</strong>.
-                        Tus órdenes médicas generadas anteriormente seguirán siendo válidas, pero ya no podrás descargarlas desde este portal.
-                    </p>
+        <div class="col-md-5">
+            <div class="card shadow border-0" style="border-radius: 20px;">
+                <div class="card-body p-4 text-center">
 
-                    <form action="{{ route('profile.delete.execute') }}" method="POST" class="mt-4">
-                        @csrf
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-danger btn-lg">
-                                Confirmar y eliminar cuenta
+                    @if(!session('status'))
+                        {{-- ESTADO 1: Solicitar código --}}
+                        <i class="bi bi-shield-exclamation text-warning mb-3" style="font-size: 3rem;"></i>
+                        <h3 class="fw-bold">Eliminar Cuenta</h3>
+                        <p class="text-muted">Por seguridad, te enviaremos un código de 6 dígitos a tu correo para confirmar esta acción.</p>
+
+                        <form action="{{ route('profile.delete.request') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold py-2">
+                                Enviar código al correo
                             </button>
-                            <a href="{{ route('home') }}" class="btn btn-light">
-                                Cancelar, prefiero quedarme
-                            </a>
-                        </div>
-                    </form>
+                        </form>
+                    @else
+                        {{-- ESTADO 2: Ingresar código --}}
+                        <i class="bi bi-envelope-check text-success mb-3" style="font-size: 3rem;"></i>
+                        <h3 class="fw-bold">Verifica tu correo</h3>
+                        <p class="text-muted">Ingresa el código de 6 dígitos enviado a <strong>{{ auth()->user()->email }}</strong></p>
+
+                        <form action="{{ route('profile.delete.execute') }}" method="POST">
+                            @csrf
+                            <div class="mb-3">
+                                <input type="text" name="code" class="form-control form-control-lg text-center fw-bold"
+                                       placeholder="000000" maxlength="6" style="letter-spacing: 10px;" required>
+                                @error('code') <small class="text-danger">{{ $message }}</small> @enderror
+                            </div>
+                            <button type="submit" class="btn btn-danger rounded-pill w-100 fw-bold py-2">
+                                Confirmar eliminación definitiva
+                            </button>
+                        </form>
+                    @endif
+
+                    <a href="{{ route('home') }}" class="btn btn-link text-muted mt-3">Cancelar</a>
                 </div>
             </div>
         </div>
