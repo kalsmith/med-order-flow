@@ -115,23 +115,24 @@ public function clinicalQualityReports()
 {
     // 1. Estadísticas básicas (resumen rápido)
     $stats = [
-        'signed_today' => \App\Models\Prescription::where('status', 'signed')->whereDate('signed_at', today())->count(),
-        'rejected_orders' => \App\Models\Order::where('status', 'rejected')->count(),
-        'voided_prescriptions' => \App\Models\Prescription::where('status', 'voided')->count(),
+        'signed_today' => Prescription::where('status', 'signed')->whereDate('signed_at', today())->count(),
+        'rejected_orders' => Order::where('status', 'rejected')->count(),
+        'voided_prescriptions' => Prescription::where('status', 'voided')->count(),
     ];
 
     // 2. Rendimiento Médico (Solo médicos con órdenes para evitar errores)
-    $doctorPerformance = \App\Models\Doctor::withCount(['signedPrescriptions', 'medicalOrders'])
+    $doctorPerformance = Doctor::withCount(['signedPrescriptions', 'medicalOrders'])
         ->has('user') // Evita errores si hay un médico sin usuario
         ->get();
 
     // 3. Últimas órdenes (Protección contra NULLS)
     // Usamos whereHas para asegurar que solo traiga órdenes con paciente existente
-    $latestOrders = \App\Models\Order::whereHas('patient')
+    $latestOrders = Order::where('status', 'paid')
+        ->whereHas('patient')
         ->with(['doctor.user', 'patient', 'examType'])
         ->latest()
         ->take(15)
-        ->get(); // Aquí usamos get() porque es un resumen, no necesita paginación
+        ->get();
 
     return view('admin.reports.clinical', compact('stats', 'doctorPerformance', 'latestOrders'));
 }
