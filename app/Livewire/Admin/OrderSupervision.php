@@ -32,46 +32,49 @@ class OrderSupervision extends Component
     }
 
     public function render()
-    {
-        $doctors = Doctor::with('user')->get();
+{
+    $doctors = Doctor::with('user')->get();
 
-        $query = Order::with(['patient', 'doctor.user', 'activePrescription'])
-            ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
-            ->when($this->searchPatient, function($q_parent) {
-                $cleanInput = trim($this->searchPatient);
-                $term = '%' . mb_strtolower($cleanInput, 'UTF-8') . '%';
+    // 1. Traemos las órdenes con sus relaciones (OJO: Sin paginar aún)
+    $query = Order::with(['patient', 'doctor.user', 'activePrescription'])
+        ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
+        ->when($this->doctorId, function($q) { $q->where('doctor_id', $this->doctorId); })
+        ->when($this->dateFrom, function($q) { $q->whereDate('created_at', '>=', $this->dateFrom); })
+        ->when($this->dateTo, function($q) { $q->whereDate('created_at', '<=', $this->dateTo); })
+        ->latest();
 
-                Log::info('--- BÚSQUEDA ---', ['input' => $cleanInput]);
+    // 2. Obtenemos los resultados y filtramos en PHP
+    $orders = $query->get();
 
-                $q_parent->whereHas('patient', function($q) use ($term) {
-                    $q->where(function($sub) use ($term) {
-                        $sub->whereRaw('LOWER(TRIM(full_name)) LIKE ?', [$term])
-                            ->orWhereRaw('LOWER(TRIM(rut)) LIKE ?', [$term]);
-                    });
-                });
-            })
-            ->when($this->doctorId, function($q) { $q->where('doctor_id', $this->doctorId); })
-            ->when($this->dateFrom, function($q) { $q->whereDate('created_at', '>=', $this->dateFrom); })
-            ->when($this->dateTo, function($q) { $q->whereDate('created_at', '<=', $this->dateTo); })
-            ->latest();
+    if ($this->searchPatient) {
+        $term = mb_strtolower(trim($this->searchPatient), 'UTF-8');
 
-        $orders = $query->paginate(15);
+        $orders = $orders->filter(function($order) use ($term) {
+            if (!$order->patient) return false;
 
-        // --- SCANNER DE DEPURACIÓN ---
-        if($this->searchPatient) {
-            $nombresEncontrados = $orders->map(function($o) {
-                return $o->patient ? $o->patient->full_name : 'Sin Paciente';
-            })->toArray();
+            // Al acceder a full_name o rut, Laravel los desencripta en tiempo real
+            $nameMatch = str_contains(mb_strtolower($order->patient->full_name, 'UTF-8'), $term);
+            $rutMatch  = str_contains(mb_strtolower($order->patient->rut, 'UTF-8'), $term);
 
-            Log::info('Nombres en grilla:', [
-                'total' => $orders->total(),
-                'listado' => $nombresEncontrados
-            ]);
-        }
-
-        return view('livewire.admin.order-supervision', [
-            'orders' => $orders,
-            'doctors' => $doctors
-        ]);
+            return $nameMatch || $rutMatch;
+        });
     }
+
+    // 3. Paginar manualmente (Livewire necesita un LengthAwarePaginator si lo haces así)
+    // Para simplificar ahora y probar que funciona, usemos una paginación simple de colección:
+    $paginatedOrders = new \Illuminate\Pagination\LengthAwarePaginator(
+        $orders->forPage($this->page, 15),
+        $orders->count(),
+        15,
+        $this->page,
+        ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+    );
+
+    return view('livewire.admin.order-supervision', [
+        'orders' => $paginatedOrders,
+        'doctors' => $doctors
+    ]);
+}
+
+
 }
