@@ -93,10 +93,17 @@ Route::middleware([
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
     Route::get('/payouts/{payout}/comprobante', [PayoutController::class, 'downloadEvidence'])->name('payouts.download');
 
+    // --- ACCIONES CLÍNICAS COMPARTIDAS (Médico & Director Técnico) ---
+    // Se extrae la generación de PDF para que ambos roles puedan auditar/visualizar
+    Route::middleware(['role:doctor|director_tecnico'])->group(function () {
+        Route::get('/ordenes-clinicas/{order}/pdf', [MedicalOrderController::class, 'generatePdf'])->name('orders.pdf');
+    });
+
     // --- RUTAS EXCLUSIVAS DEL DOCTOR ---
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
         Route::get('/mi-billetera', [PayoutController::class, 'doctorWallet'])->name('payouts.wallet');
+
         Route::post('/retiros/solicitar', [PayoutController::class, 'requestStore'])->name('payouts.request');
 
         Route::prefix('ordenes-clinicas')->name('orders.')->group(function () {
@@ -106,16 +113,16 @@ Route::middleware([
             Route::post('/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('release');
             Route::post('/{order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('derivate');
             Route::post('/{order}/anular-firma', [MedicalOrderController::class, 'voidSignature'])->name('void');
-            Route::get('/{order}/pdf', [MedicalOrderController::class, 'generatePdf'])->name('pdf');
+            // La ruta PDF se movió al bloque compartido superior
         });
     });
 
     // --- RUTAS EXCLUSIVAS DEL DIRECTOR TÉCNICO (Supervisión Clínica) ---
     Route::middleware(['role:director_tecnico'])->group(function () {
-        // Vista de órdenes dedicada para el DT (sin conflictos de Livewire)
+        // Vista de órdenes dedicada para el DT
         Route::get('/ordenes', [MedicalOrderController::class, 'clinicalIndex'])->name('orders.index');
 
-        // Reporte de calidad clínica (Corrige el error Route not defined)
+        // Reporte de calidad clínica
         Route::get('/reportes-calidad-clinica', [DashboardController::class, 'clinicalQualityReports'])->name('reports.clinical');
 
         Route::resource('ordenes', MedicalOrderController::class)
@@ -125,7 +132,6 @@ Route::middleware([
     });
 
     // --- RUTAS COMPARTIDAS (ADMIN & DIRECTOR TÉCNICO) ---
-    // El Admin mantiene acceso a la configuración, pero NO a las órdenes médicas
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
@@ -148,11 +154,14 @@ Route::middleware([
 });
 
 
+
 /*
 |--------------------------------------------------------------------------
 | 4. PORTAL DE PACIENTES & PAGOS
 |--------------------------------------------------------------------------
 */
+
+
 Route::middleware([
     'auth',
     config('jetstream.auth_session'),

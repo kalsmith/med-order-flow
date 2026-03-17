@@ -450,5 +450,32 @@ public function show(Order $order)
 }
 
 
+public function generatePdf(Order $order, OrderPdfService $pdfService)
+{
+    $user = auth()->user();
+
+    // Validar permisos
+    if ($user->hasRole('doctor')) {
+        // Un médico solo puede ver sus propias órdenes o las que ha reclamado
+        if ($order->doctor_id !== $user->doctor?->id) {
+            abort(403, 'No tienes permiso para ver este documento.');
+        }
+    }
+
+    // El DT y el Admin pasan directamente por el middleware de la ruta
+
+    // Verificación de existencia de receta activa
+    if (!$order->activePrescription) {
+        return back()->with('error', 'No hay una prescripción generada para esta orden.');
+    }
+
+    $pdf = $pdfService->generate($order);
+
+    // Sugerencia: Usa stream() para que se abra en el navegador, es mejor para auditoría
+    return $pdf->stream("Orden_{$order->activePrescription->correlative_number}.pdf");
+}
+
+
+
 
 }
