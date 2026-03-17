@@ -40,18 +40,18 @@ public function redirectToGoogle()
 public function handleGoogleCallback()
 {
     try {
-        Log::info('--- INICIO CALLBACK GOOGLE ---');
+       // Log::info('--- INICIO CALLBACK GOOGLE ---');
 
         // Usamos stateless() para evitar el error de mismatch de estado que causa el loop
         $googleUser = Socialite::driver('google')->stateless()->user();
-        Log::info('Usuario obtenido de Google: ' . $googleUser->email);
+        //Log::info('Usuario obtenido de Google: ' . $googleUser->email);
 
         $user = User::where('google_id', $googleUser->id)
                     ->orWhere('email', $googleUser->email)
                     ->first();
 
         if (!$user) {
-            Log::info('Creando nuevo usuario');
+          //  Log::info('Creando nuevo usuario');
             $user = User::create([
                 'name' => $googleUser->name,
                 'email' => $googleUser->email,
@@ -66,21 +66,21 @@ public function handleGoogleCallback()
         if (!$user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
             if (!$user->hasRole('paciente')) {
                 $user->assignRole('paciente');
-                Log::info('Rol paciente asignado');
+            //    Log::info('Rol paciente asignado');
             }
         }
 
-        Log::info('Intentando Auth::login para ID: ' . $user->id);
+       // Log::info('Intentando Auth::login para ID: ' . $user->id);
         Auth::login($user, true);
 
         // PERSISTENCIA CRÍTICA
         request()->session()->regenerate();
         session()->save();
 
-        Log::info('Sesión regenerada y guardada. ID Sesión: ' . session()->getId());
+        //Log::info('Sesión regenerada y guardada. ID Sesión: ' . session()->getId());
 
         $intendedUrl = session()->pull('url.intended', route('user.dispatch'));
-        Log::info('Redirigiendo a: ' . $intendedUrl);
+        //Log::info('Redirigiendo a: ' . $intendedUrl);
 
         return redirect()->to($intendedUrl);
 
