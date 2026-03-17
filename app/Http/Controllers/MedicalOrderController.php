@@ -431,25 +431,22 @@ public function rejectOrder(Request $request, Order $order, RefundService $refun
     }
 
 
-    public function show(Order $order)
-    {
-        // Solo permitimos al DT o Admin ver esta ficha de auditoría
-        if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
-            abort(403, 'No tienes permiso para auditar esta orden.');
-        }
-
-        // Cargamos todo lo necesario para una auditoría clínica completa
-        $order->load([
-            'patient',
-            'doctor.user',
-            'examType.specialty',
-            'prescriptions.doctor.user',
-            'interactions'
-        ]);
-
-        return view('admin.orders.audit', compact('order'));
+public function show(Order $order)
+{
+    if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
+        abort(403);
     }
 
+    // Cargamos examType.children para ver el contenido de los packs
+    $order->load([
+        'patient',
+        'doctor.user',
+        'examType.children', // <-- Importante para los packs
+        'prescriptions.doctor.user'
+    ]);
+
+    return view('admin.orders.audit', compact('order'));
+}
 
 
 
