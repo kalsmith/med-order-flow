@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Prescription;
 use App\Models\Transaction;
+use App\Services\OrderPdfService;
 use App\Services\RefundService;
+use App\Services\StaffOrderPdfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -450,31 +452,44 @@ public function show(Order $order)
 }
 
 
-public function generatePdf(Order $order, OrderPdfService $pdfService)
-{
-    $user = auth()->user();
+public function generatePdf(Order $order,  StaffOrderPdfService $pdfService)
+    {
+        $user = auth()->user();
 
-    // Validar permisos
-    if ($user->hasRole('doctor')) {
-        // Un médico solo puede ver sus propias órdenes o las que ha reclamado
-        if ($order->doctor_id !== $user->doctor?->id) {
-            abort(403, 'No tienes permiso para ver este documento.');
+        // 1. Verificación de seguridad por rol
+        if ($user->hasRole('doctor')) {
+            $doctorId = $user->doctor?->id;
+
+            // Verificamos si el médico es el dueño de la orden o de la prescripción activa
+            $isOrderOwner = $order->doctor_id === $doctorId;
+            $isPrescriptionOwner = $order->activePrescription?->doctor_id === $doctorId;
+
+            if (!$isOrderOwner && !$isPrescriptionOwner) {
+                abort(403, 'No tienes permiso para ver documentos de otros facultativos.');
+            }
         }
+
+        // El DT y el Admin pasan directamente gracias al middleware de la ruta
+
+        // 2. Verificación de existencia de receta activa
+        // Cargamos la relación para evitar errores de null
+        $prescription = $order->activePrescription;
+
+        if (!$prescription) {
+            return back()->with('error', 'No hay una prescripción generada o firmada para esta orden.');
+        }
+
+        // 3. Generación del PDF
+        // Reutilizamos el servicio que ya tienes en app/Services/OrderPdfService.php
+        $pdf = $pdfService->generate($order);
+
+        // 4. Visualización
+        // Usamos stream() en lugar de download() para que el DT/Médico
+        // pueda auditar el documento en una pestaña nueva sin llenar su carpeta de descargas.
+        $filename = "Orden_Medica_" . ($prescription->correlative_number ?? $order->id) . ".pdf";
+
+        return $pdf->stream($filename);
     }
-
-    // El DT y el Admin pasan directamente por el middleware de la ruta
-
-    // Verificación de existencia de receta activa
-    if (!$order->activePrescription) {
-        return back()->with('error', 'No hay una prescripción generada para esta orden.');
-    }
-
-    $pdf = $pdfService->generate($order);
-
-    // Sugerencia: Usa stream() para que se abra en el navegador, es mejor para auditoría
-    return $pdf->stream("Orden_{$order->activePrescription->correlative_number}.pdf");
-}
-
 
 
 
