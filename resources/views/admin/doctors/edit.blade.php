@@ -9,10 +9,13 @@
 @endsection
 
 @section('content')
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
+
+        {{-- Alertas de Error --}}
         @if ($errors->any())
             <div class="alert alert-danger border-0 shadow-sm mb-4">
                 <ul class="mb-0">
@@ -25,25 +28,128 @@
 
         <div class="card shadow-sm border-0 overflow-hidden">
             <div class="bg-primary py-1"></div>
+
             <div class="card-body p-4 p-md-5">
                 <form id="doctor-form" action="{{ route('admin.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
                     <div class="row g-4">
-                        {{-- ... Tus campos anteriores (Nombre, RUT, Email, etc.) se mantienen igual ... --}}
+                        {{-- Sección: Identidad --}}
+                        <div class="col-12">
+                            <h6 class="text-primary text-uppercase fw-bold small mb-3">
+                                <i class="bi bi-person-badge me-2"></i>Información Personal y de Cuenta
+                            </h6>
+                            <hr class="mt-0 opacity-10">
+                        </div>
+
+                        {{-- Nombre con Selector de Prefijo --}}
                         <div class="col-md-7">
                             <label class="form-label fw-bold small text-muted">Nombre del Profesional</label>
                             <div class="input-group">
-                                <select name="prefix" class="form-select bg-light fw-bold border-end-0">
+                                <select name="prefix" class="form-select bg-light fw-bold border-end-0 @error('prefix') is-invalid @enderror" style="max-width: 90px;">
                                     <option value="Dr." {{ old('prefix', $doctor->prefix) == 'Dr.' ? 'selected' : '' }}>Dr.</option>
                                     <option value="Dra." {{ old('prefix', $doctor->prefix) == 'Dra.' ? 'selected' : '' }}>Dra.</option>
                                 </select>
-                                <input type="text" name="name" class="form-control" value="{{ old('name', $doctor->user->name) }}" required>
+                                <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                                       value="{{ old('name', $doctor->user->name) }}" required placeholder="Nombre y Apellidos">
                             </div>
                         </div>
 
-                        {{-- Sección Firma Digital --}}
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small text-muted">RUT</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-text text-muted"></i></span>
+                                <input type="text" name="rut" class="form-control border-start-0 ps-0 @error('rut') is-invalid @enderror"
+                                       value="{{ old('rut', $doctor->rut) }}">
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small text-muted">Correo Electrónico</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+                                <input type="email" name="email" class="form-control border-start-0 ps-0 @error('email') is-invalid @enderror"
+                                       value="{{ old('email', $doctor->user->email) }}" required>
+                            </div>
+                        </div>
+
+                        {{-- SECCIÓN: Seguridad --}}
+                        <div class="col-12 mt-5">
+                            <h6 class="text-primary text-uppercase fw-bold small mb-3">
+                                <i class="bi bi-shield-lock me-2"></i>Seguridad y Acceso
+                            </h6>
+                            <hr class="mt-0 opacity-10">
+                            <div class="alert alert-light border small text-muted">
+                                <i class="bi bi-info-circle me-1"></i> Deje los campos de contraseña en blanco si no desea realizar cambios.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Nueva Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-muted"></i></span>
+                                <input type="password" name="password" class="form-control border-start-0 ps-0 @error('password') is-invalid @enderror"
+                                       placeholder="Mínimo 8 caracteres">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Confirmar Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key-fill text-muted"></i></span>
+                                <input type="password" name="password_confirmation" class="form-control border-start-0 ps-0"
+                                       placeholder="Repita la contraseña">
+                            </div>
+                        </div>
+
+                        {{-- Sección: Información Profesional --}}
+                        <div class="col-12 mt-5">
+                            <h6 class="text-primary text-uppercase fw-bold small mb-3">
+                                <i class="bi bi-briefcase me-2"></i>Información Profesional
+                            </h6>
+                            <hr class="mt-0 opacity-10">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">N° Registro SIS (RNPI)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash text-muted"></i></span>
+                                <input type="text" name="rnpi_number" class="form-control border-start-0 ps-0 @error('rnpi_number') is-invalid @enderror"
+                                       value="{{ old('rnpi_number', $doctor->rnpi_number) }}">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Estado del Médico</label>
+                            <select name="is_active" id="is_active_select" class="form-select border-primary-subtle fw-bold">
+                                <option value="1" {{ old('is_active', $doctor->is_active) == 1 ? 'selected' : '' }}>🟢 Activo / Vigente</option>
+                                <option value="0" {{ old('is_active', $doctor->is_active) == 0 ? 'selected' : '' }}>🔴 Inactivo</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small text-muted">Especialidades Asignadas</label>
+                            <div class="p-3 border rounded bg-light">
+                                <div class="row">
+                                    @foreach($specialties as $specialty)
+                                        <div class="col-md-4 col-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="specialties[]"
+                                                       value="{{ $specialty->id }}" id="spec_{{ $specialty->id }}"
+                                                       {{ (is_array(old('specialties')) && in_array($specialty->id, old('specialties'))) || $doctor->specialties->contains($specialty->id) ? 'checked' : '' }}>
+                                                <label class="form-check-label small" for="spec_{{ $specialty->id }}">
+                                                    {{ $specialty->name }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                @error('specialties') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
+                            </div>
+                        </div>
+
+                        {{-- Sección: Firma Digital --}}
                         <div class="col-md-12 mt-4">
                             <label class="form-label fw-bold small text-muted">Firma Digital (Sello)</label>
                             <div class="d-flex flex-column flex-md-row align-items-center gap-4 p-3 border rounded">
@@ -54,15 +160,21 @@
                                 </div>
                                 <div class="flex-grow-1">
                                     <input type="file" id="signature-input" class="form-control form-control-sm" accept="image/png, image/jpeg">
-                                    <small class="text-muted" style="font-size: 0.7rem;">Suba una imagen para recortarla y usarla como firma.</small>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Suba un archivo nuevo para recortar y actualizar.</small>
                                 </div>
                             </div>
                         </div>
 
+                        {{-- Botones de Acción --}}
                         <div class="col-12 mt-5 pt-3 border-top">
-                            <button type="submit" class="btn btn-primary px-5 shadow fw-bold float-end">
-                                <i class="bi bi-save me-2"></i> Guardar Cambios
-                            </button>
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <button type="button" class="btn btn-link text-danger text-decoration-none small p-0" onclick="confirmDeactivation()">
+                                    <i class="bi bi-slash-circle me-1"></i> Desactivar Médico
+                                </button>
+                                <button type="submit" class="btn btn-primary px-5 shadow fw-bold">
+                                    <i class="bi bi-save me-2"></i> Guardar Cambios
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -71,21 +183,22 @@
     </div>
 </div>
 
-<div class="modal fade" id="cropperModal" tabindex="-1" aria-labelledby="cropperModalLabel" aria-hidden="true" data-bs-backdrop="static">
+{{-- MODAL DE RECORTE (Fuera del formulario principal) --}}
+<div class="modal fade" id="cropperModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title" id="cropperModalLabel">Ajustar Tamaño de Firma</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header">
+                <h5 class="modal-title">Ajustar Firma</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0">
-                <div style="max-height: 500px; overflow: hidden;">
-                    <img id="image-to-crop" src="" style="display: block; max-width: 100%;">
+            <div class="modal-body">
+                <div class="img-container">
+                    <img id="image-to-crop" src="" style="max-width: 100%; display: block;">
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="crop-button">Aplicar Recorte</button>
+                <button type="button" class="btn btn-primary" id="crop-button">Cortar y Usar</button>
             </div>
         </div>
     </div>
@@ -94,66 +207,64 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
     let cropper;
-    const signatureInput = document.getElementById('signature-input');
+    const input = document.getElementById('signature-input');
     const imageToCrop = document.getElementById('image-to-crop');
-    const previewImg = document.getElementById('signature-preview');
-    const cropModalElement = document.getElementById('cropperModal');
-    const cropModal = new bootstrap.Modal(cropModalElement);
-    const cropButton = document.getElementById('crop-button');
+    const preview = document.getElementById('signature-preview');
+    const modalElement = document.getElementById('cropperModal');
+    const modal = new bootstrap.Modal(modalElement);
     const doctorForm = document.getElementById('doctor-form');
 
-    // Crear el input oculto dinámicamente si no existe
-    let hiddenInput = document.querySelector('input[name="signature_cropped"]');
-    if (!hiddenInput) {
-        hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'signature_cropped';
-        doctorForm.appendChild(hiddenInput);
-    }
+    // Input hidden para el Base64
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'signature_cropped';
+    doctorForm.appendChild(hiddenInput);
 
-    // Detectar cambio en el input de archivo
-    signatureInput.addEventListener('change', function (e) {
+    input.onchange = function (e) {
         const files = e.target.files;
         if (files && files.length > 0) {
             const reader = new FileReader();
             reader.onload = function (event) {
                 imageToCrop.src = event.target.result;
-                cropModal.show();
+                modal.show();
             };
             reader.readAsDataURL(files[0]);
         }
-    });
+    };
 
-    // Inicializar Cropper cuando el modal se muestra
-    cropModalElement.addEventListener('shown.bs.modal', function () {
+    modalElement.addEventListener('shown.bs.modal', function () {
         cropper = new Cropper(imageToCrop, {
-            aspectRatio: 2 / 1, // Tamaño firma
+            aspectRatio: 2 / 1,
             viewMode: 1,
             autoCropArea: 1,
         });
     });
 
-    // Destruir Cropper al cerrar el modal
-    cropModalElement.addEventListener('hidden.bs.modal', function () {
-        if (cropper) {
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        if(cropper) {
             cropper.destroy();
             cropper = null;
         }
     });
 
-    // Ejecutar el recorte
-    cropButton.addEventListener('click', function () {
-        if (cropper) {
-            const canvas = cropper.getCroppedCanvas({
-                width: 400,
-                height: 200,
-            });
+    document.getElementById('crop-button').addEventListener('click', function () {
+        const canvas = cropper.getCroppedCanvas({
+            width: 400,
+            height: 200,
+        });
 
-            const base64Image = canvas.toDataURL('image/png');
-            previewImg.src = base64Image;
-            hiddenInput.value = base64Image;
-            cropModal.hide();
-        }
+        const croppedImageDataURL = canvas.toDataURL('image/png');
+        preview.src = croppedImageDataURL;
+        hiddenInput.value = croppedImageDataURL;
+        modal.hide();
     });
+
+    function confirmDeactivation() {
+        if (confirm('¿Está seguro de que desea cambiar el estado del médico a Inactivo?')) {
+            document.getElementById('is_active_select').value = "0";
+            alert('Estado cambiado a Inactivo. Recuerde presionar "Guardar Cambios" para aplicar.');
+        }
+    }
 </script>
+
 @endsection
