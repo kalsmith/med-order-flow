@@ -169,28 +169,21 @@
                 </div>
 
                 {{-- CAMBIO CRÍTICO PARA LA FIRMA --}}
-                @if($prescription->doctor->signature_path)
-                    @php
-                        // Obtenemos la ruta absoluta en el disco
-                        $signatureLocalPath = storage_path('app/public/' . $prescription->doctor->signature_path);
-                    @endphp
+@if($prescription->doctor->signature_path)
+    <div class="signature-container">
+        @php
+            // Obtenemos solo el nombre del archivo: "sig_123.png"
+            $filename = basename($prescription->doctor->signature_path);
+        @endphp
 
-                    @if(file_exists($signatureLocalPath))
-                        <div class="signature-container">
-                            {{-- Pasamos la ruta del disco directamente --}}
-                            <img src="{{ $signatureLocalPath }}" class="signature-img">
-                        </div>
-                    @else
-                        {{-- Si el archivo no existe físicamente, mostramos el texto legal --}}
-                        <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
-                            Documento firmado electrónicamente bajo Ley N° 19.799
-                        </div>
-                    @endif
-                @else
-                    <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
-                        Documento firmado electrónicamente bajo Ley N° 19.799
-                    </div>
-                @endif
+        {{-- Llamamos a la ruta pública que acabamos de crear --}}
+        <img src="{{ route('public.signature.show', ['filename' => $filename]) }}" class="signature-img">
+    </div>
+@else
+    <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
+        Documento firmado electrónicamente bajo Ley N° 19.799
+    </div>
+@endif
             </td>
         </tr>
     </table>

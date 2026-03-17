@@ -33,6 +33,10 @@ use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 */
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
+
+// --- AGREGAR ESTA LÍNEA AQUÍ (FUERA DE AUTH) ---
+Route::get('/view-signature/{filename}', [DoctorController::class, 'showSignature'])->name('public.signature.show');
+
 // Validación pública de órdenes
 Route::get('/v/{id}', [OrderValidationController::class, 'show'])->name('validate.order');
 
