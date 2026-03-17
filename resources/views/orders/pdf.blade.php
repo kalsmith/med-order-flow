@@ -169,6 +169,7 @@
                 </div>
 
                 {{-- CAMBIO CRÍTICO PARA LA FIRMA --}}
+               {{ $prescription->doctor->signature_path}}
 @if($prescription->doctor->signature_path)
     <div class="signature-container">
         @php
