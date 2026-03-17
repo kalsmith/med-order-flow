@@ -32,8 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // 2. EXCEPCIONES CSRF (Para Google Callback y Webhooks de Flow)
         $middleware->validateCsrfTokens(except: [
-            'perfil/eliminar/solicitar',
-            'perfil/eliminar/confirmar',
+            'livewire/update',
+            'perfil/eliminar/*',
             'auth/google/callback',
             'payment/flow/*',
         ]);
