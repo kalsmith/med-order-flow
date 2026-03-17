@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Auth;
 
 // Modelos
 use App\Models\Specialty;
+use App\Models\Faq;
 
 // Controladores
 use App\Http\Controllers\Admin\DashboardController;
@@ -23,7 +24,6 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FlowController;
 use App\Http\Controllers\OrderValidationController;
-use App\Models\Faq;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 
 /*
@@ -33,19 +33,16 @@ use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 */
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
-// Ruta pública para validar la autenticidad de la orden
-Route::get('/v/{id}', [OrderValidationController::class, 'show'])
-    ->name('validate.order');
+// Validación pública de órdenes
+Route::get('/v/{id}', [OrderValidationController::class, 'show'])->name('validate.order');
 
-    // Rutas Legales (Términos, Privacidad, etc.)
-// Rutas Legales/Páginas de contenido usando Slug
+// Rutas Legales
 Route::get('/legal/{slug}', function ($slug) {
     $faq = Faq::where('slug', $slug)->where('is_active', true)->firstOrFail();
     return view('public.legal', compact('faq'));
 })->name('legal.show');
 
-
-// Login & Auth
+// Auth Tradicional & Google
 Route::get('/login', function () { abort(404); });
 Route::get('/acceso', function() { return view('auth.login'); })->name('login');
 Route::post('/acceso', [AuthenticatedSessionController::class, 'store']);
@@ -65,47 +62,40 @@ Route::post('/logout', function() {
 | 2. DISTRIBUIDOR DE TRÁFICO (Post-Login)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:auth', 'verified'])->get('/home', function () {
+Route::middleware(['auth', 'verified'])->get('/home', function () {
     $user = Auth::user();
     if ($user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
         return redirect()->route('admin.panel');
     }
+    // Si no tiene perfil de paciente creado
     if (!$user->patients()->where('relationship', 'self')->exists()) {
         return redirect()->intended(route('home'));
     }
     return redirect()->route('patient.orders');
 })->name('user.dispatch');
+
 /*
 |--------------------------------------------------------------------------
 | 3. PANEL DE GESTIÓN (STAFF)
 |--------------------------------------------------------------------------
-*//*
-|--------------------------------------------------------------------------
-| 3. PANEL DE GESTIÓN (STAFF)
-|--------------------------------------------------------------------------
 */
-
 Route::middleware([
-    'auth:auth',
+    'auth',
     config('jetstream.auth_session'),
     'verified',
     'role:admin|doctor|director_tecnico|contable'
 ])->prefix('gestion')->name('admin.')->group(function () {
 
     Route::get('/panel', [DashboardController::class, 'index'])->name('panel');
-
-    // --- NUEVA RUTA: Descarga segura de comprobantes ---
-    // Se coloca aquí para que la hereden todos los roles del grupo
     Route::get('/payouts/{payout}/comprobante', [PayoutController::class, 'downloadEvidence'])->name('payouts.download');
 
-    // 1. RUTAS ESPECÍFICAS DEL DOCTOR
+    // Rutas Doctor
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/clinico', [MedicalOrderController::class, 'index'])->name('doctor.panel');
         Route::get('/mi-billetera', [PayoutController::class, 'doctorWallet'])->name('payouts.wallet');
         Route::post('/retiros/solicitar', [PayoutController::class, 'requestStore'])->name('payouts.request');
 
         Route::prefix('ordenes-clinicas')->name('orders.')->group(function () {
-            // ... (tus rutas de órdenes clínicas se mantienen igual)
             Route::get('/{order}/revisar', [MedicalOrderController::class, 'showSignForm'])->name('sign.form');
             Route::post('/{order}/firmar', [MedicalOrderController::class, 'processSignature'])->name('sign.process');
             Route::post('/{order}/rechazar', [MedicalOrderController::class, 'rejectOrder'])->name('reject');
@@ -116,7 +106,7 @@ Route::middleware([
         });
     });
 
-    // 2. ADMINISTRACIÓN
+    // Rutas Administración & Contabilidad
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
@@ -125,7 +115,6 @@ Route::middleware([
         Route::resource('ordenes', MedicalOrderController::class)->names('orders')->parameters(['ordenes' => 'order'])->except(['create', 'store']);
     });
 
-    // 3. CONTABILIDAD
     Route::middleware(['role:contable|admin'])->group(function () {
         Route::get('/reportes', [DashboardController::class, 'businessReports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
@@ -134,61 +123,48 @@ Route::middleware([
     });
 });
 
-
-
 /*
 |--------------------------------------------------------------------------
 | 4. PORTAL DE PACIENTES & PAGOS
 |--------------------------------------------------------------------------
 */
 Route::middleware([
-    'auth:sanctum',
+    'auth',
     config('jetstream.auth_session'),
     'verified',
     'role:paciente'
 ])->group(function () {
 
-// --- GESTIÓN DE PERFIL ---
-    // Vista de confirmación
-// Dentro del grupo de middleware 'auth:sanctum', 'role:paciente'
-Route::get('/perfil/eliminar', [ProfileController::class, 'showDeletePage'])->name('profile.delete.view');
-Route::post('/perfil/eliminar/solicitar', [ProfileController::class, 'requestAccountDeletion'])->name('profile.delete.request');
-Route::post('/perfil/eliminar/confirmar', [ProfileController::class, 'confirmAccountDeletion'])->name('profile.delete.execute');
+    // Gestión de Perfil y Eliminación
+    Route::get('/perfil/eliminar', [ProfileController::class, 'showDeletePage'])->name('profile.delete.view');
+    Route::post('/perfil/eliminar/solicitar', [ProfileController::class, 'requestAccountDeletion'])->name('profile.delete.request');
+    Route::post('/perfil/eliminar/confirmar', [ProfileController::class, 'confirmAccountDeletion'])->name('profile.delete.execute');
 
+    Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])
+        ->defaults('type', 'personalizada')
+        ->name('profile.complete');
 
-Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])
-    ->defaults('type', 'personalizada')
-    ->name('profile.complete');
-
-// La nueva ruta para el Micro-Panel de Gestión de Familiares
+    // Círculo Familiar
     Route::get('/mi-circulo', [PatientCircleController::class, 'index'])->name('patient.circle');
-
-    // Rutas para acciones del círculo (opcional para después)
     Route::post('/mi-circulo/agregar', [PatientCircleController::class, 'store'])->name('patient.circle.store');
     Route::delete('/mi-circulo/{patient}', [PatientCircleController::class, 'destroy'])->name('patient.circle.destroy');
 
-
-
-    // Embudo de compra inicial
+    // Flujo de Orden
     Route::get('/solicitar/{type}/{id?}', [OrderFlowController::class, 'handle'])->name('order.flow');
     Route::post('/validar-perfil-flow', [OrderFlowController::class, 'storeProfile'])->name('profile.store.flow');
 
-    // Acciones con Perfil Completo
-    // --- Acciones con Perfil Completo ---
+    // Rutas protegidas por Perfil Completo
     Route::middleware(['check.profile'])->group(function () {
         Route::get('/mis-ordenes', [PatientOrderController::class, 'index'])->name('patient.orders');
         Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
 
-        // CHECKOUT: Una sola ruta clara para procesar el pago
-        // Cuando el controlador de la orden termina, redirige aquí.
+        // Checkout
         Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
-
         Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])
             ->name('checkout.process')
-            ->where('order', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+            ->where('order', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
-        // ÉXITO
         Route::get('/pago-exitoso/{order?}', [PatientOrderController::class, 'showSuccess'])->name('payment.success');
     });
 });
@@ -199,15 +175,10 @@ Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle
 |--------------------------------------------------------------------------
 */
 Route::prefix('payment/flow')->group(function () {
-    // Estas rutas deben estar en el Except del VerifyCsrfToken middleware
     Route::match(['get', 'post'], '/return', [FlowController::class, 'returnUrl'])->name('flow.return');
     Route::post('/confirmation', [FlowController::class, 'confirmation'])->name('flow.webhook');
     Route::post('/refund-confirmation', [FlowController::class, 'refundConfirmation'])->name('flow.refund.webhook');
-
-    // Nueva ruta para mostrar el estado estético (éxito o error)
-    // No requiere middleware auth necesariamente si validas el token en el controlador
     Route::get('/status/{token}', [FlowController::class, 'viewStatus'])->name('payment.status');
-
     Route::get('/cancel', [FlowController::class, 'cancel'])->name('flow.cancel');
     Route::get('/fail', [FlowController::class, 'fail'])->name('flow.fail');
 });
@@ -217,7 +188,7 @@ Route::prefix('payment/flow')->group(function () {
 | 6. APIs INTERNAS
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'verified'])->prefix('api')->name('api.')->group(function () {
+Route::middleware(['auth', 'verified'])->prefix('api')->name('api.')->group(function () {
     Route::get('/specialties/{specialty}/exam-types', function (Specialty $specialty) {
         return $specialty->examTypes()->where('is_active', true)->get(['id', 'name', 'base_price']);
     })->name('exams.by.specialty');
