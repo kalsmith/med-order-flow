@@ -9,6 +9,37 @@
 @endsection
 
 @section('content')
+
+{{-- Mensajes de Feedback --}}
+@if (session('status'))
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px; background-color: #d1e7dd; color: #0f5132;">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+            <div>
+                <strong>¡Actualizado!</strong> {{ session('status') }}
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+@if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Hubo un problema:</strong>
+                <ul class="mb-0 small">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
         <form action="{{ route('admin.exam-types.index') }}" method="GET" class="row g-3">
@@ -121,4 +152,15 @@
         {{ $exams->links() }}
     </div>
 </div>
+
+<style>
+    /* Animación de entrada para la alerta */
+    .alert {
+        animation: slideDown 0.4s ease-out;
+    }
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 @endsection
