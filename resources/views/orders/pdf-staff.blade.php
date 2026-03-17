@@ -132,9 +132,25 @@
             <td>
                 <table width="100%">
                     <tr>
-                        <td width="55%"><div class="label">Nombre</div><div class="value">{{ strtoupper($order->patient->full_name) }}</div></td>
-                        <td width="25%"><div class="label">RUT</div><div class="value">{{ $order->patient->rut }}</div></td>
-                        <td><div class="label">Edad</div><div class="value">{{ $order->patient->age }} años</div></td>
+                        <td width="55%">
+                            <div class="label">Nombre</div>
+                            <div class="value">
+                                {{-- Cambio: Manejo de paciente nulo --}}
+                                {{ $order->patient ? strtoupper($order->patient->full_name) : 'USUARIO ELIMINÓ CUENTA' }}
+                            </div>
+                        </td>
+                        <td width="25%">
+                            <div class="label">RUT</div>
+                            <div class="value">
+                                {{ $order->patient->rut ?? 'N/A' }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="label">Edad</div>
+                            <div class="value">
+                                {{ $order->patient ? $order->patient->age . ' años' : 'N/A' }}
+                            </div>
+                        </td>
                     </tr>
                 </table>
             </td>
