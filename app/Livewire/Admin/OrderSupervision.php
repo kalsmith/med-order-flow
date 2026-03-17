@@ -7,7 +7,7 @@ use App\Models\Doctor;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // <-- Importante
+use Illuminate\Support\Facades\Log;
 
 class OrderSupervision extends Component
 {
@@ -38,37 +38,42 @@ class OrderSupervision extends Component
         $query = Order::with(['patient', 'doctor.user', 'activePrescription'])
             ->whereIn('status', ['paid', 'refund_pending', 'refunded', 'rejected'])
             ->when($this->searchPatient, function($q_parent) {
-                $term = '%' . mb_strtolower($this->searchPatient, 'UTF-8') . '%';
+                // 1. Limpiamos espacios al inicio/final del input (TRIM de PHP)
+                $cleanInput = trim($this->searchPatient);
+                $term = '%' . mb_strtolower($cleanInput, 'UTF-8') . '%';
 
-                // Logueamos qué está buscando el usuario
-                Log::info('Buscando Paciente:', ['input' => $this->searchPatient, 'procesado' => $term]);
+                Log::info('--- INICIO BÚSQUEDA ---');
+                Log::info('Input original: "' . $this->searchPatient . '"');
+                Log::info('Término procesado: "' . $term . '"');
 
                 $q_parent->whereHas('patient', function($q) use ($term) {
                     $q->where(function($sub) use ($term) {
-                        $sub->whereRaw('LOWER(full_name) LIKE ?', [$term])
-                            ->orWhereRaw('LOWER(rut) LIKE ?', [$term]);
+                        // 2. Aplicamos TRIM() en la base de datos para ignorar espacios fantasmas
+                        $sub->whereRaw('LOWER(TRIM(full_name)) LIKE ?', [$term])
+                            ->orWhereRaw('LOWER(TRIM(rut)) LIKE ?', [$term]);
                     });
                 });
             })
-            ->when($this->doctorId, function($query) {
-                $query->where('doctor_id', $this->doctorId);
+            ->when($this->doctorId, function($q) {
+                $q->where('doctor_id', $this->doctorId);
             })
-            ->when($this->dateFrom, function($query) {
-                $query->whereDate('created_at', '>=', $this->dateFrom);
+            ->when($this->dateFrom, function($q) {
+                $q->whereDate('created_at', '>=', $this->dateFrom);
             })
-            ->when($this->dateTo, function($query) {
-                $query->whereDate('created_at', '<=', $this->dateTo);
+            ->when($this->dateTo, function($q) {
+                $q->whereDate('created_at', '<=', $this->dateTo);
             })
             ->latest();
 
-        // LOG DEL SQL FINAL (Para ver si se están cruzando los WHERE)
-        // Log::debug('SQL Ejecutado: ' . $query->toSql());
+        // 3. LOG DEL SQL GENERADO (Descomenta si necesitas ver la query exacta)
+        // Log::debug('SQL: ' . $query->toSql());
+        // Log::debug('Bindings: ', $query->getBindings());
 
         $orders = $query->paginate(15);
 
-        // LOG DE RESULTADOS
         if($this->searchPatient) {
-            Log::info('Resultados encontrados:', ['count' => $orders->total()]);
+            Log::info('Resultados encontrados: ' . $orders->total());
+            Log::info('--- FIN BÚSQUEDA ---');
         }
 
         return view('livewire.admin.order-supervision', [
