@@ -26,9 +26,9 @@ public function redirectToGoogle()
         session(['url.intended' => url()->previous()]);
     }
 
-    return Socialite::driver('google')
-        // ELIMINAMOS 'select_account' para que si ya está logueado en Google, pase directo.
-        // Si el usuario quiere usar otra cuenta, Google igual ofrece la opción si no hay sesión.
+return Socialite::driver('google')
+        // ESTO ES LA CLAVE:
+        ->with(['prompt' => 'select_account'])
         ->redirect();
 }
 
