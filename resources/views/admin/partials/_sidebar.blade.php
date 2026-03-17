@@ -1,14 +1,12 @@
 <nav id="sidebarMenu" class="sidebar collapse d-md-block">
     <div class="sidebar-sticky">
         <ul class="nav flex-column">
-            {{-- Panel Principal --}}
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.panel') ? 'active' : '' }}" href="{{ route('admin.panel') }}">
                     <i class="bi bi-grid-1x2-fill"></i> Panel Principal
                 </a>
             </li>
 
-            {{-- MODULO: GESTIÓN MÉDICA --}}
             @role('admin|director_tecnico')
             <h6 class="sidebar-heading">Gestión Médica</h6>
             <li class="nav-item">
@@ -23,19 +21,17 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.exam-types.*') ? 'active' : '' }}" href="{{ route('admin.exam-types.index') }}">
-                    <i class="bi bi-eyedropper fs-5"></i> Catálogo Exámenes
+                    <i class="bi bi-eyedropper fs-5"></i> Catálogo
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.faqs.*') ? 'active' : '' }}" href="{{ route('admin.faqs.index') }}">
-                    <i class="bi bi-info-circle-fill"></i> Contenidos / FAQ
+                    <i class="bi bi-info-circle-fill"></i> FAQ / Contenidos
                 </a>
             </li>
             @endrole
 
-            {{-- MODULO: OPERACIONES --}}
             <h6 class="sidebar-heading">Operaciones</h6>
-
             @role('doctor')
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.doctor.panel') ? 'active' : '' }}" href="{{ route('admin.doctor.panel') }}">
@@ -57,7 +53,6 @@
             </li>
             @endrole
 
-            {{-- MODULO: FINANZAS --}}
             @role('contable|admin')
             <h6 class="sidebar-heading">Finanzas</h6>
             <li class="nav-item">
@@ -77,15 +72,5 @@
             </li>
             @endrole
         </ul>
-
-        {{-- Logout móvil --}}
-        <div class="d-md-none p-3 border-top mt-3">
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="btn btn-outline-danger w-100 btn-sm">
-                    <i class="bi bi-box-arrow-right"></i> Salir
-                </button>
-            </form>
-        </div>
     </div>
 </nav>
