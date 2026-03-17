@@ -110,6 +110,7 @@ Route::middleware([
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
+        Route::get('/signatures/{filename}', [DoctorController::class, 'showSignature'])->name('signatures.show');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
         Route::resource('preguntas-frecuentes', FaqController::class)->names('faqs')->parameters(['preguntas-frecuentes' => 'faq']);
         Route::resource('ordenes', MedicalOrderController::class)->names('orders')->parameters(['ordenes' => 'order'])->except(['create', 'store']);
