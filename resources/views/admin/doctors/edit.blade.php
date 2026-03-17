@@ -211,10 +211,13 @@
     const imageToCrop = document.getElementById('image-to-crop');
     const preview = document.getElementById('signature-preview');
     const modalElement = document.getElementById('cropperModal');
-    const modal = new bootstrap.Modal(modalElement);
-    const doctorForm = document.getElementById('doctor-form');
 
-    // Input hidden para el Base64
+    // Soporte para diferentes formas en que Bootstrap puede estar cargado
+    const getModal = () => {
+        return bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+    };
+
+    const doctorForm = document.getElementById('doctor-form');
     const hiddenInput = document.createElement('input');
     hiddenInput.type = 'hidden';
     hiddenInput.name = 'signature_cropped';
@@ -225,38 +228,55 @@
         if (files && files.length > 0) {
             const reader = new FileReader();
             reader.onload = function (event) {
+                // Primero asignamos la imagen
                 imageToCrop.src = event.target.result;
-                modal.show();
+
+                // Esperamos a que la imagen cargue en el DOM antes de mostrar el modal
+                imageToCrop.onload = function() {
+                    getModal().show();
+                };
             };
             reader.readAsDataURL(files[0]);
         }
     };
 
     modalElement.addEventListener('shown.bs.modal', function () {
+        // Si ya existía un cropper (por un cambio anterior), lo destruimos
+        if (cropper) {
+            cropper.destroy();
+        }
+
         cropper = new Cropper(imageToCrop, {
             aspectRatio: 2 / 1,
             viewMode: 1,
             autoCropArea: 1,
+            responsive: true,
+            restore: false,
         });
     });
 
     modalElement.addEventListener('hidden.bs.modal', function () {
-        if(cropper) {
+        if (cropper) {
             cropper.destroy();
             cropper = null;
         }
+        // Limpiamos el input file para permitir subir la misma imagen si se desea
+        input.value = '';
     });
 
     document.getElementById('crop-button').addEventListener('click', function () {
+        if (!cropper) return;
+
         const canvas = cropper.getCroppedCanvas({
             width: 400,
             height: 200,
+            imageSmoothingQuality: 'high',
         });
 
         const croppedImageDataURL = canvas.toDataURL('image/png');
         preview.src = croppedImageDataURL;
         hiddenInput.value = croppedImageDataURL;
-        modal.hide();
+        getModal().hide();
     });
 
     function confirmDeactivation() {
