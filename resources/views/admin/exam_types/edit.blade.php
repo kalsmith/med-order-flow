@@ -11,8 +11,35 @@
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-11">
-        {{-- CAMBIO CLAVE: Pasamos el ID explícitamente o usamos el nombre que Laravel espera --}}
-        <form action="{{ route('admin.exam-types.update', ['exam_type' => $examType->id]) }}" method="POST" id="examForm">
+
+        {{-- Bloque de Alertas para Feedback Visual --}}
+        @if (session('status'))
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill fs-4 me-2"></i>
+                    <div>{{ session('status') }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+                    <div>
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        <form action="{{ route('admin.exam-types.update', $examType->id) }}" method="POST" id="examForm">
             @csrf
             @method('PUT')
 
@@ -23,7 +50,7 @@
                             <h5 class="card-title mb-4 text-dark fw-bold">Información General</h5>
 
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">Nombre del Pack</label>
+                                <label class="form-label fw-semibold">Nombre del Pack / Examen</label>
                                 <input type="text" name="name" class="form-control" value="{{ old('name', $examType->name) }}" required>
                             </div>
 
@@ -68,7 +95,7 @@
                         <div class="card-body p-4">
                             <div class="d-flex align-items-center mb-3">
                                 <i class="bi bi-stack fs-4 text-primary me-2"></i>
-                                <h5 class="card-title m-0 text-dark fw-bold">Composición de la Pila</h5>
+                                <h5 class="card-title m-0 text-dark fw-bold">Composición de la Pila (Pack)</h5>
                             </div>
 
                             <div class="row align-items-center mt-4">
@@ -98,7 +125,8 @@
 
                                 <div class="col-5">
                                     <label class="form-label fw-bold small text-uppercase text-primary">En esta Pila</label>
-                                    <div style="height: 31px;" class="mb-2"></div> <select name="bundle_ids[]" id="selected_exams" class="form-select border-primary" size="12" multiple>
+                                    <div style="height: 31px;" class="mb-2"></div>
+                                    <select name="bundle_ids[]" id="selected_exams" class="form-select border-primary" size="12" multiple>
                                         @foreach($examType->children as $child)
                                             <option value="{{ $child->id }}">{{ $child->name }}</option>
                                         @endforeach
@@ -151,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // IMPORTANTE: Antes de enviar, seleccionamos todos para que viajen en el Request
     form.addEventListener('submit', () => {
         Array.from(selected.options).forEach(opt => opt.selected = true);
     });
@@ -160,5 +189,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
     .form-select[size] { height: 350px !important; }
+    .alert { animation: fadeInDown 0.5s ease-out; }
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 @endsection

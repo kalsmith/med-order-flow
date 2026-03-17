@@ -113,20 +113,20 @@ public function edit(ExamType $examType)
             'bundle_ids.*' => 'exists:exam_types,id'
         ]);
 
-        try {
+    try {
             DB::beginTransaction();
 
-            // Actualizamos los datos básicos
             $examType->update($request->only([
                 'name', 'specialty_id', 'code_fonasa', 'base_price', 'is_active'
             ]));
 
-            // Sincronizamos la batería de exámenes (la pila)
-            // Si el array viene vacío, sync([]) eliminará todas las relaciones
             $examType->children()->sync($request->bundle_ids ?? []);
 
             DB::commit();
-            return redirect()->route('exam-types.index')->with('status', 'Examen y batería actualizados.');
+
+            // CAMBIO AQUÍ: Agregamos 'admin.' a la ruta y enviamos el mensaje
+            return redirect()->route('admin.exam-types.index')
+                            ->with('status', '¡Éxito! El examen "' . $examType->name . '" ha sido actualizado correctamente.');
 
         } catch (\Exception $e) {
             DB::rollBack();

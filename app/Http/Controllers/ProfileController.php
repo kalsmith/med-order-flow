@@ -64,7 +64,7 @@ public function confirmAccountDeletion(Request $request)
     $originalEmail = $user->email;
     $userId = $user->id;
 
-    Log::info("--- INICIO ELIMINACIÓN DE CUENTA ---", ['user_id' => $userId, 'email' => $originalEmail]);
+    //Log::info("--- INICIO ELIMINACIÓN DE CUENTA ---", ['user_id' => $userId, 'email' => $originalEmail]);
 
     $record = DB::table('password_reset_tokens')->where('email', $originalEmail)->first();
 
@@ -97,17 +97,17 @@ public function confirmAccountDeletion(Request $request)
 
         // 3. Limpiar token
         DB::table('password_reset_tokens')->where('email', $originalEmail)->delete();
-        Log::info("Token de seguridad eliminado");
+        //Log::info("Token de seguridad eliminado");
 
         DB::commit();
 
         // 4. Logout y limpieza de sesión
-        Log::info("Cerrando sesión del usuario eliminado");
+        //Log::info("Cerrando sesión del usuario eliminado");
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        Log::info("--- ELIMINACIÓN COMPLETADA EXITOSAMENTE ---");
+        //Log::info("--- ELIMINACIÓN COMPLETADA EXITOSAMENTE ---");
 
         return redirect('/')->with('success', 'Cuenta eliminada con éxito. El correo ' . $originalEmail . ' ha sido liberado.');
 

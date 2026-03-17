@@ -33,7 +33,7 @@ class AccountDeletion extends Component
                     'created_at' => now()
                 ]
             );
-            Log::info("Token de seguridad generado y guardado en DB.");
+            //Log::info("Token de seguridad generado y guardado en DB.");
 
             // 2. Enviar el correo usando la cuenta que sí funciona (no-reply@soltys.cl)
             Mail::raw("Tu código de seguridad para eliminar tu cuenta en PideTuExamen es: $generatedCode. Si no solicitaste esto, ignora este mensaje.", function ($message) use ($user, $generatedCode) {
@@ -42,7 +42,7 @@ class AccountDeletion extends Component
                         ->subject($generatedCode . " es tu código de verificación");
             });
 
-            Log::info("Correo enviado exitosamente a: " . $user->email);
+            //Log::info("Correo enviado exitosamente a: " . $user->email);
 
             $this->step = 2;
             session()->flash('message', 'Código enviado exitosamente.');
@@ -69,7 +69,7 @@ class AccountDeletion extends Component
         $originalEmail = $user->email;
         $userId = $user->id;
 
-        Log::info("--- PROCESANDO CONFIRMACIÓN DE BORRADO ---", ['user_id' => $userId]);
+        //Log::info("--- PROCESANDO CONFIRMACIÓN DE BORRADO ---", ['user_id' => $userId]);
 
         $record = DB::table('password_reset_tokens')->where('email', $originalEmail)->first();
 
@@ -89,22 +89,22 @@ class AccountDeletion extends Component
             if (method_exists($user, 'patients')) {
                 $count = $user->patients()->count();
                 $user->patients()->delete();
-                Log::info("Pacientes asociados borrados (SoftDelete)", ['count' => $count]);
+                //Log::info("Pacientes asociados borrados (SoftDelete)", ['count' => $count]);
             }
 
             // 2. Renombrar correo y aplicar SoftDelete al usuario
             $user->email = $newEmail;
             $user->save();
             $user->delete();
-            Log::info("Usuario renombrado a $newEmail y desactivado (SoftDelete).");
+            //Log::info("Usuario renombrado a $newEmail y desactivado (SoftDelete).");
 
             // 3. Limpiar token usado
             DB::table('password_reset_tokens')->where('email', $originalEmail)->delete();
-            Log::info("Token de seguridad limpiado.");
+            //Log::info("Token de seguridad limpiado.");
 
             DB::commit();
 
-            Log::info("--- ELIMINACIÓN DE CUENTA FINALIZADA CON ÉXITO ---", ['user_id' => $userId]);
+            //Log::info("--- ELIMINACIÓN DE CUENTA FINALIZADA CON ÉXITO ---", ['user_id' => $userId]);
 
             // 4. Logout y destrucción de sesión
             Auth::logout();
