@@ -65,7 +65,7 @@ Route::post('/logout', function() {
 | 2. DISTRIBUIDOR DE TRÁFICO (Post-Login)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
+Route::middleware(['auth:auth', 'verified'])->get('/home', function () {
     $user = Auth::user();
     if ($user->hasAnyRole(['admin', 'doctor', 'director_tecnico', 'contable'])) {
         return redirect()->route('admin.panel');
@@ -86,7 +86,7 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
 */
 
 Route::middleware([
-    'auth:sanctum',
+    'auth:auth',
     config('jetstream.auth_session'),
     'verified',
     'role:admin|doctor|director_tecnico|contable'
