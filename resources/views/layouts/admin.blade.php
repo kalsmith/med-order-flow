@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'MedOrder Admin') }}</title>
+    <title>{{ config('app.name', 'PideTuExamen Admin') }}</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -29,23 +29,23 @@
         .navbar {
             background-color: #ffffff !important;
             border-bottom: 1px solid #e2e8f0;
-            height: 60px;
-        }
-        .navbar-brand {
-            color: var(--sidebar-bg) !important;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            height: 70px; /* Aumentado ligeramente para el logo */
         }
 
-        /* Sidebar - Estilos mantenidos y mejorados */
+        .navbar-brand img {
+            max-height: 45px;
+            width: auto;
+        }
+
+        /* Sidebar */
         .sidebar {
             position: fixed; top: 0; bottom: 0; left: 0; z-index: 100;
             width: 260px; background: var(--sidebar-bg);
             transition: all 0.3s;
         }
         .sidebar-sticky {
-            position: relative; height: calc(100vh - 60px);
-            top: 60px; padding-top: 20px;
+            position: relative; height: calc(100vh - 70px);
+            top: 70px; padding-top: 20px;
             overflow-x: hidden; overflow-y: auto;
         }
 
@@ -83,6 +83,15 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
+        /* Avatar estilo circular */
+        .avatar-admin {
+            width: 32px;
+            height: 32px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+        }
+
         @media (max-width: 767.98px) {
             .sidebar { margin-left: -260px; }
             main { margin-left: 0; }
@@ -94,27 +103,37 @@
 <body>
 
     <header class="navbar navbar-light sticky-top flex-md-nowrap p-0 shadow-sm">
-        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4 fs-5" href="{{ route('admin.panel') }}">
-            <i class="bi bi-droplet-fill text-primary"></i> MedOrder Flow
+        {{-- Logotipo dinámico --}}
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4" href="{{ route('admin.panel') }}">
+            <img src="{{ asset('assets/logo/logo.png') }}" alt="PideTuExamen Admin">
         </a>
+
         <button class="navbar-toggler position-absolute d-md-none collapsed border-0" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
             <i class="bi bi-list"></i>
         </button>
 
         <div class="navbar-nav w-100 d-flex flex-row justify-content-end px-4">
             <div class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle fw-semibold text-dark" href="#" data-bs-toggle="dropdown">
-                    <i class="bi bi-person-circle me-1"></i> {{ Auth::user()->name }}
+                <a class="nav-link dropdown-toggle fw-semibold text-dark d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=0D6EFD&color=fff" class="avatar-admin" alt="User">
+                    <span class="d-none d-md-inline">{{ Auth::user()->name }}</span>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="border-radius: 12px;">
                     <li class="px-3 py-2 small text-muted border-bottom">
-                        Rol: {{ Auth::user()->getRoleNames()->first() ?? 'Sin Rol' }}
+                        <div class="fw-bold text-dark">{{ Auth::user()->name }}</div>
+                        <div style="font-size: 0.75rem;">Rol: {{ Auth::user()->getRoleNames()->first() ?? 'Administrador' }}</div>
                     </li>
+                    <li>
+                        <a class="dropdown-item py-2" href="/">
+                            <i class="bi bi-house-door me-2"></i> Ver Sitio Web
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
                     <li>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="dropdown-item text-danger py-2">
-                                <i class="bi bi-box-arrow-right me-2"></i> Salir
+                                <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
                             </button>
                         </form>
                     </li>
@@ -126,19 +145,25 @@
     <div class="container-fluid">
         <div class="row">
 
-            {{-- LLAMADA AL PARTIAL --}}
+            {{-- LLAMADA AL PARTIAL DEL SIDEBAR --}}
             @include('admin.partials._sidebar')
 
             <main class="col-md-9 ms-sm-auto col-lg-10 p-0">
                 <div class="content-header d-flex justify-content-between align-items-center">
-                    <h1 class="h4 m-0 fw-bold text-dark">@yield('header', 'Panel')</h1>
+                    <div class="d-flex align-items-center">
+                        <h1 class="h4 m-0 fw-bold text-dark">@yield('header', 'Panel de Control')</h1>
+                    </div>
                     <div>@yield('header-actions')</div>
                 </div>
 
                 <div class="px-4 pb-5">
-                    @if (session('success'))
-                        <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show" role="alert">
-                            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+                    {{-- Alertas de Éxito --}}
+                    @if (session('success') || session('status'))
+                        <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-4" role="alert" style="border-radius: 10px;">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                                <span>{{ session('success') ?? session('status') }}</span>
+                            </div>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
