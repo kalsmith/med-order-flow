@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified'])->get('/home', function () {
     return redirect()->route('patient.orders');
 })->name('user.dispatch');
 
+
 /*
 |--------------------------------------------------------------------------
 | 3. PANEL DE GESTIÓN (STAFF)
@@ -111,25 +112,33 @@ Route::middleware([
 
     // --- RUTAS EXCLUSIVAS DEL DIRECTOR TÉCNICO (Supervisión Clínica) ---
     Route::middleware(['role:director_tecnico'])->group(function () {
-        // Sobrescribimos el index del resource o definimos la ruta antes
+        // Vista de órdenes dedicada para el DT (sin conflictos de Livewire)
         Route::get('/ordenes', [MedicalOrderController::class, 'clinicalIndex'])->name('orders.index');
+
+        // Reporte de calidad clínica (Corrige el error Route not defined)
+        Route::get('/reportes-calidad-clinica', [DashboardController::class, 'clinicalQualityReports'])->name('reports.clinical');
 
         Route::resource('ordenes', MedicalOrderController::class)
             ->names('orders')
             ->parameters(['ordenes' => 'order'])
-            ->except(['index', 'create', 'store']); // Exceptuamos el index original
+            ->except(['index', 'create', 'store']);
     });
 
     // --- RUTAS COMPARTIDAS (ADMIN & DIRECTOR TÉCNICO) ---
+    // El Admin mantiene acceso a la configuración, pero NO a las órdenes médicas
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
         Route::get('/signatures/{filename}', [DoctorController::class, 'showSignature'])->name('signatures.show');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
+    });
+
+    // --- RUTAS EXCLUSIVAS DE ADMINISTRACIÓN (FAQ / Contenidos) ---
+    Route::middleware(['role:admin'])->group(function () {
         Route::resource('preguntas-frecuentes', FaqController::class)->names('faqs')->parameters(['preguntas-frecuentes' => 'faq']);
     });
 
-    // --- RUTAS EXCLUSIVAS DE ADMINISTRACIÓN & CONTABILIDAD (Negocio) ---
+    // --- RUTAS DE FINANZAS (ADMIN & CONTABLE) ---
     Route::middleware(['role:contable|admin'])->group(function () {
         Route::get('/reportes', [DashboardController::class, 'businessReports'])->name('reports');
         Route::get('/contabilidad', [DashboardController::class, 'reports'])->name('accounting.index');
@@ -137,6 +146,7 @@ Route::middleware([
         Route::post('/pagos-medicos/{payout}/procesar', [PayoutController::class, 'process'])->name('payouts.process');
     });
 });
+
 
 /*
 |--------------------------------------------------------------------------
