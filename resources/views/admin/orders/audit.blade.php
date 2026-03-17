@@ -18,12 +18,11 @@
     </div>
 
     <div class="row">
-        {{-- Bloque Izquierdo: Información del Paciente y Contenido Clínico --}}
         <div class="col-md-8">
-            {{-- Card de Detalles del Examen / Pack --}}
+            {{-- Card de Detalles del Examen / Pack / Custom --}}
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                    <span>Contenido de la Orden</span>
+                    <span>Contenido de la Orden ({{ ucfirst($order->type) }})</span>
                     <span class="badge bg-{{ $order->status == 'paid' ? 'primary' : 'success' }}">
                         {{ strtoupper($order->status) }}
                     </span>
@@ -33,18 +32,22 @@
                         <div class="col-md-12">
                             <label class="text-muted small d-block">Examen Solicitado</label>
                             <h4 class="fw-bold text-dark">
-                                {{ $order->display_name }}
-                                @if($order->examType?->isProfile())
-                                    <span class="badge bg-info text-dark ms-2" style="font-size: 0.5em; vertical-align: middle;">
-                                        <i class="bi bi-box-seam"></i> PACK / PERFIL
-                                    </span>
+                                @if($order->type === 'custom')
+                                    <span class="text-primary"><i class="bi bi-pencil-square"></i> Orden Personalizada</span>
+                                @else
+                                    {{ $order->examType->name ?? 'Examen no encontrado' }}
+                                    @if($order->examType?->isProfile())
+                                        <span class="badge bg-info text-dark ms-2" style="font-size: 0.5em; vertical-align: middle;">
+                                            <i class="bi bi-box-seam"></i> PACK / PERFIL
+                                        </span>
+                                    @endif
                                 @endif
                             </h4>
                         </div>
                     </div>
 
-                    {{-- Desglose si es un Pack --}}
-                    @if($order->examType?->isProfile())
+                    {{-- Lógica para Packs Standard --}}
+                    @if($order->type === 'standard' && $order->examType?->isProfile())
                         <div class="p-3 border rounded bg-light mb-3">
                             <label class="text-muted small d-block mb-2 fw-bold text-uppercase">
                                 <i class="bi bi-list-check"></i> Exámenes incluidos en este pack:
@@ -57,7 +60,6 @@
                                                 <li class="mb-1">
                                                     <i class="bi bi-check2-circle text-success"></i>
                                                     {{ $child->name }}
-                                                    <span class="text-muted">({{ $child->code_fonasa ?: 'S/C' }})</span>
                                                 </li>
                                             @endforeach
                                         </ul>
@@ -65,10 +67,15 @@
                                 @endforeach
                             </div>
                         </div>
-                    @else
-                        <div class="mb-3">
-                            <label class="text-muted small">Código Fonasa:</label>
-                            <span class="fw-bold">{{ $order->examType->code_fonasa ?? 'No especificado' }}</span>
+                    @endif
+
+                    {{-- Lógica para Órdenes Custom --}}
+                    @if($order->type === 'custom')
+                        <div class="p-3 border border-primary rounded bg-light mb-3">
+                            <label class="text-primary small d-block mb-2 fw-bold text-uppercase">
+                                <i class="bi bi-info-circle"></i> Detalle de exámenes solicitados por el paciente:
+                            </label>
+                            <p class="mb-0 fw-bold text-secondary" style="white-space: pre-line;">{{ $order->custom_description }}</p>
                         </div>
                     @endif
 
@@ -76,40 +83,44 @@
 
                     <div class="row">
                         <div class="col-md-12">
-                            <label class="text-muted small d-block fw-bold text-uppercase mb-2">Contexto Clínico (Anamnesis del Paciente)</label>
-                            <div class="p-3 bg-light rounded border-start border-4 border-primary">
-                                {{ $order->clinical_context ?: 'El paciente no proporcionó contexto clínico adicional.' }}
+                            <label class="text-muted small d-block fw-bold text-uppercase mb-2">Contexto Clínico (Anamnesis)</label>
+                            <div class="p-3 bg-light rounded border-start border-4 border-info">
+                                {{ $order->clinical_context ?: 'Sin información clínica adicional.' }}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Historial de Prescripciones / Firmas --}}
+            {{-- Historial de Prescripciones --}}
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white fw-bold">Documentos Médicos y Firmas</div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 text-center">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="bg-light">
+                            <thead class="bg-light text-start">
                                 <tr>
-                                    <th class="border-0">Correlativo</th>
-                                    <th class="border-0">Médico Responsable</th>
-                                    <th class="border-0">Fecha Firma</th>
-                                    <th class="border-0">Estado</th>
-                                    <th class="border-0 text-end">Documento</th>
+                                    <th>Correlativo</th>
+                                    <th>Médico Responsable</th>
+                                    <th>Fecha Firma</th>
+                                    <th>Estado</th>
+                                    <th class="text-end">Documento</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="text-start">
                                 @forelse($order->prescriptions as $p)
                                 <tr>
                                     <td class="align-middle fw-bold">#{{ $p->correlative_number }}</td>
                                     <td class="align-middle">
-                                        {{ $p->doctor->name }}<br>
-                                        <small class="text-muted">RNPI: {{ $p->doctor->rnpi_number }}</small>
+                                        @if($p->doctor)
+                                            {{ $p->doctor->user->name }}<br>
+                                            <small class="text-muted font-monospace">RNPI: {{ $p->doctor->rnpi_number }}</small>
+                                        @else
+                                            <span class="text-muted small italic">Pendiente de asignación</span>
+                                        @endif
                                     </td>
                                     <td class="align-middle small">
-                                        {{ $p->signed_at ? $p->signed_at->format('d/m/Y H:i') : 'Pendiente de firma' }}
+                                        {{ $p->signed_at ? $p->signed_at->format('d/m/Y H:i') : '---' }}
                                     </td>
                                     <td class="align-middle">
                                         <span class="badge {{ $p->status == 'signed' ? 'bg-success' : 'bg-warning text-dark' }}">
@@ -119,13 +130,13 @@
                                     <td class="align-middle text-end">
                                         @if($p->status == 'signed')
                                         <a href="{{ route('admin.orders.pdf', $order) }}" target="_blank" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                                            <i class="bi bi-file-earmark-pdf"></i> PDF
                                         </a>
                                         @endif
                                     </td>
                                 </tr>
                                 @empty
-                                <tr><td colspan="5" class="text-center py-4 text-muted">No se han generado prescripciones para esta orden.</td></tr>
+                                <tr><td colspan="5" class="py-4 text-muted text-center">No se han generado prescripciones.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -134,27 +145,15 @@
             </div>
         </div>
 
-        {{-- Bloque Derecho: Datos del Paciente y Auditoría --}}
+        {{-- Bloque Derecho --}}
         <div class="col-md-4">
             {{-- Card Paciente --}}
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white fw-bold">Información del Paciente</div>
                 <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="flex-shrink-0">
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                                <i class="bi bi-person-fill h4 mb-0"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-0 fw-bold">{{ $order->patient->full_name ?? 'N/A' }}</h6>
-                            <small class="text-muted">RUT: {{ $order->patient->rut ?? 'N/A' }}</small>
-                        </div>
-                    </div>
+                    <h6 class="mb-1 fw-bold">{{ $order->patient->full_name ?? 'N/A' }}</h6>
+                    <p class="text-muted small mb-3">RUT: {{ $order->patient->rut ?? 'N/A' }}</p>
                     <ul class="list-group list-group-flush small">
-                        <li class="list-group-item d-flex justify-content-between px-0">
-                            <span>Edad:</span> <span class="fw-bold">{{ $order->patient->age ?? 'N/A' }} años</span>
-                        </li>
                         <li class="list-group-item d-flex justify-content-between px-0">
                             <span>Previsión:</span> <span class="fw-bold">{{ $order->patient->prevision ?? 'N/A' }}</span>
                         </li>
@@ -164,28 +163,18 @@
 
             {{-- Activity Log --}}
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                    <span class="small">Log de Eventos</span>
-                    <i class="bi bi-clock-history small"></i>
-                </div>
+                <div class="card-header bg-white fw-bold small">Log de Eventos</div>
                 <div class="card-body p-0">
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        <ul class="list-group list-group-flush small">
-                            @forelse($order->activities ?? [] as $activity)
-                            <li class="list-group-item border-0 pb-0">
-                                <div class="d-flex">
-                                    <div class="text-primary me-2">•</div>
-                                    <div>
-                                        <p class="mb-0 fw-bold">{{ $activity->description }}</p>
-                                        <small class="text-muted">{{ $activity->created_at->diffForHumans() }}</small>
-                                    </div>
-                                </div>
-                            </li>
-                            @empty
-                            <li class="list-group-item text-center text-muted">Sin registros de actividad.</li>
-                            @endforelse
-                        </ul>
-                    </div>
+                    <ul class="list-group list-group-flush small">
+                        @forelse($order->activities ?? [] as $activity)
+                        <li class="list-group-item border-0">
+                            <p class="mb-0 fw-bold">{{ $activity->description }}</p>
+                            <small class="text-muted">{{ $activity->created_at->diffForHumans() }}</small>
+                        </li>
+                        @empty
+                        <li class="list-group-item text-muted text-center italic">Sin registros.</li>
+                        @endforelse
+                    </ul>
                 </div>
             </div>
         </div>
