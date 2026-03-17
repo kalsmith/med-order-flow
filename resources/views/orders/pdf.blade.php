@@ -124,7 +124,8 @@
     <table width="100%">
         <tr>
             <td width="60%">
-                <img src="https://med-order-flow.soltys.cl/assets/logo/logo.png" class="logo-img">
+                {{-- Usamos public_path para que el logo se cargue localmente en el servidor --}}
+                <img src="{{ public_path('assets/logo/logo.png') }}" class="logo-img">
                 <div class="contact-info">
                     pidetuexamen.cl &bull; contacto@pidetuexamen.cl<br>
                     <span>TEL:</span> +56 9 1234 5678
@@ -158,7 +159,7 @@
             <td class="section-title">Médico Emisor</td>
             <td>
                 <div class="value" style="font-size: 15px; margin-bottom: 4px;">
-                    Dr(a). {{ $prescription->doctor->user->name }}
+                    {{ $prescription->doctor->prefix }} {{ $prescription->doctor->user->name }}
                 </div>
                 <div style="color: #636e72; font-size: 10px;">
                     RUT: {{ $prescription->doctor->rut }} | Registro SIS: {{ $prescription->doctor->rnpi_number }}<br>
@@ -168,9 +169,20 @@
                 </div>
 
                 @if($prescription->doctor->signature_path)
-                    <div class="signature-container">
-                        <img src="{{ public_path('storage/' . $prescription->doctor->signature_path) }}" class="signature-img">
-                    </div>
+                    @php
+                        // Buscamos el archivo directamente en el storage interno
+                        $path = storage_path('app/public/' . $prescription->doctor->signature_path);
+                    @endphp
+
+                    @if(file_exists($path))
+                        <div class="signature-container">
+                            <img src="{{ $path }}" class="signature-img">
+                        </div>
+                    @else
+                        <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
+                            Documento firmado electrónicamente bajo Ley N° 19.799
+                        </div>
+                    @endif
                 @else
                     <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
                         Documento firmado electrónicamente bajo Ley N° 19.799
@@ -212,11 +224,8 @@
                         @endif
                     </div>
 
-                    {{-- Flujo de Órdenes Custom (Prioridad Médica) --}}
                     @if($order->type === 'custom')
                         <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap; color: #2d3436;">{{ $prescription->clinical_context }}</div>
-
-                    {{-- Flujo de Órdenes con Pack/Hijos --}}
                     @elseif($order->examType && $order->examType->children->isNotEmpty())
                         <div style="margin-top: 10px;">
                             @foreach($order->examType->children as $child)
@@ -226,8 +235,6 @@
                                 </div>
                             @endforeach
                         </div>
-
-                    {{-- Flujo de Examen Único Estándar --}}
                     @elseif($order->examType)
                         <div class="exam-item">
                             <span class="exam-code">[{{ $order->examType->code_fonasa ?? 'S/C' }}]</span>
@@ -244,7 +251,6 @@
     </table>
 </div>
 
-{{-- Solo mostrar observaciones si NO es custom, ya que en custom ya se usó ese texto arriba --}}
 @if($order->type !== 'custom' && $prescription->clinical_context)
 <div class="section">
     <table width="100%">
@@ -261,17 +267,16 @@
         <table width="100%">
             <tr>
                 <td width="70">
-                    {{-- Cambiado a SVG Base64 para máxima compatibilidad --}}
                     <img src="data:image/svg+xml;base64,{{ $qrCode }}" style="width: 70px; height: 70px;">
                 </td>
-<td style="padding-left: 15px; vertical-align: middle;">
-    <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
-    <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
-        Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
-        <strong>{{ $prescription->verification_code }}</strong> en pidetuexamen.cl/v/{{ $prescription->verification_code }}.
-        <br>ID Transacción: {{ strtoupper(substr($order->id, 0, 8)) }}
-    </div>
-</td>
+                <td style="padding-left: 15px; vertical-align: middle;">
+                    <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
+                    <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
+                        Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
+                        <strong>{{ $prescription->verification_code }}</strong> en pidetuexamen.cl/v/{{ $prescription->verification_code }}.
+                        <br>ID Transacción: {{ strtoupper(substr($order->id, 0, 8)) }}
+                    </div>
+                </td>
             </tr>
         </table>
     </div>
