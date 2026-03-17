@@ -67,6 +67,45 @@
             padding: 10px 0 30px 0;
         }
 
+        /* --- ESTILOS DE LOS LINKS DEL SIDEBAR --- */
+        .sidebar .nav-link {
+            font-weight: 500;
+            color: #94a3b8; /* Gris azulado suave */
+            padding: 0.75rem 1.5rem;
+            margin: 4px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .sidebar .nav-link i {
+            font-size: 1.1rem;
+            margin-right: 12px;
+            line-height: 1;
+        }
+
+        .sidebar .nav-link:hover {
+            color: #f8fafc;
+            background: var(--sidebar-active);
+        }
+
+        .sidebar .nav-link.active {
+            color: #fff !important;
+            background: var(--accent-color) !important;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        }
+
+        .sidebar-heading {
+            padding: 1.5rem 1.5rem 0.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            font-weight: 700;
+        }
+
         /* Personalización Scrollbar Sidebar */
         .sidebar-sticky::-webkit-scrollbar { width: 5px; }
         .sidebar-sticky::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
