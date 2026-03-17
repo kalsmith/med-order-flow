@@ -168,26 +168,15 @@
                     </span>
                 </div>
 
-                <div style="background: #fdf6e3; border: 1px solid #eee; padding: 5px; margin-top: 10px; font-family: monospace; font-size: 8px;">
-                    <strong>DEBUG INFO:</strong><br>
-                    Path en DB: {{ $prescription->doctor->signature_path ?? 'NULO' }}<br>
-                    ¿Llegó Base64?: {{ isset($signatureBase64) && $signatureBase64 ? 'SÍ ('.strlen($signatureBase64).' chars)' : 'NO' }}
-                </div>
-                <div class="signature-container">
-                    @if(isset($signatureBase64) && $signatureBase64)
-                        {{-- Renderizado mediante Base64 (Incrustado) --}}
+                @if(isset($signatureBase64) && $signatureBase64)
+                    <div class="signature-container">
                         <img src="{{ $signatureBase64 }}" class="signature-img">
-                    @elseif($prescription->doctor->signature_path)
-                        {{-- Fallback: Intento por URL si Base64 fallara --}}
-                        @php $filename = basename($prescription->doctor->signature_path); @endphp
-                        <img src="{{ route('public.signature.show', ['filename' => $filename]) }}" class="signature-img">
-                    @else
-                        {{-- Sin firma registrada --}}
-                        <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
-                            Documento firmado electrónicamente bajo Ley N° 19.799
-                        </div>
-                    @endif
-                </div>
+                    </div>
+                @else
+                    <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
+                        Documento firmado electrónicamente bajo Ley N° 19.799
+                    </div>
+                @endif
             </td>
         </tr>
     </table>
