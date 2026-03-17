@@ -383,34 +383,57 @@ public function rejectOrder(Request $request, Order $order, RefundService $refun
     }
 
     /**
- * Deriva la orden a una especialidad específica y la libera del médico actual.
- */
-public function derivateOrder(Request $request, Order $order)
-{
-    $request->validate([
-        'specialty_id' => 'required|exists:specialties,id'
-    ]);
-
-    try {
-        // Asumiendo que las órdenes 'custom' necesitan un exam_type
-        // o que manejas la especialidad directamente en la orden.
-        // Aquí liberamos al doctor para que aparezca en la lista global de esa especialidad.
-        $order->update([
-            'doctor_id' => null,
-            'claimed_at' => null,
-            // Si tu tabla orders tiene specialty_id, úsalo aquí.
-            // Si no, podrías necesitar asociar un exam_type genérico de esa especialidad.
-            // 'specialty_id' => $request->specialty_id,
+     * Deriva la orden a una especialidad específica y la libera del médico actual.
+     */
+    public function derivateOrder(Request $request, Order $order)
+    {
+        $request->validate([
+            'specialty_id' => 'required|exists:specialties,id'
         ]);
 
-        Log::info("Orden {$order->id} derivada a especialidad {$request->specialty_id}");
+        try {
+            // Asumiendo que las órdenes 'custom' necesitan un exam_type
+            // o que manejas la especialidad directamente en la orden.
+            // Aquí liberamos al doctor para que aparezca en la lista global de esa especialidad.
+            $order->update([
+                'doctor_id' => null,
+                'claimed_at' => null,
+                // Si tu tabla orders tiene specialty_id, úsalo aquí.
+                // Si no, podrías necesitar asociar un exam_type genérico de esa especialidad.
+                // 'specialty_id' => $request->specialty_id,
+            ]);
 
-        return redirect()->route('admin.doctor.panel')->with('success', 'La orden ha sido derivada correctamente.');
-    } catch (\Exception $e) {
-        Log::error("Error en derivateOrder: " . $e->getMessage());
-        return redirect()->back()->with('error', 'No se pudo procesar la derivación.');
+            Log::info("Orden {$order->id} derivada a especialidad {$request->specialty_id}");
+
+            return redirect()->route('admin.doctor.panel')->with('success', 'La orden ha sido derivada correctamente.');
+        } catch (\Exception $e) {
+            Log::error("Error en derivateOrder: " . $e->getMessage());
+            return redirect()->back()->with('error', 'No se pudo procesar la derivación.');
+        }
     }
-}
+
+
+
+
+
+    public function show(Order $order)
+    {
+        // El DT tiene permiso total para ver la orden
+        if (auth()->user()->hasRole('director_tecnico')) {
+            return view('admin.orders.show', compact('order'));
+        }
+
+        // El Admin solo debería ver datos básicos (No clínicos)
+        if (auth()->user()->hasRole('admin')) {
+            return view('admin.orders.view_restricted', compact('order'));
+        }
+    }
+
+
+
+
+
+
 
 
 }

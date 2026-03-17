@@ -106,4 +106,48 @@ class DashboardController extends Controller
         // IMPORTANTE: Ruta de vista ajustada
         return view('admin.reports', compact('orderStats', 'popularExams'));
     }
+
+
+
+    // En DashboardController.php
+
+    public function clinicalQualityReports()
+    {
+        // Solo el DT o Admin pueden entrar aquí
+        if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
+            abort(403);
+        }
+
+        // MÉTRICAS DE SUPERVISIÓN PARA EL DT
+        $stats = [
+            'total_orders' => Order::count(),
+            'signed_today' => Prescription::where('status', 'signed')
+                                ->whereDate('signed_at', today())->count(),
+            'rejected_orders' => Order::where('status', 'rejected')->count(),
+            'voided_prescriptions' => Prescription::where('status', 'voided')->count(),
+        ];
+
+        // Rendimiento por médico (Para que el DT vea quién firma más o quién rechaza mucho)
+        $doctorPerformance = Doctor::withCount(['signedPrescriptions', 'medicalOrders'])
+            ->get()
+            ->map(function($doctor) {
+                return [
+                    'name' => $doctor->name,
+                    'signed' => $doctor->signed_prescriptions_count,
+                    'total' => $doctor->medical_orders_count,
+                    // Evitamos división por cero
+                    'efficiency' => $doctor->medical_orders_count > 0
+                        ? round(($doctor->signed_prescriptions_count / $doctor->medical_orders_count) * 100)
+                        : 0
+                ];
+            });
+
+        // Últimas interacciones clínicas para auditar
+        $latestOrders = Order::with(['doctor.user', 'patient', 'examType'])
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('admin.reports.clinical', compact('stats', 'doctorPerformance', 'latestOrders'));
+    }
 }
