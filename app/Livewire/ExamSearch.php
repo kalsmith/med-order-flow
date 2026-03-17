@@ -10,35 +10,31 @@ class ExamSearch extends Component
 {
     public $search = '';
 
-public function render()
-{
-    $results = [];
+    public function render()
+    {
+        $results = [];
 
-    if (strlen($this->search) > 2) {
-        $term = '%' . $this->search . '%';
+        if (strlen($this->search) > 2) {
+            // Convertimos el término de búsqueda a minúsculas
+            $term = '%' . strtolower($this->search) . '%';
 
-        $results = ExamType::where('is_active', true)
-            ->where(function ($query) use ($term) {
-                $query->where('name', 'LIKE', $term) // Buscar por nombre del examen/pack
-                      ->orWhereHas('children', function ($subQuery) use ($term) {
-                          $subQuery->where('name', 'LIKE', $term); // O buscar por nombre de sus hijos
-                      });
-            })
-            ->with(['parents', 'children'])
-            ->get();
+            $results = ExamType::where('is_active', true)
+                ->where(function ($query) use ($term) {
+                    // Usamos whereRaw con LOWER para forzar la comparación en minúsculas
+                    $query->whereRaw('LOWER(name) LIKE ?', [$term])
+                        ->orWhereHas('children', function ($subQuery) use ($term) {
+                            $subQuery->whereRaw('LOWER(name) LIKE ?', [$term]);
+                        });
+                })
+                ->with(['parents', 'children'])
+                ->get();
 
-        // LOGS PARA VER LA MAGIA
-        // Log::info("--- Nueva Búsqueda Inteligente ---");
-        // Log::info("Término: " . $this->search);
-        // Log::info("Resultados: " . $results->count());
+            // Log para verificar qué está pasando internamente
+            Log::info("Buscando (insensible): " . $term . " | Encontrados: " . $results->count());
+        }
 
-        // foreach ($results as $exam) {
-        //     Log::info("Encontrado: {$exam->name} (ID: {$exam->id})");
-        // }
+        return view('livewire.exam-search', [
+            'exams' => $results
+        ]);
     }
-
-    return view('livewire.exam-search', [
-        'exams' => $results
-    ]);
-}
 }
