@@ -82,7 +82,7 @@ Route::middleware(['auth', 'verified'])->get('/home', function () {
 |--------------------------------------------------------------------------
 | 3. PANEL DE GESTIÓN (STAFF)
 |--------------------------------------------------------------------------
-*/
+cambio previo a nuevas rutas dt*/
 Route::middleware([
     'auth',
     config('jetstream.auth_session'),
@@ -111,6 +111,8 @@ Route::middleware([
     });
 
     // Rutas Administración & Contabilidad
+
+
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
         Route::resource('especialidades', SpecialtyController::class)->names('specialties');
         Route::resource('medicos', DoctorController::class)->names('doctors');
