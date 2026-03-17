@@ -157,26 +157,35 @@
     <table width="100%">
         <tr>
             <td class="section-title">Médico Emisor</td>
-            <td>
-                <div class="value" style="font-size: 15px; margin-bottom: 4px;">
-                    Dr(a). {{ $prescription->doctor->user->name }}
-                </div>
-                <div style="color: #636e72; font-size: 10px;">
-                    RUT: {{ $prescription->doctor->rut }} | Registro SIS: {{ $prescription->doctor->rnpi_number }}<br>
-                    <span style="color: #0d6efd; font-weight: bold;">
-                        {{ strtoupper($prescription->doctor->specialties->pluck('name')->join(' / ')) }}
-                    </span>
-                </div>
 
-                @if(isset($signatureBase64) && $signatureBase64)
-                    <div class="signature-container">
-                        <img src="{{ $signatureBase64 }}" class="signature-img">
-                    </div>
-                @else
-                    <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
-                        Documento firmado electrónicamente bajo Ley N° 19.799
-                    </div>
-                @endif
+            <td>
+                <table width="100%">
+                    <tr>
+                        <td width="60%" style="vertical-align: top;">
+                            <div class="value" style="font-size: 15px; margin-bottom: 4px;">
+                                Dr(a). {{ $prescription->doctor->user->name }}
+                            </div>
+                            <div style="color: #636e72; font-size: 10px;">
+                                RUT: {{ $prescription->doctor->rut }} | Registro SIS: {{ $prescription->doctor->rnpi_number }}<br>
+                                <span style="color: #0d6efd; font-weight: bold;">
+                                    {{ strtoupper($prescription->doctor->specialties->pluck('name')->join(' / ')) }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <td width="40%" align="right" style="vertical-align: middle;">
+                            @if(isset($signatureBase64) && $signatureBase64)
+                                <div class="signature-container" style="margin-top: 0;">
+                                    <img src="{{ $signatureBase64 }}" class="signature-img" style="display: inline-block;">
+                                </div>
+                            @else
+                                <div style="color: #b2bec3; font-style: italic; font-size: 8px; text-align: right;">
+                                    Documento firmado electrónicamente<br>bajo Ley N° 19.799
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
