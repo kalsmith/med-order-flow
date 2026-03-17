@@ -160,10 +160,11 @@ Route::middleware([
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
 
         // Checkout
-        Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
-        Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])
-            ->name('checkout.process')
-            ->where('order', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
+
+Route::get('/checkout/{order}/pay', [CheckoutController::class, 'process'])
+    ->name('checkout.process')
+    ->where('order', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         Route::get('/pago-exitoso/{order?}', [PatientOrderController::class, 'showSuccess'])->name('payment.success');
     });
