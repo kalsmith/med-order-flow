@@ -111,14 +111,13 @@ Route::middleware([
 
     // --- RUTAS EXCLUSIVAS DEL DIRECTOR TÉCNICO (Supervisión Clínica) ---
     Route::middleware(['role:director_tecnico'])->group(function () {
-        // El DT supervisa todas las órdenes (Acceso a datos clínicos)
+        // Sobrescribimos el index del resource o definimos la ruta antes
+        Route::get('/ordenes', [MedicalOrderController::class, 'clinicalIndex'])->name('orders.index');
+
         Route::resource('ordenes', MedicalOrderController::class)
             ->names('orders')
             ->parameters(['ordenes' => 'order'])
-            ->except(['create', 'store']);
-
-        // Reportes de calidad (Rechazos, tiempos médicos, etc.)
-        Route::get('/reportes-calidad-clinica', [DashboardController::class, 'clinicalQualityReports'])->name('reports.clinical');
+            ->except(['index', 'create', 'store']); // Exceptuamos el index original
     });
 
     // --- RUTAS COMPARTIDAS (ADMIN & DIRECTOR TÉCNICO) ---

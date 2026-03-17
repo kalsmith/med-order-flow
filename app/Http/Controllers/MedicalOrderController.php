@@ -416,19 +416,19 @@ public function rejectOrder(Request $request, Order $order, RefundService $refun
 
 
 
-    public function show(Order $order)
-    {
-        // El DT tiene permiso total para ver la orden
-        if (auth()->user()->hasRole('director_tecnico')) {
-            return view('admin.orders.show', compact('order'));
-        }
-
-        // El Admin solo debería ver datos básicos (No clínicos)
-        if (auth()->user()->hasRole('admin')) {
-            return view('admin.orders.view_restricted', compact('order'));
-        }
+public function clinicalIndex()
+{
+    // Solo permitimos al DT (y quizás al Admin si quieres supervisar)
+    if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
+        abort(403, 'No tienes permisos para supervisión clínica.');
     }
 
+    $orders = \App\Models\Order::with(['patient', 'doctor.user', 'examType'])
+        ->latest()
+        ->paginate(20); // Paginación clásica para Blade
+
+    return view('admin.orders.supervision', compact('orders'));
+}
 
 
 

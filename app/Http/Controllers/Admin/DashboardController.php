@@ -111,43 +111,28 @@ class DashboardController extends Controller
 
     // En DashboardController.php
 
-    public function clinicalQualityReports()
-    {
-        // Solo el DT o Admin pueden entrar aquí
-        if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
-            abort(403);
-        }
+public function clinicalQualityReports()
+{
+    // 1. Estadísticas básicas (resumen rápido)
+    $stats = [
+        'signed_today' => \App\Models\Prescription::where('status', 'signed')->whereDate('signed_at', today())->count(),
+        'rejected_orders' => \App\Models\Order::where('status', 'rejected')->count(),
+        'voided_prescriptions' => \App\Models\Prescription::where('status', 'voided')->count(),
+    ];
 
-        // MÉTRICAS DE SUPERVISIÓN PARA EL DT
-        $stats = [
-            'total_orders' => Order::count(),
-            'signed_today' => Prescription::where('status', 'signed')
-                                ->whereDate('signed_at', today())->count(),
-            'rejected_orders' => Order::where('status', 'rejected')->count(),
-            'voided_prescriptions' => Prescription::where('status', 'voided')->count(),
-        ];
+    // 2. Rendimiento Médico (Solo médicos con órdenes para evitar errores)
+    $doctorPerformance = \App\Models\Doctor::withCount(['signedPrescriptions', 'medicalOrders'])
+        ->has('user') // Evita errores si hay un médico sin usuario
+        ->get();
 
-        // Rendimiento por médico (Para que el DT vea quién firma más o quién rechaza mucho)
-        $doctorPerformance = Doctor::withCount(['signedPrescriptions', 'medicalOrders'])
-            ->get()
-            ->map(function($doctor) {
-                return [
-                    'name' => $doctor->name,
-                    'signed' => $doctor->signed_prescriptions_count,
-                    'total' => $doctor->medical_orders_count,
-                    // Evitamos división por cero
-                    'efficiency' => $doctor->medical_orders_count > 0
-                        ? round(($doctor->signed_prescriptions_count / $doctor->medical_orders_count) * 100)
-                        : 0
-                ];
-            });
+    // 3. Últimas órdenes (Protección contra NULLS)
+    // Usamos whereHas para asegurar que solo traiga órdenes con paciente existente
+    $latestOrders = \App\Models\Order::whereHas('patient')
+        ->with(['doctor.user', 'patient', 'examType'])
+        ->latest()
+        ->take(15)
+        ->get(); // Aquí usamos get() porque es un resumen, no necesita paginación
 
-        // Últimas interacciones clínicas para auditar
-        $latestOrders = Order::with(['doctor.user', 'patient', 'examType'])
-            ->latest()
-            ->take(10)
-            ->get();
-
-        return view('admin.reports.clinical', compact('stats', 'doctorPerformance', 'latestOrders'));
-    }
+    return view('admin.reports.clinical', compact('stats', 'doctorPerformance', 'latestOrders'));
+}
 }
