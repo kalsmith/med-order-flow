@@ -11,7 +11,7 @@
 @section('content')
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-6">
+        <div class="col-md-10 col-lg-10">
 
             {{-- Indicador de Pasos --}}
             <div class="step-indicator">
