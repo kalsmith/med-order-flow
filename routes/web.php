@@ -133,9 +133,6 @@ Route::middleware([
 });
 
 
-Route::get('/perfil/eliminar', function() {
-    return "Vista de eliminación de perfil en construcción";
-})->name('profile.delete.view');
 
 /*
 |--------------------------------------------------------------------------
@@ -149,6 +146,27 @@ Route::middleware([
     'role:paciente'
 ])->group(function () {
 
+// --- GESTIÓN DE PERFIL ---
+    // Vista de confirmación
+    Route::get('/perfil/eliminar', function() {
+        return view('patient.profile.delete-confirm');
+    })->name('profile.delete.view');
+
+    // Acción de eliminación (Soft Delete)
+    Route::post('/perfil/eliminar', function() {
+        $user = Auth::user();
+
+        // 1. Cerrar sesión
+        Auth::logout();
+
+        // 2. Aplicar Soft Delete
+        $user->delete();
+
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return redirect('/')->with('success', 'Tu cuenta ha sido desactivada correctamente.');
+    })->name('profile.delete.execute');
 
 
 Route::get('/completar-perfil-obligatorio', [OrderFlowController::class, 'handle'])
