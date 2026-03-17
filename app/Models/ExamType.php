@@ -91,4 +91,9 @@ class ExamType extends Model
         return $this->hasMany(Order::class);
     }
 
+
+    public function getPacksAttribute()
+    {
+        return $this->parents;
+    }
 }
