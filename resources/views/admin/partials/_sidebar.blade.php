@@ -23,9 +23,51 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.exam-types.*') ? 'active' : '' }}" href="{{ route('admin.exam-types.index') }}">
-                    <i class="bi bi-flask-fill fs-5"></i> Catálogo Exámenes
+                    <i class="bi bi-prescription2 fs-5"></i> Catálogo Exámenes
                 </a>
             </li>
+
+            <li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('admin.exam-types.*') ? 'active' : '' }}" href="{{ route('admin.exam-types.index') }}">
+        <i class="bi bi-flask fs-5 me-2"></i> 1. Flask (Frasco)
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#">
+        <i class="bi bi-microscope fs-5 me-2"></i> 2. Microscope (Microscopio)
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#">
+        <i class="bi bi-prescription2 fs-5 me-2"></i> 3. Prescription (Receta)
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#">
+        <i class="bi bi-clipboard2-pulse fs-5 me-2"></i> 4. Clipboard (Diagnóstico)
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#">
+        <i class="bi bi-droplet-half fs-5 me-2"></i> 5. Droplet (Gota/Muestras)
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#">
+        <i class="bi bi-eyedropper fs-5 me-2"></i> 6. Eyedropper (Pipeta)
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#">
+        <i class="bi bi-virus fs-5 me-2"></i> 7. Virus (Patología)
+    </a>
+</li>
 
             {{-- CONTENIDOS / FAQ --}}
             <li class="nav-item">
