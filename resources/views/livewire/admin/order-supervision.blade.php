@@ -5,8 +5,7 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="small fw-bold text-muted text-uppercase">Paciente (Nombre o RUT)</label>
-                    <input wire:model.debounce.400ms="searchPatient" type="text" class="form-control form-control-sm" placeholder="Buscar...">
-                </div>
+                    <input wire:model.live.debounce.400ms="searchPatient" type="text" class="form-control form-control-sm" placeholder="Buscar paciente o RUT...">                </div>
                 <div class="col-md-3">
                     <label class="small fw-bold text-muted text-uppercase">Médico Responsable</label>
                     <select wire:model="doctorId" class="form-select form-select-sm">
