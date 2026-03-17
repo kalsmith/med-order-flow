@@ -14,7 +14,6 @@
                     <h5 class="mb-0 fw-bold">Información General</h5>
                 </div>
                 <div class="card-body text-center">
-                    {{-- Foto de Perfil (UI-Avatars o Profile Photo de Jetstream) --}}
                     <div class="mb-3">
                         <img src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}" class="rounded-circle img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
                     </div>
@@ -56,28 +55,46 @@
                         @csrf
 
                         <div class="row">
+                            {{-- Contraseña Actual --}}
                             <div class="col-md-12 mb-4">
                                 <label class="form-label fw-semibold">Contraseña Actual</label>
-                                <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" placeholder="••••••••">
-                                @error('current_password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <div class="input-group">
+                                    <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" placeholder="••••••••" id="current_password">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="current_password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    @error('current_password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
 
+                            {{-- Nueva Contraseña --}}
                             <div class="col-md-6 mb-4">
                                 <label class="form-label fw-semibold">Nueva Contraseña</label>
-                                <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••">
-                                @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <div class="input-group">
+                                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" id="new_password">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="new_password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    @error('password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                                 <div class="form-text mt-2">
                                     <i class="bi bi-info-circle me-1"></i> Mínimo 8 caracteres, con letras y números.
                                 </div>
                             </div>
 
+                            {{-- Confirmar Contraseña --}}
                             <div class="col-md-6 mb-4">
                                 <label class="form-label fw-semibold">Confirmar Nueva Contraseña</label>
-                                <input type="password" name="password_confirmation" class="form-control" placeholder="••••••••">
+                                <div class="input-group">
+                                    <input type="password" name="password_confirmation" class="form-control" placeholder="••••••••" id="confirm_password">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="confirm_password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -92,4 +109,32 @@
         </div>
     </div>
 </div>
+
+{{-- Script para los ojitos --}}
+<script>
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+    });
+</script>
+
+<style>
+    /* Ajuste para que el icono de error de Bootstrap no choque con el botón del ojo */
+    .form-control.is-invalid {
+        background-image: none !important;
+    }
+</style>
 @endsection
