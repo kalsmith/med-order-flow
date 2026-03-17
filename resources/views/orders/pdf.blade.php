@@ -124,8 +124,8 @@
     <table width="100%">
         <tr>
             <td width="60%">
-                {{-- Usamos public_path para que el logo se cargue localmente en el servidor --}}
-                <img src="{{ public_path('assets/logo/logo.png') }}" class="logo-img">
+                {{-- Mantenemos tu URL que ya funcionaba para el logo --}}
+                <img src="https://med-order-flow.soltys.cl/assets/logo/logo.png" class="logo-img">
                 <div class="contact-info">
                     pidetuexamen.cl &bull; contacto@pidetuexamen.cl<br>
                     <span>TEL:</span> +56 9 1234 5678
@@ -159,7 +159,7 @@
             <td class="section-title">Médico Emisor</td>
             <td>
                 <div class="value" style="font-size: 15px; margin-bottom: 4px;">
-                    {{ $prescription->doctor->prefix }} {{ $prescription->doctor->user->name }}
+                    Dr(a). {{ $prescription->doctor->user->name }}
                 </div>
                 <div style="color: #636e72; font-size: 10px;">
                     RUT: {{ $prescription->doctor->rut }} | Registro SIS: {{ $prescription->doctor->rnpi_number }}<br>
@@ -168,17 +168,20 @@
                     </span>
                 </div>
 
+                {{-- CAMBIO CRÍTICO PARA LA FIRMA --}}
                 @if($prescription->doctor->signature_path)
                     @php
-                        // Buscamos el archivo directamente en el storage interno
-                        $path = storage_path('app/public/' . $prescription->doctor->signature_path);
+                        // Obtenemos la ruta absoluta en el disco
+                        $signatureLocalPath = storage_path('app/public/' . $prescription->doctor->signature_path);
                     @endphp
 
-                    @if(file_exists($path))
+                    @if(file_exists($signatureLocalPath))
                         <div class="signature-container">
-                            <img src="{{ $path }}" class="signature-img">
+                            {{-- Pasamos la ruta del disco directamente --}}
+                            <img src="{{ $signatureLocalPath }}" class="signature-img">
                         </div>
                     @else
+                        {{-- Si el archivo no existe físicamente, mostramos el texto legal --}}
                         <div style="margin-top: 10px; color: #b2bec3; font-style: italic; font-size: 8px;">
                             Documento firmado electrónicamente bajo Ley N° 19.799
                         </div>
@@ -193,6 +196,7 @@
     </table>
 </div>
 
+{{-- Resto del documento se mantiene igual para asegurar que no se rompa nada --}}
 <div class="section">
     <table width="100%">
         <tr>
