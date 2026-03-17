@@ -416,19 +416,20 @@ public function rejectOrder(Request $request, Order $order, RefundService $refun
 
 
 
-    public function clinicalIndex()
-    {
-        // Solo permitimos al DT (y quizás al Admin si quieres supervisar)
-        if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
-            abort(403, 'No tienes permisos para supervisión clínica.');
-        }
-
-        $orders = Order::with(['patient', 'doctor.user', 'examType'])
-            ->latest()
-            ->paginate(20); // Paginación clásica para Blade
-
-        return view('admin.orders.supervision', compact('orders'));
+public function clinicalIndex()
+{
+    if (!auth()->user()->hasAnyRole(['director_tecnico', 'admin'])) {
+        abort(403, 'No tienes permisos para supervisión clínica.');
     }
+
+    // Filtramos solo por órdenes pagadas
+    $orders = Order::where('status', 'paid')
+        ->with(['patient', 'doctor.user', 'examType.children'])
+        ->latest()
+        ->paginate(20);
+
+    return view('admin.orders.supervision', compact('orders'));
+}
 
 
 public function show(Order $order)
