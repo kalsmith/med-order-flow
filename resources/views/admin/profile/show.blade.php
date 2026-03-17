@@ -1,4 +1,4 @@
-@extends('layouts.admin') {{-- Ajusta al nombre de tu layout --}}
+@extends('layouts.admin')
 
 @section('content')
 <div class="container-fluid py-4">
@@ -9,53 +9,45 @@
 
         {{-- COLUMNA IZQUIERDA: Información del Usuario --}}
         <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0">Información General</h5>
+            <div class="card shadow-sm mb-4 border-0">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold">Información General</h5>
                 </div>
                 <div class="card-body text-center">
-                    {{-- Espacio para futura Foto de Perfil --}}
+                    {{-- Foto de Perfil (UI-Avatars o Profile Photo de Jetstream) --}}
                     <div class="mb-3">
                         <img src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}" class="rounded-circle img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
                     </div>
-                    <h4>{{ $user->name }}</h4>
-                    <p class="text-muted">{{ $user->email }}</p>
-                    <span class="badge bg-info text-dark">
+                    <h4 class="mb-1">{{ $user->name }}</h4>
+                    <p class="text-muted mb-3">{{ $user->email }}</p>
+
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+                        <i class="bi bi-person-badge me-1"></i>
                         {{ ucfirst(str_replace('_', ' ', $user->getRoleNames()->first() ?? 'Sin Rol')) }}
                     </span>
-                    <hr>
-                    <div class="text-start mt-3">
-                        <small class="text-muted d-block text-uppercase fw-bold">Miembro desde:</small>
-                        <span>{{ $user->created_at->format('d/m/Y') }}</span>
-                    </div>
-                </div>
-            </div>
 
-            {{-- ZONA DE PELIGRO: Eliminar cuenta --}}
-            <div class="card border-danger shadow-sm mb-4">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-danger mb-0">Gestión de Cuenta</h6>
-                        <small class="text-muted">Eliminar mi acceso de forma permanente</small>
+                    <hr class="my-4 text-muted opacity-25">
+
+                    <div class="text-start mt-3 px-3">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.75rem;">Miembro desde</small>
+                        <span class="text-dark">{{ $user->created_at->format('d/m/Y') }}</span>
                     </div>
-                    <a href="{{ route('admin.profile.delete-confirm') }}" class="btn btn-outline-danger btn-sm">
-                        Eliminar Cuenta
-                    </a>
                 </div>
             </div>
         </div>
 
         {{-- COLUMNA DERECHA: Seguridad / Cambio de Contraseña --}}
         <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-primary">Seguridad y Acceso</h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 text-primary fw-bold">Seguridad y Acceso</h5>
                 </div>
                 <div class="card-body">
 
                     @if (session('success_password'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <strong>¡Éxito!</strong> {{ session('success_password') }}
+                        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>¡Actualizado!</strong> {{ session('success_password') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     @endif
@@ -64,32 +56,34 @@
                         @csrf
 
                         <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label fw-bold">Contraseña Actual</label>
+                            <div class="col-md-12 mb-4">
+                                <label class="form-label fw-semibold">Contraseña Actual</label>
                                 <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" placeholder="••••••••">
                                 @error('current_password')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Nueva Contraseña</label>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-semibold">Nueva Contraseña</label>
                                 <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••">
                                 @error('password')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="text-muted">Mínimo 8 caracteres, incluir letras y números.</small>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle me-1"></i> Mínimo 8 caracteres, con letras y números.
+                                </div>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Confirmar Nueva Contraseña</label>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-semibold">Confirmar Nueva Contraseña</label>
                                 <input type="password" name="password_confirmation" class="form-control" placeholder="••••••••">
                             </div>
                         </div>
 
-                        <div class="text-end mt-3">
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="bi bi-shield-lock me-1"></i> Actualizar Contraseña
+                        <div class="text-end mt-2">
+                            <button type="submit" class="btn btn-primary px-5 py-2 fw-bold">
+                                <i class="bi bi-shield-lock me-2"></i> Guardar Nueva Contraseña
                             </button>
                         </div>
                     </form>
