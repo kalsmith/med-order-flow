@@ -11,121 +11,126 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
-        :root {
-            --sidebar-bg: #1e293b;
-            --sidebar-active: #334155;
-            --accent-color: #3b82f6;
-            --main-bg: #f1f5f9;
-        }
+    :root {
+        --sidebar-bg: #1e293b;
+        --sidebar-active: #334155;
+        --accent-color: #3b82f6;
+        --main-bg: #f1f5f9;
+    }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            font-size: .875rem;
-            background-color: var(--main-bg);
-            color: #334155;
-            margin: 0;
-        }
+    body {
+        font-family: 'Inter', sans-serif;
+        font-size: .875rem;
+        background-color: var(--main-bg);
+        color: #334155;
+        margin: 0;
+    }
 
-        /* Navbar */
-        .navbar {
-            background-color: #ffffff !important;
-            border-bottom: 1px solid #e2e8f0;
-            height: 70px;
-            z-index: 1050;
-        }
+    /* Navbar */
+    .navbar {
+        background-color: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0;
+        height: 70px;
+        z-index: 1050;
+        position: sticky;
+        top: 0;
+    }
 
-        /* Sidebar - Sin scroll interno */
+    /* Sidebar - Evolución a Sticky para evitar cortes */
+    .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh; /* Se mantiene al alto de la pantalla */
+        z-index: 1040;
+        width: 260px;
+        background: var(--sidebar-bg);
+        transition: transform 0.3s ease;
+        overflow-y: visible;
+    }
+
+    /* Ajuste del contenedor de links */
+    .sidebar-sticky {
+        padding: 80px 0 30px 0; /* Un poco más de espacio superior por la navbar sticky */
+    }
+
+    .sidebar .nav-link {
+        font-weight: 500;
+        color: #94a3b8;
+        padding: 0.7rem 1.2rem; /* Reducimos ligeramente el padding para que quepan más links */
+        margin: 2px 12px;      /* Reducimos margen vertical */
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .sidebar .nav-link i { font-size: 1.1rem; margin-right: 12px; }
+
+    .sidebar .nav-link:hover {
+        color: #f8fafc;
+        background: var(--sidebar-active);
+        padding-left: 1.5rem; /* Efecto sutil de desplazamiento */
+    }
+
+    .sidebar .nav-link.active {
+        color: #fff !important;
+        background: var(--accent-color) !important;
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    }
+
+    .sidebar-heading {
+        padding: 1.2rem 1.5rem 0.4rem;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    /* Main Content Wrapper */
+    .main-wrapper {
+        display: flex;
+        align-items: flex-start; /* Permite que el sidebar dicte su propia altura */
+    }
+
+    main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        transition: margin 0.3s ease;
+    }
+
+    .content-header { background: white; padding: 20px 40px; border-bottom: 1px solid #e2e8f0; }
+    .content-body { flex: 1; padding: 30px 40px; }
+    .footer { background: white; padding: 20px 40px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.8rem; }
+
+    /* Móvil - Mantenemos el Fixed para el Drawer */
+    @media (max-width: 767.98px) {
         .sidebar {
             position: fixed;
-            top: 0;
             bottom: 0;
-            left: 0;
-            z-index: 1040;
-            width: 260px;
-            background: var(--sidebar-bg);
-            padding-top: 70px;
-            transition: transform 0.3s ease;
-            overflow-y: visible; /* Eliminamos el scroll forzado */
+            transform: translateX(-260px);
+            overflow-y: auto; /* En móvil sí es necesario el scroll por espacio limitado */
         }
+        .sidebar.show { transform: translateX(0); }
+        main { margin-left: 0; }
 
-        /* Si el menú es muy largo, este contenedor permitirá que el sidebar crezca
-           pero el scroll lo manejará el body si es necesario */
-        .sidebar-sticky {
-            padding: 10px 0 30px 0;
+        .sidebar-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 1035;
+            display: none;
         }
+        body.sidebar-open .sidebar-backdrop { display: block; }
+        body.sidebar-open { overflow: hidden; }
+    }
 
-        .sidebar .nav-link {
-            font-weight: 500;
-            color: #94a3b8;
-            padding: 0.75rem 1.5rem;
-            margin: 4px 12px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .sidebar .nav-link i { font-size: 1.1rem; margin-right: 12px; }
-
-        .sidebar .nav-link:hover {
-            color: #f8fafc;
-            background: var(--sidebar-active);
-        }
-
-        .sidebar .nav-link.active {
-            color: #fff !important;
-            background: var(--accent-color) !important;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
-        }
-
-        .sidebar-heading {
-            padding: 1.5rem 1.5rem 0.5rem;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #64748b;
-            font-weight: 700;
-        }
-
-        /* Main Content */
-        .main-wrapper {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        main {
-            margin-left: 260px;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            transition: margin 0.3s ease;
-        }
-
-        .content-header { background: white; padding: 20px 40px; border-bottom: 1px solid #e2e8f0; }
-        .content-body { flex: 1; padding: 30px 40px; }
-        .footer { background: white; padding: 20px 40px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.8rem; }
-
-        /* Móvil - Drawer */
-        @media (max-width: 767.98px) {
-            .sidebar { transform: translateX(-260px); }
-            .sidebar.show { transform: translateX(0); }
-            main { margin-left: 0; }
-            .content-header, .content-body, .footer { padding: 20px; }
-
-            .sidebar-backdrop {
-                position: fixed;
-                top: 0; left: 0; width: 100vw; height: 100vh;
-                background: rgba(15, 23, 42, 0.5);
-                backdrop-filter: blur(2px);
-                z-index: 1035;
-                display: none;
-            }
-            body.sidebar-open .sidebar-backdrop { display: block; }
-            body.sidebar-open { overflow: hidden; } /* Evita scroll del body cuando el menú móvil está abierto */
-        }
-
-        .avatar-admin { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #e2e8f0; }
+    .avatar-admin { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #e2e8f0; }
     </style>
     @stack('css')
 </head>
