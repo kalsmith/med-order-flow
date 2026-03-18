@@ -15,16 +15,17 @@ class Post extends Model
 
     protected $fillable = [
         'author_id',
-        'pack_id',
         'title',
         'slug',
         'summary',
         'content',
-        'featured_image',
+        'featured_image', // <--- Importante
+        'cta_id',         // <--- Importante
+        'cta_type',       // <--- Importante
         'meta_title',
         'meta_keywords',
         'is_published',
-        'published_at'
+        'published_at',
     ];
 
     protected $casts = [

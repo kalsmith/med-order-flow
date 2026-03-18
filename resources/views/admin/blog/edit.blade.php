@@ -10,13 +10,13 @@
 
 @section('content')
 
-{{-- Editor de texto CKEditor 5 --}}
+{{-- Librerías Necesarias --}}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
 
 <div class="row justify-content-center">
     <div class="col-md-11 col-lg-10">
 
-        {{-- Alertas de Error --}}
         @if ($errors->any())
             <div class="alert alert-danger border-0 shadow-sm mb-4">
                 <ul class="mb-0">
@@ -31,9 +31,12 @@
             <div class="bg-primary py-1"></div>
 
             <div class="card-body p-4 p-md-5">
-                <form action="{{ route('admin.posts.update', $post) }}" method="POST" enctype="multipart/form-data">
+                <form id="post-form" action="{{ route('admin.posts.update', $post) }}" method="POST">
                     @csrf
                     @method('PUT')
+
+                    {{-- Input oculto para la imagen recortada --}}
+                    <input type="hidden" name="image_cropped" id="image_cropped">
 
                     <div class="row g-4">
                         {{-- Sección: Contenido Principal --}}
@@ -50,23 +53,25 @@
                                    value="{{ old('title', $post->title) }}" required placeholder="Ej: Importancia del chequeo anual">
                         </div>
 
+                        {{-- SECCIÓN IMAGEN CON CROPPER --}}
                         <div class="col-md-12">
-                            <label class="form-label fw-bold small text-muted">Imagen Destacada (SEO)</label>
-                            <div class="d-flex flex-column flex-md-row align-items-center gap-4 p-3 border rounded bg-light">
-                                <div class="text-center bg-white p-2 border rounded overflow-hidden" style="min-width: 150px; height: 100px;">
-                                    <img id="featured-image-preview" src="{{ $post->image_url }}"
-                                         class="img-fluid w-100 h-100" style="object-fit: cover;">
+                            <label class="form-label fw-bold small text-muted">Imagen Destacada (Recomendado 1200x630)</label>
+                            <div class="d-flex flex-column align-items-center gap-3 p-3 border rounded bg-light">
+                                <div class="preview-container bg-white border rounded overflow-hidden shadow-sm" style="width: 100%; max-width: 600px; aspect-ratio: 1.91 / 1;">
+                                    <img id="featured-preview"
+                                         src="{{ $post->featured_image ? asset('storage/' . $post->featured_image) : 'https://via.placeholder.com/1200x630?text=Sin+Imagen' }}"
+                                         class="w-100 h-100" style="object-fit: cover;">
                                 </div>
-                                <div class="flex-grow-1">
-                                    <input type="file" name="featured_image" id="featured-image-input" class="form-control form-control-sm" accept="image/*">
-                                    <small class="text-muted" style="font-size: 0.7rem;">Suba una imagen nueva para reemplazar la actual (Máx 2MB).</small>
+                                <div class="w-100">
+                                    <input type="file" id="image-input" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp">
+                                    <small class="text-muted">Al seleccionar una imagen, se abrirá el editor de recorte.</small>
                                 </div>
                             </div>
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-bold small text-muted">Resumen Corto (Aparece en el listado y Google)</label>
-                            <textarea name="summary" class="form-control" rows="2" maxlength="500" placeholder="Escribe un extracto de lo que trata el post...">{{ old('summary', $post->summary) }}</textarea>
+                            <label class="form-label fw-bold small text-muted">Resumen Corto</label>
+                            <textarea name="summary" class="form-control" rows="2" maxlength="500">{{ old('summary', $post->summary) }}</textarea>
                         </div>
 
                         <div class="col-12">
@@ -95,33 +100,23 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <small class="text-muted">Si seleccionas uno, aparecerá una tarjeta de compra al final del post.</small>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Meta Title (Opcional)</label>
-                            <input type="text" name="meta_title" class="form-control" value="{{ old('meta_title', $post->meta_title) }}" placeholder="Título para buscadores">
+                            <label class="form-label fw-bold small text-muted">Meta Title (SEO)</label>
+                            <input type="text" name="meta_title" class="form-control" value="{{ old('meta_title', $post->meta_title) }}">
                         </div>
 
-                        {{-- SECCIÓN: Publicación --}}
+                        {{-- Footer de Publicación --}}
                         <div class="col-12 mt-4 p-3 bg-light rounded border">
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                                <div>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="is_published" id="is_published" value="1" {{ old('is_published', $post->is_published) ? 'checked' : '' }}>
-                                        <label class="form-check-label fw-bold" for="is_published">Artículo Publicado (Visible en la web)</label>
-                                    </div>
-                                    @if($post->published_at)
-                                        <small class="text-muted">Publicado originalmente el {{ $post->published_at->format('d/m/Y H:i') }} hrs.</small>
-                                    @else
-                                        <small class="text-muted">Aún no ha sido publicado (Borrador).</small>
-                                    @endif
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_published" id="is_published" value="1" {{ old('is_published', $post->is_published) ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold" for="is_published">Publicar Artículo</label>
                                 </div>
-                                <div class="text-end">
-                                    <button type="submit" class="btn btn-primary px-5 shadow fw-bold">
-                                        <i class="bi bi-save me-2"></i> Actualizar Artículo
-                                    </button>
-                                </div>
+                                <button type="submit" class="btn btn-primary px-5 shadow fw-bold">
+                                    <i class="bi bi-save me-2"></i> Guardar Cambios
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -131,37 +126,83 @@
     </div>
 </div>
 
-<script>
-    // Inicialización de CKEditor 5
-    ClassicEditor
-        .create(document.querySelector('#editor'), {
-            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo'],
-        })
-        .catch(error => {
-            console.error(error);
-        });
+{{-- MODAL DE RECORTE --}}
+<div class="modal fade" id="cropperModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajustar Imagen para el Blog</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="img-container">
+                    <img id="image-to-crop" src="" style="max-width: 100%; display: block;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="crop-button">Cortar y Usar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    // Previsualización de la imagen destacada al cambiarla
-    const input = document.getElementById('featured-image-input');
-    const preview = document.getElementById('featured-image-preview');
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    // 1. CKEDITOR
+    ClassicEditor.create(document.querySelector('#editor')).catch(error => console.error(error));
+
+    // 2. LÓGICA DE CROPPER (Igual que en Médicos)
+    let cropper;
+    const input = document.getElementById('image-input');
+    const imageToCrop = document.getElementById('image-to-crop');
+    const preview = document.getElementById('featured-preview');
+    const modalElement = document.getElementById('cropperModal');
+    const hiddenInput = document.getElementById('image_cropped');
+    const getModal = () => bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
 
     input.onchange = function (e) {
-        const files = e.target.files;
-        if (files && files.length > 0) {
+        if (e.target.files && e.target.files.length > 0) {
             const reader = new FileReader();
             reader.onload = function (event) {
-                preview.src = event.target.result;
+                imageToCrop.src = event.target.result;
+                getModal().show();
             };
-            reader.readAsDataURL(files[0]);
+            reader.readAsDataURL(e.target.files[0]);
         }
     };
+
+    modalElement.addEventListener('shown.bs.modal', function () {
+        cropper = new Cropper(imageToCrop, {
+            aspectRatio: 1200 / 630, // Proporción SEO estándar
+            viewMode: 1,
+            autoCropArea: 1,
+        });
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        if (cropper) { cropper.destroy(); cropper = null; }
+        input.value = ''; // Limpiar para permitir re-subida
+    });
+
+    document.getElementById('crop-button').addEventListener('click', function () {
+        const canvas = cropper.getCroppedCanvas({
+            width: 1200, // Forzamos calidad SEO
+            height: 630,
+            imageSmoothingQuality: 'high',
+        });
+
+        // Convertimos a WebP para SEO
+        const croppedImageDataURL = canvas.toDataURL('image/webp', 0.85);
+        preview.src = croppedImageDataURL;
+        hiddenInput.value = croppedImageDataURL;
+        getModal().hide();
+    });
 </script>
 
 <style>
-    /* Ajuste de altura para el editor */
-    .ck-editor__editable_inline {
-        min-height: 450px;
-    }
+    .ck-editor__editable_inline { min-height: 400px; }
+    .img-container { min-height: 400px; background-color: #f7f7f7; }
 </style>
 
 @endsection
