@@ -6,7 +6,7 @@
                 {{-- Logo dinámico: Usamos la versión blanca para el footer oscuro --}}
                 <div class="mb-4">
                     {{-- ASEGÚRATE DE SUBIR ESTE ARCHIVO: assets/logo/logo-white.png --}}
-                    <img src="{{ asset('assets/logo/logo.png') }}"
+                    <img src="{{ asset('assets/logo/logo-white.png') }}"
                          alt="{{ config('app.name') }} - Logo Blanco"
                          height="45"
                          class="d-inline-block mb-3">
