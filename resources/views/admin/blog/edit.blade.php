@@ -59,10 +59,10 @@
                             <div class="d-flex flex-column align-items-center gap-3 p-3 border rounded bg-light">
                                 <div class="preview-container bg-white border rounded overflow-hidden shadow-sm" style="width: 100%; max-width: 600px; aspect-ratio: 1.91 / 1;">
 <img id="featured-preview"
-     src="{{ asset('storage/' . $post->featured_image) }}?v={{ time() }}"
+     src="/storage/{{ $post->featured_image }}?v={{ time() }}"
      class="w-100 h-100"
      style="object-fit: cover;"
-     onerror="console.log('Error cargando:', this.src); this.src='https://via.placeholder.com/1200x630?text=Error+de+Ruta';">
+     onerror="console.error('Fallo total en:', this.src); this.src='https://placehold.co/1200x630?text=Error+de+Ruta';">
                                 </div>
                                 <div class="w-100">
                                     <input type="file" id="image-input" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp">
