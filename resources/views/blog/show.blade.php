@@ -52,29 +52,47 @@
                     {!! $post->content !!}
                 </div>
 
-                {{-- TARJETA DE CONVERSIÓN (CTA) --}}
-                @if($post->cta_id && $post->examType)
-                    <div class="card border-primary border-2 shadow-lg my-5 overflow-hidden">
-                        <div class="row g-0">
-                            <div class="col-md-4 bg-primary d-flex align-items-center justify-content-center text-white p-4">
-                                <div class="text-center">
-                                    <i class="bi bi-cart-check display-1"></i>
-                                    <h4 class="mt-2">Oferta Especial</h4>
-                                </div>
-                            </div>
-                            <div class="col-md-8 p-4">
-                                <h3 class="fw-bold">{{ $post->examType->name }}</h3>
-                                <p class="text-muted">{{ Str::limit($post->examType->description, 120) }}</p>
-                                <div class="d-flex align-items-center justify-content-between mt-4">
-                                    <span class="h2 fw-bold text-primary mb-0">${{ number_format($post->examType->price, 0, ',', '.') }}</span>
-                                    <a href="{{ route('checkout.direct', $post->examType->id) }}" class="btn btn-primary btn-lg px-4 fw-bold shadow-sm">
-                                        Reservar Ahora <i class="bi bi-arrow-right ms-2"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+{{-- TARJETA DE CONVERSIÓN (CTA) --}}
+@if($post->cta_id && $post->examType)
+    <div class="card border-primary border-2 shadow-lg my-5 overflow-hidden rounded-4">
+        <div class="row g-0">
+            <div class="col-md-4 bg-primary d-flex align-items-center justify-content-center text-white p-4">
+                <div class="text-center">
+                    <i class="bi bi-cart-check display-1"></i>
+                    <h4 class="mt-2 fw-bold">Oferta</h4>
+                </div>
+            </div>
+            <div class="col-md-8 p-4">
+                <div class="mb-2">
+                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">
+                        {{ $post->examType->isProfile() ? 'PACK RECOMENDADO' : 'EXAMEN DISPONIBLE' }}
+                    </span>
+                </div>
+                <h3 class="fw-bold text-dark">{{ $post->examType->name }}</h3>
+                <p class="text-muted small mb-4">
+                    {{ Str::limit($post->examType->description, 150) }}
+                </p>
+
+                <div class="d-flex align-items-center justify-content-between mt-auto">
+                    <div>
+                        <span class="text-muted small d-block">Precio Web</span>
+                        <span class="h2 fw-bold text-primary mb-0">
+                            ${{ number_format($post->examType->price ?? $post->examType->base_price, 0, ',', '.') }}
+                        </span>
                     </div>
-                @endif
+
+                    {{-- Usamos la ruta order.flow con la lógica de tipo dinámica --}}
+                    <a href="{{ route('order.flow', [
+                        'type' => $post->examType->isProfile() ? 'pack' : 'exam',
+                        'id' => $post->examType->id
+                    ]) }}" class="btn btn-primary btn-lg px-4 fw-bold shadow-sm rounded-pill">
+                        Reservar Ahora <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
 
                 <hr class="my-5">
 
