@@ -97,4 +97,10 @@ class ExamType extends Model
     {
         return $this->parents;
     }
+
+    public function blogPost()
+    {
+        return $this->belongsTo(Post::class, 'post_id');
+    }
+
 }

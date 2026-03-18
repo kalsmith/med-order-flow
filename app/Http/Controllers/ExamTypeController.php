@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ExamType;
+use App\Models\Post;
 use App\Models\Specialty;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,7 @@ class ExamTypeController extends Controller
     public function create()
     {
         $specialties = Specialty::all();
+        $posts = Post::orderBy('title')->get(); // <--- IMPORTANTE: Cargar los posts
 
         // Filtramos: Solo exámenes que NO tengan hijos (individuales)
         // Ojo: Si quieres permitir "Packs de Packs", quita el doesntHave
@@ -53,7 +55,7 @@ class ExamTypeController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.exam_types.create', compact('specialties', 'allExams'));
+        return view('admin.exam_types.create', compact('specialties', 'allExams','posts'));
     }
 
     public function store(Request $request)

@@ -145,6 +145,8 @@
         <h3 class="fw-bold mb-4"><i class="bi bi-collection-fill text-primary"></i> Packs Preventivos</h3>
 
 
+@php $limit = 8; @endphp {{-- Cambia este número para mostrar más o menos chips --}}
+
 <div class="row g-4 mb-5">
     @foreach($packs as $pack)
     <div class="col-lg-4 col-md-6">
@@ -163,25 +165,25 @@
 
             <div class="flex-grow-1 mb-4 text-start">
                 <div class="d-flex flex-wrap gap-2">
-                    {{-- Mostramos los primeros 8 --}}
-                    @foreach($pack->children->take(8) as $child)
+                    {{-- Mostramos hasta el límite --}}
+                    @foreach($pack->children->take($limit) as $child)
                         <div class="exam-chip bg-white border small px-2 py-1 rounded-3">
                             <i class="bi bi-check-circle-fill text-success"></i> {{ $child->name }}
                         </div>
                     @endforeach
 
                     {{-- Tooltip para los exámenes restantes --}}
-                    @if($pack->children->count() > 8)
+                    @if($pack->children->count() > $limit)
                         @php
-                            // Creamos un string con los nombres de los exámenes que faltan
-                            $remainingExams = $pack->children->slice(8)->pluck('name')->implode(', ');
+                            // IMPORTANTE: Ahora el slice empieza exactamente donde termina el take
+                            $remainingExams = $pack->children->slice($limit)->pluck('name')->implode(', ');
                         @endphp
                         <div class="exam-chip bg-light border small px-2 py-1 rounded-3 text-secondary fw-bold"
                              data-bs-toggle="tooltip"
                              data-bs-placement="top"
                              title="{{ $remainingExams }}"
                              style="cursor: help;">
-                            + {{ $pack->children->count() - 8 }} más
+                            + {{ $pack->children->count() - $limit }} más
                         </div>
                     @endif
                 </div>
@@ -204,10 +206,10 @@
 
 @push('js')
 <script>
-    // Inicializar todos los tooltips de Bootstrap 5 en la página
+    // Inicializar tooltips (asegúrate de tener Bootstrap 5 JS en tu layout)
     document.addEventListener('DOMContentLoaded', function () {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
     });
