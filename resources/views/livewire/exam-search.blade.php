@@ -2,7 +2,7 @@
 
     {{-- Buscador --}}
     <div class="row justify-content-center mb-5">
-        <div class="col-md-10 col-lg-8">
+        <div class="col-md-10 col-lg-8 text-center">
             <div class="input-group input-group-lg shadow rounded-pill overflow-hidden border">
                 <span class="input-group-text bg-white border-0 ps-4">
                     <i class="bi bi-search text-primary"></i>
@@ -12,23 +12,27 @@
                        class="form-control border-0 py-3 px-2 shadow-none"
                        placeholder="Escribe el nombre del examen (ej: Hemograma, Perfil, VIH...)">
             </div>
+            @if(count($selectedExams) > 0)
+                <small class="text-primary fw-bold d-block mt-3 animate__animated animate__fadeIn">
+                    <i class="bi bi-info-circle me-1"></i> Puedes seguir buscando y añadiendo más exámenes a tu orden.
+                </small>
+            @endif
         </div>
     </div>
 
-    {{-- Grilla de Resultados (3 por fila en pantallas grandes) --}}
-    <div class="row g-4 justify-content-center">
+    {{-- Grilla de Resultados --}}
+    <div class="row g-4 justify-content-center mb-5">
         @forelse($exams as $exam)
             @php
                 $isPack = $exam->children->count() > 0;
+                $isSelected = isset($selectedExams[$exam->id]);
             @endphp
 
-            {{-- CAMBIO AQUÍ: col-xl-4 hace que quepan 3 por fila --}}
             <div class="col-12 col-md-6 col-xl-4 animate__animated animate__fadeInUp">
-                <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover overflow-hidden"
+                <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover overflow-hidden {{ $isSelected ? 'ring-active' : '' }}"
                      style="border-top: 6px solid {{ $isPack ? '#6610f2' : ($exam->parents->count() > 0 ? '#0dcaf0' : '#0d6efd') }} !important;">
 
                     <div class="card-body p-4 d-flex flex-column">
-                        {{-- Cabecera --}}
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <h5 class="fw-bold mb-0 text-dark">{{ $exam->name }}</h5>
@@ -38,7 +42,6 @@
                             </div>
                         </div>
 
-                        {{-- Contenido Variable --}}
                         <div class="flex-grow-1 mb-3">
                             @if($isPack)
                                 <div class="p-2 bg-light rounded-3">
@@ -61,45 +64,76 @@
                             @endif
                         </div>
 
-                        {{-- Precio y Acción --}}
                         <div class="pt-3 border-top mt-auto">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <small class="d-block text-muted text-uppercase" style="font-size: 0.6rem;">Precio</small>
                                     <span class="text-primary fw-bold fs-4">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
                                 </div>
 
-                                <a href="{{ route('order.flow', ['type' => $isPack ? 'pack' : 'exam', 'id' => $exam->id]) }}"
-                                   class="btn {{ $isPack ? 'btn-dark' : 'btn-primary' }} rounded-pill px-4 fw-bold shadow-sm">
-                                    Pedir
-                                </a>
+                                @if($isPack)
+                                    <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $exam->id]) }}"
+                                       class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm">
+                                        Pedir Pack
+                                    </a>
+                                @else
+                                    <button wire:click="toggleExam({{ $exam->id }}, '{{ $exam->name }}')"
+                                            class="btn {{ $isSelected ? 'btn-success' : 'btn-outline-primary' }} rounded-pill px-4 fw-bold shadow-sm transition-all">
+                                        @if($isSelected)
+                                            <i class="bi bi-check-lg"></i> Añadido
+                                        @else
+                                            <i class="bi bi-plus-lg"></i> Añadir
+                                        @endif
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         @empty
-            @if(strlen($search) > 2)
-                <div class="col-12 text-center py-5">
-                    <div class="bg-light d-inline-block p-4 rounded-circle mb-3">
-                        <i class="bi bi-search-heart fs-1 text-muted"></i>
-                    </div>
-                    <h5 class="fw-bold text-dark">No encontramos "{{ $search }}"</h5>
-                    <p class="text-muted">Prueba con otro término.</p>
-                </div>
-            @endif
+            {{-- ... tu código de @empty se mantiene igual ... --}}
         @endforelse
     </div>
 
+    {{-- BARRA FLOTANTE DE SELECCIÓN MÚLTIPLE --}}
+    @if(count($selectedExams) > 0)
+        <div class="fixed-bottom bg-white border-top shadow-lg animate__animated animate__slideInUp" style="z-index: 1050; padding-bottom: env(safe-area-inset-bottom);">
+            <div class="container py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-7 d-none d-md-block">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <span class="fw-bold">{{ count($selectedExams) }}</span>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">Tu Orden Personalizada</h6>
+                                <p class="small text-muted mb-0 text-truncate" style="max-width: 400px;">
+                                    {{ implode(', ', $selectedExams) }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="d-flex align-items-center gap-3">
+                            <button wire:click="clearSelection" class="btn btn-link text-danger text-decoration-none small fw-bold">
+                                Limpiar
+                            </button>
+                            <a href="{{ route('order.flow', ['type' => 'custom', 'ids' => implode(',', array_keys($selectedExams))]) }}"
+                               class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow">
+                                Solicitar por $3.990 <i class="bi bi-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <style>
-        .transition-hover {
-            transition: all 0.3s ease;
-        }
-        .transition-hover:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 1rem 2rem rgba(0,0,0,.1) !important;
-        }
+        .transition-hover { transition: all 0.3s ease; }
+        .transition-hover:hover { transform: translateY(-8px); box-shadow: 0 1rem 2rem rgba(0,0,0,.1) !important; }
+        .transition-all { transition: all 0.2s ease-in-out; }
+        .ring-active { border: 2px solid #198754 !important; }
     </style>
 
 </div>

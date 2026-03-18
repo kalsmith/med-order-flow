@@ -43,6 +43,23 @@ public function handle(Request $request, $type, $id = null)
         return view('front.flow.custom-request', compact('patient'));
     }
 
+    if ($type === 'multiple') {
+        $ids = explode(',', $request->ids);
+        $selectedExams = ExamType::whereIn('id', $ids)->get();
+
+        if (!$patient) {
+            // Enviamos los IDs para que el formulario de perfil los retorne al terminar
+            return view('front.flow.complete-profile', [
+                'type' => 'multiple',
+                'ids' => $request->ids,
+                'exam_type' => null
+            ]);
+        }
+
+        return view('front.flow.confirm-multiple', compact('selectedExams', 'patient'));
+    }
+
+
     return redirect()->route('home');
 }
 
