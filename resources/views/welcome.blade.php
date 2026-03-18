@@ -164,7 +164,7 @@
                         <span class="info-pill-icon">
                             <i class="bi bi-journal-medical"></i>
                         </span>
-                        <span class="info-pill-text">Guía Médica</span>
+                        <span class="info-pill-text">Más Información</span>
                     </a>
                 @endif
             </div>
