@@ -70,73 +70,81 @@ class FlowService
         }
     }
 
-
 public function handleWebhook($token)
-    {
-        Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
+{
+    Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
 
-        try {
-            $statusResponse = $this->getPaymentStatus($token);
+    try {
+        $statusResponse = $this->getPaymentStatus($token);
 
-            if (!$statusResponse || (int)$statusResponse->status !== 2) {
-                Log::warning("Pago no autorizado en Flow", (array)$statusResponse);
-                return false;
+        if (!$statusResponse || (int)$statusResponse->status !== 2) {
+            Log::warning("Pago no autorizado en Flow", (array)$statusResponse);
+            return false;
+        }
+
+        $gatewayTrx = GatewayTransaction::where('token', $token)->first();
+        if (!$gatewayTrx) throw new \Exception("Transacción técnica no encontrada.");
+
+        $order = Order::with('patient.user')->findOrFail($gatewayTrx->payable_id);
+
+        return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token) {
+            // 1. Actualizar pasarela técnica
+            $gatewayTrx->update([
+                'status' => 'authorized',
+                'flow_order_id' => $statusResponse->flowOrder,
+                'raw_response' => json_encode($statusResponse)
+            ]);
+
+            // 2. Registro Contable
+            $this->registerTransaction($gatewayTrx, $order, $token, $statusResponse);
+
+            // 3. Lógica de Negocio según el tipo de orden
+
+            if ($order->type === 'standard' || $order->type === 'medical_purchase') {
+                // FLUJO ESTÁNDAR: Firma automática normal
+                $processStatus = $this->processMedicalOrder($order);
+                $this->handleProcessFailure($processStatus, $order, $statusResponse);
+
+            } elseif ($order->type === 'multiple') {
+                // FLUJO MÚLTIPLE: Firma automática usando custom_description como contenido
+                $processStatus = $this->processMedicalOrder($order, $order->custom_description);
+                $this->handleProcessFailure($processStatus, $order, $statusResponse);
+
+            } else {
+                // FLUJO CUSTOM: Firma manual (revisión humana)
+                $this->createPendingPrescription($order);
+                $order->update([
+                    'status' => 'paid',
+                    'flow_order_id' => $statusResponse->flowOrder
+                ]);
+                Log::info("WEBHOOK: Orden personalizada preparada para revisión médica.", ['order_id' => $order->id]);
             }
 
-            $gatewayTrx = GatewayTransaction::where('token', $token)->first();
-            if (!$gatewayTrx) throw new \Exception("Transacción técnica no encontrada.");
+            Log::info("=== [FLOW WEBHOOK SUCCESS] ===", ['order_id' => $order->id]);
+            return true;
+        });
 
-            $order = Order::with('patient.user')->findOrFail($gatewayTrx->payable_id);
+    } catch (\Exception $e) {
+        Log::error("ERROR FATAL WEBHOOK: " . $e->getMessage());
+        throw $e;
+    }
+}
 
-            return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token) {
-                // 1. Actualizar pasarela técnica
-                $gatewayTrx->update([
-                    'status' => 'authorized',
-                    'flow_order_id' => $statusResponse->flowOrder,
-                    'raw_response' => json_encode($statusResponse)
+
+
+    private function handleProcessFailure($status, $order, $statusResponse)
+    {
+        if (!$status) {
+            Log::error("WEBHOOK: Proceso automático falló para {$order->type}. Iniciando reembolso.");
+            $refundService = app(RefundService::class);
+            $refundResult = $refundService->createRefund($order, $statusResponse->flowOrder);
+
+            if (!$refundResult) {
+                $order->update([
+                    'status' => 'manual_review',
+                    'flow_order_id' => $statusResponse->flowOrder
                 ]);
-
-                // 2. Registro Contable
-                $this->registerTransaction($gatewayTrx, $order, $token, $statusResponse);
-
-                // 3. Lógica de Negocio según el tipo de orden
-                if ($order->type === 'standard' || $order->type === 'medical_purchase') {
-                    // FLUJO ESTÁNDAR: Asignación y Firma automática
-                    $processStatus = $this->processMedicalOrder($order);
-
-                    if (!$processStatus) {
-                        Log::error("WEBHOOK: Proceso médico automático falló. Iniciando reembolso.");
-
-                        $refundService = app(RefundService::class);
-                        $refundResult = $refundService->createRefund($order, $statusResponse->flowOrder);
-
-                        if (!$refundResult) {
-                            $order->update([
-                                'status' => 'manual_review',
-                                'flow_order_id' => $statusResponse->flowOrder
-                            ]);
-                        }
-                    }
-                } else {
-                    // FLUJO CUSTOM: Generamos la prescripción "en blanco" para reserva de Correlativo/Código
-                    // No llamamos a SignatureService porque requiere revisión humana.
-                    $this->createPendingPrescription($order);
-
-                    $order->update([
-                        'status' => 'paid',
-                        'flow_order_id' => $statusResponse->flowOrder
-                    ]);
-
-                    Log::info("WEBHOOK: Orden personalizada preparada para revisión médica.", ['order_id' => $order->id]);
-                }
-
-                Log::info("=== [FLOW WEBHOOK SUCCESS] ===", ['order_id' => $order->id]);
-                return true;
-            });
-
-        } catch (\Exception $e) {
-            Log::error("ERROR FATAL WEBHOOK: " . $e->getMessage());
-            throw $e;
+            }
         }
     }
 
@@ -159,43 +167,54 @@ public function handleWebhook($token)
     }
 
 
-    private function processMedicalOrder(Order $order)
-    {
-        try {
+private function processMedicalOrder(Order $order, $customContent = null)
+{
+    try {
+        // Determinamos la especialidad.
+        // Si es multiple, usamos Medicina General (1) por defecto.
+        $specialtyId = 1;
+
+        if ($order->exam_type_id) {
             $exam = ExamType::findOrFail($order->exam_type_id);
-            $doctor = Doctor::getNextAvailableForSpecialty($exam->specialty_id);
-
-            if (!$doctor) throw new \Exception("No hay médicos disponibles.");
-
-            $prescription = Prescription::create([
-                'id' => (string) Str::uuid(),
-                'order_id' => $order->id,
-                'doctor_id' => $doctor->id,
-                'exam_type_id' => $exam->id,
-                'status' => 'active',
-                'verification_code' => strtoupper(Str::random(8)),
-            ]);
-
-            $doctor->update(['last_assigned_at' => now()]);
-
-            $signatureService = app(SignatureService::class);
-            $signatureResult = $signatureService->sign($prescription);
-
-            if ($signatureResult && $signatureResult->success) {
-                $prescription->update(['status' => 'signed', 'signed_at' => now()]);
-                $order->update(['status' => 'paid']);
-                return true;
-            }
-
-            throw new \Exception("Firma del servicio no exitosa.");
-
-        } catch (\Exception $e) {
-            Log::error("Error en processMedicalOrder: " . $e->getMessage());
-            // Lo dejamos en manual_review temporalmente antes de que handleWebhook decida el reembolso
-            $order->update(['status' => 'manual_review']);
-            return false;
+            $specialtyId = $exam->specialty_id;
         }
+
+        $doctor = Doctor::getNextAvailableForSpecialty($specialtyId);
+
+        if (!$doctor) {
+            throw new \Exception("No hay médicos disponibles para la especialidad ID: {$specialtyId}");
+        }
+
+        $prescription = Prescription::create([
+            'id' => (string) Str::uuid(),
+            'order_id' => $order->id,
+            'doctor_id' => $doctor->id,
+            'exam_type_id' => $order->exam_type_id, // Será null en múltiples, lo cual es correcto
+            'type' => $order->type,
+            'status' => 'active',
+            'clinical_context' => $customContent ?? $order->clinical_context, // <--- Aquí entra tu listado
+            'verification_code' => strtoupper(Str::random(8)),
+        ]);
+
+        $doctor->update(['last_assigned_at' => now()]);
+
+        $signatureService = app(SignatureService::class);
+        $signatureResult = $signatureService->sign($prescription);
+
+        if ($signatureResult && $signatureResult->success) {
+            $prescription->update(['status' => 'signed', 'signed_at' => now()]);
+            $order->update(['status' => 'paid']);
+            return true;
+        }
+
+        throw new \Exception("Firma del servicio no exitosa.");
+
+    } catch (\Exception $e) {
+        Log::error("Error en processMedicalOrder: " . $e->getMessage());
+        $order->update(['status' => 'manual_review']);
+        return false;
     }
+}
 
     public function requestRefund(Order $order, GatewayTransaction $gatewayTrx, $flowTrxId = null)
     {
