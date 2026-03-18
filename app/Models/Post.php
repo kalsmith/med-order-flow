@@ -11,6 +11,8 @@ class Post extends Model
 {
     use HasFactory;
 
+    protected $table = 'blog_posts';
+
     protected $fillable = [
         'author_id',
         'pack_id',
