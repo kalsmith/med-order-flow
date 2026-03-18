@@ -151,7 +151,7 @@
     </table>
 </div>
 
-<div class="document-title">Orden Médica</div>
+{{-- <div class="document-title">Orden Médica</div> --}}
 
 <div class="section">
     <table width="100%">
@@ -208,6 +208,8 @@
         </tr>
     </table>
 </div>
+
+<div class="document-title">Orden Médica</div>
 
 <div class="section">
     <table width="100%">
