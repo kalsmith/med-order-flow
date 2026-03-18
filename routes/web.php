@@ -35,6 +35,19 @@ use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 */
 Route::get('/', [LandingController::class, 'index'])->name('home');
 
+// --- Rutas Públicas del Blog ---
+Route::group(['prefix' => 'blog'], function () {
+
+    // Listado principal: med-order-flow.soltys.cl/blog
+    Route::get('/', [PostController::class, 'publicIndex'])
+        ->name('blog.index');
+
+    // Detalle del post: med-order-flow.soltys.cl/blog/titulo-del-articulo
+    // Usamos {slug} para que la URL sea legible por humanos y buscadores
+    Route::get('/{slug}', [PostController::class, 'publicShow'])
+        ->name('blog.show');
+});
+
 // --- ACCESO A FIRMAS ---
 Route::get('/view-signature/{filename}', [DoctorController::class, 'showSignature'])->name('public.signature.show');
 
