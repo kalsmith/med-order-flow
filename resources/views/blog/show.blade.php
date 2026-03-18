@@ -27,7 +27,7 @@
                 <nav aria-label="breadcrumb" class="mb-4">
                     <ol class="breadcrumb small">
                         <li class="breadcrumb-item"><a href="/">Inicio</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('blog.index') }}">Blog</a></li>
+                        {{-- <li class="breadcrumb-item"><a href="{{ route('blog.index') }}">Blog</a></li> --}}
                         <li class="breadcrumb-item active" aria-current="page text-truncate">{{ $post->title }}</li>
                     </ol>
                 </nav>
