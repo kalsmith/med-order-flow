@@ -58,9 +58,11 @@
                             <label class="form-label fw-bold small text-muted">Imagen Destacada (Recomendado 1200x630)</label>
                             <div class="d-flex flex-column align-items-center gap-3 p-3 border rounded bg-light">
                                 <div class="preview-container bg-white border rounded overflow-hidden shadow-sm" style="width: 100%; max-width: 600px; aspect-ratio: 1.91 / 1;">
-                                   <img id="featured-preview"
-     src="{{ $post->featured_image ? asset('storage/' . $post->featured_image) . '?v=' . time() : 'https://via.placeholder.com/1200x630?text=Sin+Imagen' }}"
-     class="w-100 h-100" style="object-fit: cover;">
+<img id="featured-preview"
+     src="{{ asset('storage/' . $post->featured_image) }}?v={{ time() }}"
+     class="w-100 h-100"
+     style="object-fit: cover;"
+     onerror="console.log('Error cargando:', this.src); this.src='https://via.placeholder.com/1200x630?text=Error+de+Ruta';">
                                 </div>
                                 <div class="w-100">
                                     <input type="file" id="image-input" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp">
