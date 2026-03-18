@@ -75,9 +75,9 @@
                                     <td class="px-4 text-end">
                                         <div class="d-flex justify-content-end gap-2">
                                             {{-- Botón Ver (Frontend) --}}
-                                            <a href="{{ route('blog.show', $post->slug) }}" target="_blank" class="btn btn-outline-light text-dark btn-sm border shadow-sm" title="Ver en la web">
+                                            {{-- <a href="{{ route('blog.show', $post->slug) }}" target="_blank" class="btn btn-outline-light text-dark btn-sm border shadow-sm" title="Ver en la web">
                                                 <i class="bi bi-box-arrow-up-right"></i>
-                                            </a>
+                                            </a> --}}
 
                                             {{-- Botón Editar --}}
                                             <a href="{{ route('admin.posts.edit', $post) }}" class="btn btn-outline-primary btn-sm shadow-sm">
