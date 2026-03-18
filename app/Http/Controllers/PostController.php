@@ -13,7 +13,6 @@ class PostController extends Controller
 {
     /**
      * Muestra el listado de posts para el personal del staff.
-     * Ruta: admin.posts.index
      */
     public function index()
     {
@@ -23,7 +22,6 @@ class PostController extends Controller
 
     /**
      * Formulario de creación.
-     * Ruta: admin.posts.create
      */
     public function create()
     {
@@ -40,14 +38,16 @@ class PostController extends Controller
             'title'           => 'required|max:255',
             'summary'         => 'required|max:500',
             'content'         => 'required',
-            'featured_image'  => 'nullable|image|max:2048',
+            'image_cropped'   => 'nullable|string', // El base64 del cropper
             'cta_id'          => 'nullable|exists:exam_types,id',
             'meta_title'      => 'nullable|max:60',
         ]);
 
         $imagePath = null;
-        if ($request->hasFile('featured_image')) {
-            $imagePath = $request->file('featured_image')->store('blog', 'public');
+
+        // Procesar imagen recortada (Base64)
+        if ($request->filled('image_cropped')) {
+            $imagePath = $this->uploadCroppedImage($request->input('image_cropped'));
         }
 
         Post::create([
@@ -58,7 +58,7 @@ class PostController extends Controller
             'content'        => $request->content,
             'featured_image' => $imagePath,
             'cta_id'         => $request->cta_id,
-            'cta_type'       => $request->cta_id ? 'pack' : null, // Lógica simple por ahora
+            'cta_type'       => $request->cta_id ? 'pack' : null,
             'meta_title'     => $request->meta_title ?? $request->title,
             'meta_keywords'  => $request->meta_keywords,
             'is_published'   => $request->has('is_published'),
@@ -71,7 +71,6 @@ class PostController extends Controller
 
     /**
      * Formulario de edición.
-     * Ruta: admin.posts.edit
      */
     public function edit(Post $post)
     {
@@ -82,55 +81,67 @@ class PostController extends Controller
     /**
      * Actualiza el post.
      */
+    public function update(Request $request, Post $post)
+    {
+        $request->validate([
+            'title'   => 'required|max:255',
+            'content' => 'required',
+            'cta_id'  => 'nullable|exists:exam_types,id',
+            'image_cropped' => 'nullable|string',
+        ]);
 
-public function update(Request $request, Post $post)
-{
-    // LOG 1: Ver qué llega exactamente
-    Log::info('Iniciando Update de Post ID: ' . $post->id, [
-        'all_data' => $request->all(),
-        'has_file' => $request->hasFile('featured_image'),
-        'cta_id' => $request->input('cta_id')
-    ]);
+        $data = $request->only([
+            'title', 'summary', 'content', 'cta_id',
+            'meta_title', 'meta_keywords'
+        ]);
 
-    $request->validate([
-        'title'   => 'required|max:255',
-        'content' => 'required',
-        'cta_id'  => 'nullable|exists:exam_types,id',
-        'featured_image' => 'nullable|image|max:2048', // Agregamos validación aquí también
-    ]);
+        $data['slug'] = Str::slug($request->title);
+        $data['is_published'] = $request->has('is_published');
+        $data['cta_type'] = $request->cta_id ? 'pack' : null;
 
-    $data = $request->only([
-        'title', 'summary', 'content', 'cta_id',
-        'meta_title', 'meta_keywords'
-    ]);
-
-    $data['slug'] = Str::slug($request->title);
-    $data['is_published'] = $request->has('is_published');
-    $data['cta_type'] = $request->cta_id ? 'pack' : null;
-
-    if ($data['is_published'] && !$post->published_at) {
-        $data['published_at'] = now();
-    }
-
-    if ($request->hasFile('featured_image')) {
-        Log::info('Imagen detectada, procesando subida...');
-        if ($post->featured_image) {
-            Storage::disk('public')->delete($post->featured_image);
+        if ($data['is_published'] && !$post->published_at) {
+            $data['published_at'] = now();
         }
-        $data['featured_image'] = $request->file('featured_image')->store('blog', 'public');
+
+        // Procesar nueva imagen si se recortó una
+        if ($request->filled('image_cropped')) {
+            // Borrar la anterior si existe
+            if ($post->featured_image) {
+                Storage::disk('public')->delete($post->featured_image);
+            }
+            // Guardar la nueva
+            $data['featured_image'] = $this->uploadCroppedImage($request->input('image_cropped'));
+        }
+
+        $post->update($data);
+
+        return redirect()->route('admin.posts.index')
+            ->with('status', 'Artículo actualizado correctamente.');
     }
 
-    // LOG 2: Ver qué datos se le envían al método update()
-    Log::info('Datos finales para update:', $data);
+    /**
+     * Función auxiliar para procesar el Base64 del Cropper
+     */
+    private function uploadCroppedImage($base64Data)
+    {
+        try {
+            // Extraer la extensión y el contenido
+            // Formato esperado: data:image/webp;base64,UklGRv...
+            $image = str_replace('data:image/webp;base64,', '', $base64Data);
+            $image = str_replace('data:image/jpeg;base64,', '', $image);
+            $image = str_replace('data:image/png;base64,', '', $image);
+            $image = str_replace(' ', '+', $image);
 
-    $updated = $post->update($data);
+            $imageName = 'blog/' . Str::random(40) . '.webp';
 
-    Log::info('Resultado del update:', ['success' => $updated]);
+            Storage::disk('public')->put($imageName, base64_decode($image));
 
-    return redirect()->route('admin.posts.index')
-        ->with('status', 'Artículo actualizado correctamente.');
-}
-
+            return $imageName;
+        } catch (\Exception $e) {
+            Log::error('Error al subir imagen recortada: ' . $e->getMessage());
+            return null;
+        }
+    }
 
     /**
      * Elimina el post.
@@ -148,18 +159,17 @@ public function update(Request $request, Post $post)
     }
 
     /**
-     * MÉTODOS PARA EL FRONTEND (Público)
-     * Estos se llaman desde rutas fuera del prefijo 'gestion'
+     * MÉTODOS PÚBLICOS
      */
     public function publicIndex()
     {
-        $posts = Post::published()->latest()->paginate(9);
+        $posts = Post::where('is_published', true)->latest()->paginate(9);
         return view('blog.index', compact('posts'));
     }
 
     public function publicShow($slug)
     {
-        $post = Post::where('slug', $slug)->published()->firstOrFail();
+        $post = Post::where('slug', $slug)->where('is_published', true)->firstOrFail();
         return view('blog.show', compact('post'));
     }
 }
