@@ -144,7 +144,7 @@
         {{-- 1. PACKS PREVENTIVOS --}}
         <h3 class="fw-bold mb-4"><i class="bi bi-collection-fill text-primary"></i> Packs Preventivos</h3>
 
-@php $limit = 8; @endphp
+@php $limit = 4; @endphp
 
 <div class="row g-4 mb-5">
     @foreach($packs as $pack)
