@@ -12,6 +12,7 @@ class PostController extends Controller
 {
     /**
      * Muestra el listado de posts para el personal del staff.
+     * Ruta: admin.posts.index
      */
     public function index()
     {
@@ -20,18 +21,17 @@ class PostController extends Controller
     }
 
     /**
-     * Formulario de creación con listado de ExamTypes para asociar.
+     * Formulario de creación.
+     * Ruta: admin.posts.create
      */
     public function create()
     {
-        // Traemos todos los ExamTypes.
-        // En la vista puedes separarlos por "Packs" (los que tienen children) y "Exámenes".
         $examTypes = ExamType::where('is_active', true)->orderBy('name')->get();
         return view('admin.blog.create', compact('examTypes'));
     }
 
     /**
-     * Guarda el nuevo post con su SEO e Imagen.
+     * Guarda el nuevo post.
      */
     public function store(Request $request)
     {
@@ -41,7 +41,6 @@ class PostController extends Controller
             'content'         => 'required',
             'featured_image'  => 'nullable|image|max:2048',
             'cta_id'          => 'nullable|exists:exam_types,id',
-            'cta_type'        => 'nullable|in:pack,exam,custom_flow',
             'meta_title'      => 'nullable|max:60',
         ]);
 
@@ -57,8 +56,8 @@ class PostController extends Controller
             'summary'        => $request->summary,
             'content'        => $request->content,
             'featured_image' => $imagePath,
-            'cta_id'         => $request->cta_id,   // Mapeado a tu migración
-            'cta_type'       => $request->cta_type ?? ($request->cta_id ? 'pack' : null),
+            'cta_id'         => $request->cta_id,
+            'cta_type'       => $request->cta_id ? 'pack' : null, // Lógica simple por ahora
             'meta_title'     => $request->meta_title ?? $request->title,
             'meta_keywords'  => $request->meta_keywords,
             'is_published'   => $request->has('is_published'),
@@ -71,6 +70,7 @@ class PostController extends Controller
 
     /**
      * Formulario de edición.
+     * Ruta: admin.posts.edit
      */
     public function edit(Post $post)
     {
@@ -79,7 +79,7 @@ class PostController extends Controller
     }
 
     /**
-     * Actualiza el post y gestiona la imagen antigua.
+     * Actualiza el post.
      */
     public function update(Request $request, Post $post)
     {
@@ -91,13 +91,13 @@ class PostController extends Controller
 
         $data = $request->only([
             'title', 'summary', 'content', 'cta_id',
-            'cta_type', 'meta_title', 'meta_keywords'
+            'meta_title', 'meta_keywords'
         ]);
 
         $data['slug'] = Str::slug($request->title);
         $data['is_published'] = $request->has('is_published');
+        $data['cta_type'] = $request->cta_id ? 'pack' : null;
 
-        // Si se publica ahora y no tenía fecha, se la ponemos
         if ($data['is_published'] && !$post->published_at) {
             $data['published_at'] = now();
         }
@@ -116,7 +116,7 @@ class PostController extends Controller
     }
 
     /**
-     * Elimina el post y su imagen.
+     * Elimina el post.
      */
     public function destroy(Post $post)
     {
@@ -128,5 +128,21 @@ class PostController extends Controller
 
         return redirect()->route('admin.posts.index')
             ->with('status', 'Artículo eliminado.');
+    }
+
+    /**
+     * MÉTODOS PARA EL FRONTEND (Público)
+     * Estos se llaman desde rutas fuera del prefijo 'gestion'
+     */
+    public function publicIndex()
+    {
+        $posts = Post::published()->latest()->paginate(9);
+        return view('blog.index', compact('posts'));
+    }
+
+    public function publicShow($slug)
+    {
+        $post = Post::where('slug', $slug)->published()->firstOrFail();
+        return view('blog.show', compact('post'));
     }
 }

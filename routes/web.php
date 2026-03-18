@@ -115,9 +115,9 @@ Route::middleware([
             ->names('posts')
             ->parameters(['blog' => 'post']);
 
-        Route::resource('packs-examenes', PackController::class)
-            ->names('packs')
-            ->parameters(['packs-examenes' => 'pack']);
+        // Route::resource('packs-examenes', PackController::class)
+        //     ->names('packs')
+        //     ->parameters(['packs-examenes' => 'pack']);
     });
 
 
