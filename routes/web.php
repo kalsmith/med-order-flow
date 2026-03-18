@@ -17,6 +17,7 @@ use App\Http\Controllers\ExamTypeController;
 use App\Http\Controllers\MedicalOrderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\Public\LandingController;
 use App\Http\Controllers\Patient\OrderFlowController;
 use App\Http\Controllers\Patient\PatientOrderController;
@@ -105,6 +106,21 @@ Route::middleware([
     Route::middleware(['role:doctor|director_tecnico'])->group(function () {
         Route::get('/ordenes-clinicas/{order}/pdf', [MedicalOrderController::class, 'generatePdf'])->name('orders.pdf');
     });
+
+
+    // --- GESTIÓN DE CONTENIDO & MARKETING (NUEVO) ---
+    // Admin, Doctor y DT pueden escribir en el blog y gestionar los packs
+    Route::middleware(['role:admin|doctor|director_tecnico'])->group(function () {
+        Route::resource('blog', PostController::class)
+            ->names('posts')
+            ->parameters(['blog' => 'post']);
+
+        Route::resource('packs-examenes', PackController::class)
+            ->names('packs')
+            ->parameters(['packs-examenes' => 'pack']);
+    });
+
+
 
     // --- RUTAS EXCLUSIVAS DEL DOCTOR ---
     Route::middleware(['role:doctor'])->group(function () {

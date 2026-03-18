@@ -27,14 +27,22 @@
             </li>
             @endrole
 
-            {{-- SOLO ADMIN: Contenidos --}}
+            {{-- SECCIÓN DE CONTENIDOS Y BLOG: Transversal excepto contador --}}
+            @unlessrole('contable')
+            <h6 class="sidebar-heading">Marketing y Contenidos</h6>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.posts.*') ? 'active' : '' }}" href="{{ route('admin.posts.index') }}">
+                    <i class="bi bi-journal-richtext"></i> Blog Educativo
+                </a>
+            </li>
             @role('admin')
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.faqs.*') ? 'active' : '' }}" href="{{ route('admin.faqs.index') }}">
-                    <i class="bi bi-info-circle-fill"></i> FAQ / Contenidos
+                    <i class="bi bi-info-circle-fill"></i> FAQ / Ayuda
                 </a>
             </li>
             @endrole
+            @endunlessrole
 
             <h6 class="sidebar-heading">Operaciones</h6>
 
@@ -52,9 +60,8 @@
             </li>
             @endrole
 
-            {{-- SOLO DIRECTOR TÉCNICO: Supervisión de Órdenes (Privacidad Médica) --}}
+            {{-- SOLO DIRECTOR TÉCNICO --}}
             @role('director_tecnico')
-
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.reports.clinical') ? 'active' : '' }}" href="{{ route('admin.reports.clinical') }}">
                     <i class="bi bi-clipboard-check-fill"></i> Calidad Clínica
