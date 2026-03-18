@@ -144,38 +144,51 @@
         {{-- 1. PACKS PREVENTIVOS --}}
         <h3 class="fw-bold mb-4"><i class="bi bi-collection-fill text-primary"></i> Packs Preventivos</h3>
 
-
-@php $limit = 8; @endphp {{-- Cambia este número para mostrar más o menos chips --}}
+@php $limit = 8; @endphp
 
 <div class="row g-4 mb-5">
     @foreach($packs as $pack)
     <div class="col-lg-4 col-md-6">
-        <div class="card card-pack p-4 shadow-sm border-0 h-100 rounded-4 d-flex flex-column">
-            <div class="mb-3">
+        <div class="card card-pack p-4 shadow-sm border-0 h-100 rounded-4 d-flex flex-column transition-hover">
+            <div class="mb-3 d-flex justify-content-between align-items-start">
                 <span class="badge {{ $loop->first ? 'bg-primary' : 'bg-secondary bg-opacity-10 text-secondary' }} rounded-pill px-3 py-2">
                     {{ $loop->first ? 'MÁS SOLICITADO' : 'PACK FAMILIAR' }}
                 </span>
+
+                {{-- NUEVO: Link al Blog si existe post_id --}}
+                @if($pack->post_id && $pack->post)
+                    <a href="{{ route('blog.show', $pack->post->slug) }}"
+                       class="text-primary text-decoration-none small fw-bold"
+                       title="Leer más sobre este examen">
+                        <i class="bi bi-info-circle-fill"></i> Info
+                    </a>
+                @endif
             </div>
 
             <h4 class="fw-bold mb-1">{{ $pack->name }}</h4>
 
             @if($pack->description)
-                <p class="text-muted small mb-3 italic">{{ $pack->description }}</p>
+                <p class="text-muted small mb-3 italic">
+                    {{ $pack->description }}
+                    {{-- Opcional: Link "Leer más" al final de la descripción --}}
+                    @if($pack->post_id && $pack->post)
+                        <a href="{{ route('blog.show', $pack->post->slug) }}" class="text-primary text-decoration-none ms-1">
+                            <i class="bi bi-arrow-right-short"></i>
+                        </a>
+                    @endif
+                </p>
             @endif
 
             <div class="flex-grow-1 mb-4 text-start">
                 <div class="d-flex flex-wrap gap-2">
-                    {{-- Mostramos hasta el límite --}}
                     @foreach($pack->children->take($limit) as $child)
                         <div class="exam-chip bg-white border small px-2 py-1 rounded-3">
                             <i class="bi bi-check-circle-fill text-success"></i> {{ $child->name }}
                         </div>
                     @endforeach
 
-                    {{-- Tooltip para los exámenes restantes --}}
                     @if($pack->children->count() > $limit)
                         @php
-                            // IMPORTANTE: Ahora el slice empieza exactamente donde termina el take
                             $remainingExams = $pack->children->slice($limit)->pluck('name')->implode(', ');
                         @endphp
                         <div class="exam-chip bg-light border small px-2 py-1 rounded-3 text-secondary fw-bold"
@@ -191,7 +204,15 @@
 
             <div class="pt-4 border-top mt-auto">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted small">Total Pack</span>
+                    <div>
+                        <span class="text-muted small d-block">Precio Total</span>
+                        {{-- Link secundario debajo del precio si tiene blog --}}
+                        @if($pack->post_id && $pack->post)
+                            <a href="{{ route('blog.show', $pack->post->slug) }}" class="text-muted small text-decoration-underline" style="font-size: 0.75rem;">
+                                Ver detalles médicos
+                            </a>
+                        @endif
+                    </div>
                     <span class="price-text fs-3 fw-bold text-primary">${{ number_format($pack->base_price, 0, ',', '.') }}</span>
                 </div>
                 <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $pack->id]) }}"
@@ -204,18 +225,10 @@
     @endforeach
 </div>
 
-@push('js')
-<script>
-    // Inicializar tooltips (asegúrate de tener Bootstrap 5 JS en tu layout)
-    document.addEventListener('DOMContentLoaded', function () {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
-    });
-</script>
-@endpush
-
+<style>
+    .transition-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .transition-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+</style>
 
 
 
