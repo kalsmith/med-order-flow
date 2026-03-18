@@ -3,13 +3,14 @@
     <div class="container">
         <div class="row g-4 mb-5">
             <div class="col-lg-4">
-                {{-- Logo dinámico: Si tienes el logo lo usamos, si no, el nombre del env --}}
+                {{-- Logo dinámico: Usamos la versión blanca para el footer oscuro --}}
                 <div class="mb-4">
+                    {{-- ASEGÚRATE DE SUBIR ESTE ARCHIVO: assets/logo/logo-white.png --}}
                     <img src="{{ asset('assets/logo/logo.png') }}"
-                         alt="{{ config('app.name') }}"
+                         alt="{{ config('app.name') }} - Logo Blanco"
                          height="45"
-                         class="d-inline-block mb-3 brightness-0 invert">
-                    {{-- El estilo brightness/invert es por si el logo es oscuro y el footer es negro --}}
+                         class="d-inline-block mb-3">
+                    {{-- Eliminamos las clases brightness-0 invert --}}
                 </div>
 
                 <p class="text-white-50 small">
@@ -54,7 +55,6 @@
             <div class="col-lg-4">
                 <h6 class="fw-bold mb-4 text-uppercase small text-primary">Contacto</h6>
                 <ul class="list-unstyled small text-white-50">
-                    {{-- Cambiado a contacto genérico basado en el dominio --}}
                     <li class="mb-2"><i class="bi bi-envelope me-2 text-primary"></i> contacto@pidetuexamen.cl</li>
                     <li class="mb-2"><i class="bi bi-whatsapp me-2 text-primary"></i> +56 9 1234 5678</li>
                     <li class="mb-2"><i class="bi bi-geo-alt me-2 text-primary"></i> Santiago, Chile</li>
@@ -71,7 +71,6 @@
 </footer>
 
 <style>
+    /* Mantenemos solo la clase de hover para los enlaces */
     .hover-white:hover { color: white !important; transition: 0.2s; }
-    .brightness-0 { filter: brightness(0); }
-    .invert { filter: invert(1); } /* Esto vuelve el logo blanco para el fondo oscuro */
 </style>
