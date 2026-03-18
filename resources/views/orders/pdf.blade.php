@@ -36,18 +36,20 @@
         .contact-info span { color: #0d6efd; font-weight: bold; }
 
         .id-badge {
-            background-color: #f8f9fa;
+            background-color: #ffffff;
             border: 1px solid #e9ecef;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 12px 18px;
         }
 
         .document-title {
             padding: 0 50px;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             color: #2d3436;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .section {
@@ -68,17 +70,19 @@
         .label { font-size: 8px; color: #b2bec3; text-transform: uppercase; font-weight: bold; }
         .value { font-size: 12px; font-weight: bold; color: #2d3436; margin-bottom: 10px; }
 
+        /* CAMBIO SOLICITADO: Bordes con colores, sin relleno */
         .prestacion-card {
-            background-color: #f1f7ff;
-            border-left: 4px solid #0d6efd;
-            padding: 15px 20px;
-            border-radius: 4px;
+            background-color: transparent;
+            border: 1px solid #d1e1f5;
+            border-left: 5px solid #0d6efd;
+            padding: 18px 22px;
+            border-radius: 8px;
         }
 
         .exam-item {
-            margin-bottom: 5px;
-            padding-bottom: 3px;
-            border-bottom: 1px dotted #d1e1f5;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #f8f9fa;
             display: block;
         }
 
@@ -86,7 +90,7 @@
             color: #0d6efd;
             font-weight: bold;
             font-size: 9px;
-            margin-right: 5px;
+            margin-right: 8px;
         }
 
         .footer-fixed {
@@ -98,8 +102,8 @@
 
         .qr-container {
             margin: 0 50px 20px 50px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            background-color: #ffffff;
+            border-radius: 10px;
             padding: 15px;
             border: 1px solid #e9ecef;
         }
@@ -108,12 +112,13 @@
             border-top: 1px solid #edf2f7;
             padding: 15px 50px;
             text-align: center;
-            font-size: 9px;
+            font-size: 8.5px;
             color: #b2bec3;
+            line-height: 1.5;
         }
 
-        .signature-container { margin-top: 10px; text-align: left; }
-        .signature-img { max-height: 75px; max-width: 180px; display: block; }
+        .signature-container { margin-top: 0; text-align: right; }
+        .signature-img { max-height: 70px; max-width: 160px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -124,7 +129,6 @@
     <table width="100%">
         <tr>
             <td width="60%">
-                {{-- Mantenemos tu URL que ya funcionaba para el logo --}}
                 <img src="https://med-order-flow.soltys.cl/assets/logo/logo.png" class="logo-img">
                 <div class="contact-info">
                     pidetuexamen.cl &bull; contacto@pidetuexamen.cl<br>
@@ -151,32 +155,28 @@
     </table>
 </div>
 
-{{-- <div class="document-title">Orden Médica</div> --}}
-
 <div class="section">
     <table width="100%">
         <tr>
             <td class="section-title">Médico Emisor</td>
-
             <td>
                 <table width="100%">
                     <tr>
-                        <td width="60%" style="vertical-align: top;">
+                        <td width="65%" style="vertical-align: top;">
                             <div class="value" style="font-size: 15px; margin-bottom: 4px;">
                                 Dr(a). {{ $prescription->doctor->user->name }}
                             </div>
                             <div style="color: #636e72; font-size: 10px;">
                                 RUT: {{ $prescription->doctor->rut }} | Registro SIS: {{ $prescription->doctor->rnpi_number }}<br>
-                                <span style="color: #0d6efd; font-weight: bold;">
+                                <span style="color: #0d6efd; font-weight: bold; letter-spacing: 0.3px;">
                                     {{ strtoupper($prescription->doctor->specialties->pluck('name')->join(' / ')) }}
                                 </span>
                             </div>
                         </td>
-
-                        <td width="40%" align="right" style="vertical-align: middle;">
+                        <td width="35%" align="right" style="vertical-align: middle;">
                             @if(isset($signatureBase64) && $signatureBase64)
-                                <div class="signature-container" style="margin-top: 0;">
-                                    <img src="{{ $signatureBase64 }}" class="signature-img" style="display: inline-block;">
+                                <div class="signature-container">
+                                    <img src="{{ $signatureBase64 }}" class="signature-img">
                                 </div>
                             @else
                                 <div style="color: #b2bec3; font-style: italic; font-size: 8px; text-align: right;">
@@ -191,7 +191,6 @@
     </table>
 </div>
 
-{{-- Resto del documento se mantiene igual para asegurar que no se rompa nada --}}
 <div class="section">
     <table width="100%">
         <tr>
@@ -209,7 +208,7 @@
     </table>
 </div>
 
-<div class="document-title">Orden Médica</div>
+<div class="document-title" style="margin-top: 10px;">Orden Médica</div>
 
 <div class="section">
     <table width="100%">
@@ -217,18 +216,18 @@
             <td class="section-title">Análisis Solicitados</td>
             <td>
                 <div class="prestacion-card">
-                    <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 8px; border-bottom: 1px solid #cce0ff; padding-bottom: 5px;">
+                    <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 12px; border-bottom: 2px solid #f8f9fa; padding-bottom: 8px; letter-spacing: 0.5px;">
                         @if($order->type === 'custom')
-                            ORDEN MÉDICA
+                            ORDEN MÉDICA PERSONALIZADA
                         @else
-                            {{ $order->examType->name ?? 'EXAMEN ESTÁNDAR' }}
+                            {{ strtoupper($order->examType->name ?? 'EXAMEN ESTÁNDAR') }}
                         @endif
                     </div>
 
                     @if($order->type === 'custom')
-                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap; color: #2d3436;">{{ $prescription->clinical_context }}</div>
+                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap; color: #2d3436; line-height: 1.5;">{{ $prescription->clinical_context }}</div>
                     @elseif($order->examType && $order->examType->children->isNotEmpty())
-                        <div style="margin-top: 10px;">
+                        <div style="margin-top: 5px;">
                             @foreach($order->examType->children as $child)
                                 <div class="exam-item">
                                     <span class="exam-code">[{{ $child->code_fonasa ?? 'S/C' }}]</span>
@@ -237,14 +236,14 @@
                             @endforeach
                         </div>
                     @elseif($order->examType)
-                        <div class="exam-item">
+                        <div class="exam-item" style="border-bottom: none;">
                             <span class="exam-code">[{{ $order->examType->code_fonasa ?? 'S/C' }}]</span>
                             <span style="font-size: 11px; font-weight: bold;">{{ $order->examType->name }}</span>
                         </div>
                     @endif
 
-                    <div style="color: #636e72; font-style: italic; font-size: 9px; margin-top: 15px; border-top: 1px solid #edf2f7; padding-top: 8px;">
-                        <strong>Nota Importante:</strong> El paciente debe consultar directamente con el laboratorio sobre los requisitos de preparación técnica necesarios.
+                    <div style="color: #636e72; font-style: italic; font-size: 8.5px; margin-top: 15px; border-top: 1px solid #edf2f7; padding-top: 10px;">
+                        <strong>Nota Importante:</strong> El paciente debe consultar directamente con el laboratorio sobre los requisitos de preparación técnica necesarios para la toma de muestras.
                     </div>
                 </div>
             </td>
@@ -256,8 +255,8 @@
 <div class="section">
     <table width="100%">
         <tr>
-            <td class="section-title">Observaciones Clínicas</td>
-            <td style="font-size: 11px; color: #2d3436; white-space: pre-wrap;">{{ $prescription->clinical_context }}</td>
+            <td class="section-title">Observaciones</td>
+            <td style="font-size: 11px; color: #2d3436; white-space: pre-wrap; line-height: 1.5;">{{ $prescription->clinical_context }}</td>
         </tr>
     </table>
 </div>
@@ -267,15 +266,15 @@
     <div class="qr-container">
         <table width="100%">
             <tr>
-                <td width="70">
+                <td width="75">
                     <img src="data:image/svg+xml;base64,{{ $qrCode }}" style="width: 70px; height: 70px;">
                 </td>
                 <td style="padding-left: 15px; vertical-align: middle;">
-                    <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 3px;">VERIFICACIÓN DIGITAL</div>
-                    <div style="color: #636e72; font-size: 9px; line-height: 1.2;">
-                        Escanee el código para confirmar la autenticidad en nuestra plataforma oficial o ingrese el código
-                        <strong>{{ $prescription->verification_code }}</strong> en pidetuexamen.cl/v/{{ $prescription->verification_code }}.
-                        <br>ID Transacción: {{ strtoupper(substr($order->id, 0, 8)) }}
+                    <div style="color: #0d6efd; font-weight: bold; font-size: 10px; margin-bottom: 4px; letter-spacing: 0.5px;">VERIFICACIÓN DIGITAL</div>
+                    <div style="color: #636e72; font-size: 9px; line-height: 1.3;">
+                        Escanee el código QR para confirmar la autenticidad en nuestra plataforma o ingrese el código
+                        <strong style="color: #2d3436;">{{ $prescription->verification_code }}</strong> en pidetuexamen.cl/verificar.
+                        <br>ID Transacción: <span style="font-family: monospace;">{{ strtoupper(substr($order->id, 0, 8)) }}</span>
                     </div>
                 </td>
             </tr>
@@ -283,7 +282,7 @@
     </div>
     <div class="legal-footer">
         CODE TECH DIGITAL SPA • RUT 77.736.856-7 • SANTIAGO, CHILE<br>
-        Documento Electrónico generado por PideTuExamen.cl el {{ now()->format('d/m/Y H:i') }}
+        Documento Electrónico generado por PideTuExamen.cl el {{ now()->format('d/m/Y H:i') }} hrs.
     </div>
 </div>
 
