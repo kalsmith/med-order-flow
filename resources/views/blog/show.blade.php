@@ -1,5 +1,7 @@
 @extends('layouts.front')
 
+@section('title', $post->meta_title ?? $post->title)
+
 @section('seo')
     {{-- Meta Tags Pro-SEO --}}
     <title>{{ $post->meta_title ?? $post->title }} | Med Order Flow</title>
@@ -40,12 +42,14 @@
                 </header>
 
                 {{-- Imagen Destacada (1200x630) --}}
-                <figure class="mb-5 shadow-sm rounded overflow-hidden">
-                    <img src="{{ asset('storage/' . $post->featured_image) }}"
-                         class="img-fluid w-100"
-                         alt="{{ $post->title }}"
-                         style="max-height: 500px; object-fit: cover;">
-                </figure>
+{{-- Imagen Destacada (1200x630) --}}
+<figure class="mb-5 shadow-sm rounded overflow-hidden">
+    <img src="{{ asset('storage/' . $post->featured_image) }}"
+         class="img-fluid w-100"
+         alt="{{ $post->title }}" {{-- <--- Alt dinámico --}}
+         loading="lazy" {{-- <--- Mejora la velocidad de carga --}}
+         style="max-height: 500px; object-fit: cover; width: 100%; height: auto;">
+</figure>
 
                 {{-- Contenido del Post --}}
                 <div class="blog-content mb-5 lh-lg fs-5">
