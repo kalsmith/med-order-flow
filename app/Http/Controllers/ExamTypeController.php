@@ -110,7 +110,8 @@ class ExamTypeController extends Controller
     {
         $request->validate([
             'name'         => 'required|string|max:255',
-            'description'  => 'nullable|string|max:500', // Validación para el Slogan SEO
+            'description'  => 'nullable|string|max:500',
+            'post_id'      => 'nullable|exists:blog_posts,id', // <--- Nueva validación
             'specialty_id' => 'required|exists:specialties,id',
             'base_price'   => 'required|integer|min:0',
             'is_active'    => 'nullable|boolean',
@@ -121,22 +122,23 @@ class ExamTypeController extends Controller
         try {
             DB::beginTransaction();
 
-            // Agregamos 'description' al update
+            // Agregamos 'post_id' al update
             $examType->update($request->only([
-                'name', 'description', 'specialty_id', 'code_fonasa', 'base_price', 'is_active'
+                'name', 'description', 'post_id', 'specialty_id', 'code_fonasa', 'base_price', 'is_active'
             ]));
 
-            // Sincronizamos los hijos (si viene vacío, limpia la tabla pivote)
             $examType->children()->sync($request->bundle_ids ?? []);
 
             DB::commit();
 
             return redirect()->route('admin.exam-types.index')
-                             ->with('status', '¡Éxito! El examen "' . $examType->name . '" ha sido actualizado correctamente.');
+                            ->with('status', '¡Éxito! El examen "' . $examType->name . '" ha sido actualizado.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
+            return back()->withInput()->withErrors(['error' => 'Error: ' . $e->getMessage()]);
         }
     }
+
+
 }
