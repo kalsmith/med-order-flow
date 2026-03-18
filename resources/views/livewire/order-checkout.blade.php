@@ -125,7 +125,14 @@
                         </div>
                     </div>
 
-                    {{-- Aviso de Producto de Consumo Inmediato --}}
+
+
+                    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+                        <span class="fw-bold text-dark fs-5">Total:</span>
+                        <span class="fs-2 fw-bold text-primary">${{ number_format($exam_type->base_price, 0, ',', '.') }}</span>
+                    </div>
+
+                                        {{-- Aviso de Producto de Consumo Inmediato --}}
                     <div class="p-3 rounded-4 mb-4" style="background-color: #fef2f2; border: 1px solid #fee2e2;">
                         <div class="d-flex align-items-center mb-1">
                             <i class="bi bi-info-circle-fill text-danger me-2"></i>
@@ -134,11 +141,6 @@
                         <p class="mb-0 text-muted" style="font-size: 0.75rem; line-height: 1.3;">
                             Al confirmar, se generará su orden médica de forma automática. Debido a la naturaleza digital e instantánea de este servicio, no aplica el derecho a retracto ni devoluciones una vez realizado el pago.
                         </p>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-                        <span class="fw-bold text-dark fs-5">Total:</span>
-                        <span class="fs-2 fw-bold text-primary">${{ number_format($exam_type->base_price, 0, ',', '.') }}</span>
                     </div>
 
                     <form action="{{ route('orders.store.public') }}" method="POST">
