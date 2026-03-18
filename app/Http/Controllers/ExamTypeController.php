@@ -96,14 +96,18 @@ class ExamTypeController extends Controller
     {
         $specialties = Specialty::all();
 
-        // Filtramos: Exámenes individuales y excluimos al actual para evitar recursividad simple
+        // CARGAR LOS POSTS PARA EL SELECTOR DEL BLOG
+        $posts = Post::orderBy('title')->get();
+
+        // Filtramos: Exámenes individuales y excluimos al actual
         $allExams = ExamType::doesntHave('children')
             ->where('id', '!=', $examType->id)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        return view('admin.exam_types.edit', compact('examType', 'specialties', 'allExams'));
+        // Asegúrate de incluir 'posts' en el compact
+        return view('admin.exam_types.edit', compact('examType', 'specialties', 'allExams', 'posts'));
     }
 
     public function update(Request $request, ExamType $examType)
