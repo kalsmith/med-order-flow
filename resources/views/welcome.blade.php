@@ -74,6 +74,7 @@
     </div>
 </header>
 
+
 {{-- TRUST BADGES --}}
 <section class="py-5 border-top border-bottom bg-white">
     <div class="container text-center">

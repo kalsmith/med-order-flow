@@ -138,9 +138,14 @@ Route::middleware([
             ->except(['index', 'create', 'store']);
     });
 
+
+
+
     // --- RUTAS COMPARTIDAS (ADMIN & DIRECTOR TÉCNICO) ---
     Route::middleware(['role:admin|director_tecnico'])->group(function () {
-        Route::resource('especialidades', SpecialtyController::class)->names('specialties');
+        Route::resource('especialidades', SpecialtyController::class)
+        ->names('specialties')
+        ->parameters(['especialidades' => 'specialty']);
         Route::resource('medicos', DoctorController::class)->names('doctors');
         Route::get('/signatures/{filename}', [DoctorController::class, 'showSignature'])->name('signatures.show');
         Route::resource('examenes', ExamTypeController::class)->names('exam-types')->parameters(['examenes' => 'exam_type']);
