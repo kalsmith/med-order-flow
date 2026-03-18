@@ -55,7 +55,7 @@
                 {{-- Banner de Identidad Visual (Corregido con fondo real) --}}
                 <div class="bg-gradient-blue p-4 p-md-5 text-white text-center">
                     <div class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-circle mb-3 shadow-sm" style="width: 60px; height: 60px;">
-                        <i class="bi bi-magic fs-3 text-white"></i>
+                        <i class="bi bi-magic fs-3 text-muted mb-1 d-block"></i>
                     </div>
                     <h3 class="fw-bold mb-2 text-white">Solicitud de Orden Médica</h3>
                     <p class="mb-0 opacity-90 mx-auto text-white" style="max-width: 500px;">
