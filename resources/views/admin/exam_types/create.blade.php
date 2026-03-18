@@ -21,8 +21,18 @@
                         <div class="col-md-12">
                             <label class="form-label fw-semibold">Nombre del Examen o Pack</label>
                             <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                                   value="{{ old('name') }}" placeholder="Ej: Perfil Bioquímico" required>
+                                   value="{{ old('name') }}" placeholder="Ej: Checkup Vida Sana o Hemograma" required>
                             @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        {{-- NUEVO: Campo de Slogan / Bajada SEO --}}
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Slogan / Bajada de Beneficio (SEO)</label>
+                            <input type="text" id="descriptionInput" name="description" class="form-control @error('description') is-invalid @enderror"
+                                   value="{{ old('description') }}"
+                                   placeholder="Ej: Detecta a tiempo riesgos metabólicos y mejora tu energía diaria.">
+                            <small class="text-muted">Esta frase es clave para convertir lectores del blog en pacientes.</small>
+                            @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
                         <div class="col-md-6">
@@ -50,7 +60,7 @@
                                 <input type="number" name="base_price" class="form-control @error('base_price') is-invalid @enderror"
                                        value="{{ old('base_price', 0) }}" required>
                             </div>
-                            <small class="text-muted">Si es una pila, este es el cobro total.</small>
+                            <small class="text-muted">Si es una pila, este es el cobro total del pack.</small>
                             @error('base_price') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
@@ -79,11 +89,11 @@
                         </div>
 
                         <div class="col-md-2 d-flex flex-column justify-content-center align-items-center">
-                            <button type="button" id="btnAdd" class="btn btn-outline-primary mb-2 w-100">
+                            <button type="button" id="btnAdd" class="btn btn-outline-primary mb-2 w-100 shadow-sm">
                                 <i class="bi bi-chevron-right d-none d-md-inline"></i>
                                 <i class="bi bi-chevron-down d-md-none"></i>
                             </button>
-                            <button type="button" id="btnRemove" class="btn btn-outline-danger w-100">
+                            <button type="button" id="btnRemove" class="btn btn-outline-danger w-100 shadow-sm">
                                 <i class="bi bi-chevron-left d-none d-md-inline"></i>
                                 <i class="bi bi-chevron-up d-md-none"></i>
                             </button>
@@ -91,11 +101,13 @@
 
                         <div class="col-md-5">
                             <label class="form-label small fw-bold text-primary text-uppercase">Incluidos en el Pack</label>
-                            <div class="mb-2" style="height: 31px;"></div> <select id="selectedExams" name="bundle_ids[]" class="form-select border-primary" multiple style="height: 250px;">
+                            <div class="mb-2" style="height: 31px;"></div>
+                            <select id="selectedExams" name="bundle_ids[]" class="form-select border-primary" multiple style="height: 250px;">
                                 {{-- Aquí se moverán los exámenes seleccionados --}}
                             </select>
-                            <div class="form-text mt-2">
-                                <span id="countSelected" class="badge bg-primary">0</span> exámenes seleccionados
+                            <div class="form-text mt-2 d-flex justify-content-between">
+                                <span><span id="countSelected" class="badge bg-primary">0</span> exámenes seleccionados</span>
+                                <span id="packBadge" class="badge bg-info text-dark d-none">MODO PACK ACTIVO</span>
                             </div>
                         </div>
                     </div>
@@ -120,8 +132,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnRemove = document.getElementById('btnRemove');
     const searchInput = document.getElementById('searchAvailable');
     const form = document.getElementById('examForm');
+    const descriptionInput = document.getElementById('descriptionInput');
+    const packBadge = document.getElementById('packBadge');
 
-    // Función para mover opciones
     function moveOptions(from, to) {
         const selectedOptions = Array.from(from.selectedOptions);
         selectedOptions.forEach(option => {
@@ -133,7 +146,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateCounter() {
-        document.getElementById('countSelected').innerText = selectedSelect.options.length;
+        const count = selectedSelect.options.length;
+        document.getElementById('countSelected').innerText = count;
+
+        if (count > 0) {
+            // Estética "agresiva": resaltamos que es un pack
+            descriptionInput.classList.add('border-info', 'bg-light');
+            packBadge.classList.remove('d-none');
+        } else {
+            descriptionInput.classList.remove('border-info', 'bg-light');
+            packBadge.classList.add('d-none');
+        }
     }
 
     function sortSelect(select) {
@@ -146,11 +169,9 @@ document.addEventListener('DOMContentLoaded', function() {
     btnAdd.addEventListener('click', () => moveOptions(availableSelect, selectedSelect));
     btnRemove.addEventListener('click', () => moveOptions(selectedSelect, availableSelect));
 
-    // Doble click para mover rápido
     availableSelect.addEventListener('dblclick', () => moveOptions(availableSelect, selectedSelect));
     selectedSelect.addEventListener('dblclick', () => moveOptions(selectedSelect, availableSelect));
 
-    // Buscador simple
     searchInput.addEventListener('input', function() {
         const term = this.value.toLowerCase();
         Array.from(availableSelect.options).forEach(option => {
@@ -159,7 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // IMPORTANTE: Antes de enviar el form, seleccionar todos los del panel derecho
     form.addEventListener('submit', function() {
         Array.from(selectedSelect.options).forEach(option => option.selected = true);
     });

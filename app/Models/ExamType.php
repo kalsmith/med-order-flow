@@ -15,6 +15,7 @@ class ExamType extends Model
     protected $fillable = [
         'specialty_id',
         'name',
+        'description', // El nuevo Slogan/Bajada SEO
         'code_fonasa',
         'base_price',
         'is_active'

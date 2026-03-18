@@ -54,6 +54,14 @@
                                 <input type="text" name="name" class="form-control" value="{{ old('name', $examType->name) }}" required>
                             </div>
 
+                            {{-- NUEVO: Campo Slogan SEO --}}
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-primary">Slogan / Bajada SEO</label>
+                                <textarea name="description" id="descriptionInput" class="form-control" rows="3"
+                                    placeholder="Ej: Todo lo que necesitas para tu control anual en un solo pack.">{{ old('description', $examType->description) }}</textarea>
+                                <small class="text-muted">Aparecerá como gancho comercial en el Blog.</small>
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Especialidad</label>
                                 <select name="specialty_id" class="form-select" required>
@@ -83,7 +91,7 @@
                                 </select>
                             </div>
 
-                            <button type="submit" class="btn btn-primary w-100 mt-3 shadow-sm">
+                            <button type="submit" class="btn btn-primary w-100 mt-3 shadow-sm btn-lg">
                                 <i class="bi bi-save me-2"></i> Guardar Cambios
                             </button>
                         </div>
@@ -105,7 +113,8 @@
 
                                     <select id="available_exams" class="form-select" size="12" multiple>
                                         @foreach($allExams as $item)
-                                            @if(!$examType->children->contains($item->id))
+                                            {{-- Excluimos los que ya están hijos y el mismo examen --}}
+                                            @if(!$examType->children->contains($item->id) && $item->id != $examType->id)
                                                 <option value="{{ $item->id }}">{{ $item->name }}</option>
                                             @endif
                                         @endforeach
@@ -114,10 +123,10 @@
 
                                 <div class="col-2 text-center mt-5">
                                     <div class="d-grid gap-2">
-                                        <button type="button" id="btn_add" class="btn btn-outline-primary btn-sm">
+                                        <button type="button" id="btn_add" class="btn btn-outline-primary btn-sm shadow-sm">
                                             <i class="bi bi-chevron-right"></i>
                                         </button>
-                                        <button type="button" id="btn_remove" class="btn btn-outline-danger btn-sm">
+                                        <button type="button" id="btn_remove" class="btn btn-outline-danger btn-sm shadow-sm">
                                             <i class="bi bi-chevron-left"></i>
                                         </button>
                                     </div>
@@ -126,7 +135,7 @@
                                 <div class="col-5">
                                     <label class="form-label fw-bold small text-uppercase text-primary">En esta Pila</label>
                                     <div style="height: 31px;" class="mb-2"></div>
-                                    <select name="bundle_ids[]" id="selected_exams" class="form-select border-primary" size="12" multiple>
+                                    <select name="bundle_ids[]" id="selected_exams" class="form-select border-primary shadow-sm" size="12" multiple>
                                         @foreach($examType->children as $child)
                                             <option value="{{ $child->id }}">{{ $child->name }}</option>
                                         @endforeach
@@ -153,10 +162,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const selected = document.getElementById('selected_exams');
     const search = document.getElementById('search_available');
     const form = document.getElementById('examForm');
+    const descriptionInput = document.getElementById('descriptionInput');
 
     function move(from, to) {
         Array.from(from.selectedOptions).forEach(opt => to.appendChild(opt));
         sortSelect(to);
+        updateUI();
     }
 
     function sortSelect(sel) {
@@ -164,6 +175,15 @@ document.addEventListener('DOMContentLoaded', function() {
         tmp.sort((a, b) => a.text.localeCompare(b.text));
         sel.innerHTML = '';
         tmp.forEach(opt => sel.add(opt));
+    }
+
+    function updateUI() {
+        const count = selected.options.length;
+        if (count > 0) {
+            descriptionInput.classList.add('border-primary', 'bg-light');
+        } else {
+            descriptionInput.classList.remove('border-primary', 'bg-light');
+        }
     }
 
     btnAdd.addEventListener('click', () => move(available, selected));
@@ -179,17 +199,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // IMPORTANTE: Antes de enviar, seleccionamos todos para que viajen en el Request
     form.addEventListener('submit', () => {
         Array.from(selected.options).forEach(opt => opt.selected = true);
     });
+
+    // Ejecutar al cargar para marcar el estado inicial
+    updateUI();
 });
 </script>
 @endpush
 
 <style>
-    .form-select[size] { height: 350px !important; }
+    .form-select[size] { height: 380px !important; }
     .alert { animation: fadeInDown 0.5s ease-out; }
+    #descriptionInput { transition: all 0.3s ease; }
     @keyframes fadeInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
