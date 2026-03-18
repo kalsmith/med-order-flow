@@ -143,33 +143,55 @@
     <div class="container">
         {{-- 1. PACKS PREVENTIVOS --}}
         <h3 class="fw-bold mb-4"><i class="bi bi-collection-fill text-primary"></i> Packs Preventivos</h3>
-        <div class="row g-4 mb-5">
-            @foreach($packs as $pack)
-            <div class="col-lg-4 col-md-6">
-                <div class="card card-pack p-4 shadow-sm border-0 h-100 rounded-4">
-                    <div class="mb-3">
-                        <span class="badge {{ $loop->first ? 'bg-primary' : 'bg-secondary bg-opacity-10 text-secondary' }} rounded-pill px-3 py-2">
-                            {{ $loop->first ? 'MÁS SOLICITADO' : 'PACK FAMILIAR' }}
-                        </span>
-                    </div>
-                    <h4 class="fw-bold mb-3">{{ $pack->name }}</h4>
-                    <div class="flex-grow-1 mb-4 text-start">
-                        <div class="d-flex flex-wrap gap-2">
-                            @foreach($pack->children as $child)
-                                <div class="exam-chip bg-white border small px-2 py-1 rounded-3">
-                                    <i class="bi bi-check-circle-fill text-success"></i> {{ $child->name }}
-                                </div>
-                            @endforeach
+<div class="row g-4 mb-5">
+    @foreach($packs as $pack)
+    <div class="col-lg-4 col-md-6">
+        <div class="card card-pack p-4 shadow-sm border-0 h-100 rounded-4 d-flex flex-column">
+            <div class="mb-3">
+                <span class="badge {{ $loop->first ? 'bg-primary' : 'bg-secondary bg-opacity-10 text-secondary' }} rounded-pill px-3 py-2">
+                    {{ $loop->first ? 'MÁS SOLICITADO' : 'PACK FAMILIAR' }}
+                </span>
+            </div>
+
+            <h4 class="fw-bold mb-1">{{ $pack->name }}</h4>
+
+            {{-- Muestra la descripción/slogan si existe --}}
+            @if($pack->description)
+                <p class="text-muted small mb-3 italic">{{ $pack->description }}</p>
+            @endif
+
+            <div class="flex-grow-1 mb-4 text-start">
+                <div class="d-flex flex-wrap gap-2">
+                    {{-- Lógica de máximo 8 exámenes --}}
+                    @foreach($pack->children->take(8) as $child)
+                        <div class="exam-chip bg-white border small px-2 py-1 rounded-3">
+                            <i class="bi bi-check-circle-fill text-success"></i> {{ $child->name }}
                         </div>
-                    </div>
-                    <div class="pt-4 border-top">
-                        <span class="price-text fs-3 fw-bold">${{ number_format($pack->base_price, 0, ',', '.') }}</span>
-                        <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $pack->id]) }}" class="btn btn-primary w-100 mt-3 py-3 fw-bold shadow-sm">Seleccionar Pack</a>
-                    </div>
+                    @endforeach
+
+                    {{-- Si hay más de 8, mostrar el contador restante --}}
+                    @if($pack->children->count() > 8)
+                        <div class="exam-chip bg-light border small px-2 py-1 rounded-3 text-secondary fw-bold">
+                            + {{ $pack->children->count() - 8 }} más
+                        </div>
+                    @endif
                 </div>
             </div>
-            @endforeach
+
+            <div class="pt-4 border-top mt-auto">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted small">Total Pack</span>
+                    <span class="price-text fs-3 fw-bold text-primary">${{ number_format($pack->base_price, 0, ',', '.') }}</span>
+                </div>
+                <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $pack->id]) }}"
+                   class="btn btn-primary w-100 py-3 fw-bold shadow-sm rounded-3">
+                    Seleccionar Pack
+                </a>
+            </div>
         </div>
+    </div>
+    @endforeach
+</div>
 
         {{-- 2. BANNER ORDEN PERSONALIZADA --}}
         <div class="card bg-dark text-white border-0 shadow-lg p-4 p-md-5 rounded-5 mb-5 overflow-hidden position-relative">
