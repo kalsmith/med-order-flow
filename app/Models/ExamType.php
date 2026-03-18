@@ -18,7 +18,8 @@ class ExamType extends Model
         'description', // El nuevo Slogan/Bajada SEO
         'code_fonasa',
         'base_price',
-        'is_active'
+        'is_active',
+        'post_id'
     ];
 
     protected $casts = [
