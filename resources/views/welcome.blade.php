@@ -79,27 +79,27 @@
 <section class="py-5 border-top border-bottom bg-white">
     <div class="container text-center">
         <div class="row g-4 justify-content-center">
-            <div class="col-6 col-md-4 col-lg-2">
+            {{-- <div class="col-6 col-md-4 col-lg-2">
                 <i class="bi bi-shield-check text-success fs-3 d-block mb-2"></i>
                 <span class="fw-bold small d-block">Firma Avanzada</span>
                 <p class="text-muted small mb-0">Ley 19.799</p>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            </div> --}}
+            <div class="col-6 col-md-4 col-lg-3">
                 <i class="bi bi-clock-fill text-danger fs-3 d-block mb-2"></i>
                 <span class="fw-bold small d-block">Disponibilidad 24/7</span>
                 <p class="text-muted small mb-0">365 días del año</p>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-lg-3">
                 <i class="bi bi-lightning-charge-fill text-warning fs-3 d-block mb-2"></i>
                 <span class="fw-bold small d-block">Entrega Veloz</span>
                 <p class="text-muted small mb-0">En minutos</p>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-lg-3">
                 <i class="bi bi-hospital text-info fs-3 d-block mb-2"></i>
                 <span class="fw-bold small d-block">Red Nacional</span>
                 <p class="text-muted small mb-0">Fonasa e Isapre</p>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-lg-3">
                 <i class="bi bi-lock-fill text-primary fs-3 d-block mb-2"></i>
                 <span class="fw-bold small d-block">Datos Protegidos</span>
                 <p class="text-muted small mb-0">Ley 21.719</p>
@@ -143,6 +143,8 @@
     <div class="container">
         {{-- 1. PACKS PREVENTIVOS --}}
         <h3 class="fw-bold mb-4"><i class="bi bi-collection-fill text-primary"></i> Packs Preventivos</h3>
+
+
 <div class="row g-4 mb-5">
     @foreach($packs as $pack)
     <div class="col-lg-4 col-md-6">
@@ -155,23 +157,30 @@
 
             <h4 class="fw-bold mb-1">{{ $pack->name }}</h4>
 
-            {{-- Muestra la descripción/slogan si existe --}}
             @if($pack->description)
                 <p class="text-muted small mb-3 italic">{{ $pack->description }}</p>
             @endif
 
             <div class="flex-grow-1 mb-4 text-start">
                 <div class="d-flex flex-wrap gap-2">
-                    {{-- Lógica de máximo 8 exámenes --}}
+                    {{-- Mostramos los primeros 8 --}}
                     @foreach($pack->children->take(8) as $child)
                         <div class="exam-chip bg-white border small px-2 py-1 rounded-3">
                             <i class="bi bi-check-circle-fill text-success"></i> {{ $child->name }}
                         </div>
                     @endforeach
 
-                    {{-- Si hay más de 8, mostrar el contador restante --}}
+                    {{-- Tooltip para los exámenes restantes --}}
                     @if($pack->children->count() > 8)
-                        <div class="exam-chip bg-light border small px-2 py-1 rounded-3 text-secondary fw-bold">
+                        @php
+                            // Creamos un string con los nombres de los exámenes que faltan
+                            $remainingExams = $pack->children->slice(8)->pluck('name')->implode(', ');
+                        @endphp
+                        <div class="exam-chip bg-light border small px-2 py-1 rounded-3 text-secondary fw-bold"
+                             data-bs-toggle="tooltip"
+                             data-bs-placement="top"
+                             title="{{ $remainingExams }}"
+                             style="cursor: help;">
                             + {{ $pack->children->count() - 8 }} más
                         </div>
                     @endif
@@ -192,6 +201,21 @@
     </div>
     @endforeach
 </div>
+
+@push('js')
+<script>
+    // Inicializar todos los tooltips de Bootstrap 5 en la página
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
+@endpush
+
+
+
 
         {{-- 2. BANNER ORDEN PERSONALIZADA --}}
         <div class="card bg-dark text-white border-0 shadow-lg p-4 p-md-5 rounded-5 mb-5 overflow-hidden position-relative">
