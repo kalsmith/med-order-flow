@@ -10,21 +10,42 @@ use Illuminate\Support\Facades\Log;
 
 class OrderCheckout extends Component
 {
-    public $exam_type;
+    // Datos de los exámenes
+    public $exam_type;          // Para flujo individual/pack
+    public $selected_exams;     // Para flujo múltiple (colección de modelos)
+    public $selected_exams_ids; // String de IDs para el formulario
+    public $is_multiple = false;
+
+    // Datos de pacientes
     public $patients;
     public $selected_patient_id;
     public $showAddFamily = false;
 
-    // Campos obligatorios para la Orden Médica
+    // Campos para nuevo familiar
     public $new_full_name;
     public $new_rut;
     public $new_relationship;
     public $new_birth_date;
-    public $new_gender_biologic = 'M'; // Por defecto Masculino
+    public $new_gender_biologic = 'Masculino';
 
-    public function mount($examTypeId)
+    /**
+     * Ahora el mount acepta ambos casos.
+     * Laravel Livewire empareja los parámetros automáticamente.
+     */
+    public function mount($examTypeId = null, $selectedExamsIds = null)
     {
-        $this->exam_type = ExamType::findOrFail($examTypeId);
+        if ($selectedExamsIds) {
+            // FLUJO BUSCADOR (Múltiple)
+            $this->is_multiple = true;
+            $this->selected_exams_ids = $selectedExamsIds;
+            $ids = explode(',', $selectedExamsIds);
+            $this->selected_exams = ExamType::whereIn('id', $ids)->get();
+        } elseif ($examTypeId) {
+            // FLUJO TRADICIONAL (Individual o Pack)
+            $this->is_multiple = false;
+            $this->exam_type = ExamType::findOrFail($examTypeId);
+        }
+
         $this->loadPatients();
 
         // Seleccionar al titular por defecto
@@ -51,52 +72,43 @@ class OrderCheckout extends Component
         if ($this->showAddFamily) $this->selected_patient_id = null;
     }
 
-public function saveFamily()
-{
-    // 1. Validación básica de campos
-    $this->validate([
-        'new_full_name'       => 'required|string|min:8',
-        'new_rut'             => 'required|string|min:7',
-        'new_relationship'    => 'required|in:hijo,conyuge,padre,otro',
-        'new_birth_date'      => 'required|date|before:today',
-        'new_gender_biologic' => 'required|in:Masculino,Femenino',
-    ]);
-
-    // 2. Validación de Dígito Verificador (Helper)
-    if (!\App\Support\RutHelper::validate($this->new_rut)) {
-        $this->addError('new_rut', 'El RUT ingresado no es válido (Dígito verificador incorrecto).');
-        return;
-    }
-
-    try {
-        // Mapeo de género si prefieres guardar el nombre completo
-        $genero = ($this->new_gender_biologic === 'M') ? 'Masculino' : 'Femenino';
-
-        $patient = Auth::user()->patients()->create([
-            'full_name'       => $this->new_full_name,
-            'rut'             => $this->new_rut, // El Setter del modelo hará RutHelper::clean()
-            'relationship'    => $this->new_relationship,
-            'birth_date'      => $this->new_birth_date,
-            'gender_biologic' => $genero,
-            'is_primary'      => false,
-            'prevision'       => 'Particular', // Valor por defecto para familiares
+    public function saveFamily()
+    {
+        $this->validate([
+            'new_full_name'       => 'required|string|min:8',
+            'new_rut'             => 'required|string|min:7',
+            'new_relationship'    => 'required|in:hijo,conyuge,padre,otro',
+            'new_birth_date'      => 'required|date|before:today',
+            'new_gender_biologic' => 'required|in:Masculino,Femenino',
         ]);
 
-        // Resetear campos y cerrar formulario
-        $this->reset(['new_full_name', 'new_rut', 'new_relationship', 'new_birth_date', 'new_gender_biologic', 'showAddFamily']);
+        if (!\App\Support\RutHelper::validate($this->new_rut)) {
+            $this->addError('new_rut', 'El RUT ingresado no es válido.');
+            return;
+        }
 
-        // Recargar lista y seleccionar al nuevo paciente
-        $this->loadPatients();
-        $this->selected_patient_id = $patient->id;
+        try {
+            $patient = Auth::user()->patients()->create([
+                'full_name'       => $this->new_full_name,
+                'rut'             => $this->new_rut,
+                'relationship'    => $this->new_relationship,
+                'birth_date'      => $this->new_birth_date,
+                'gender_biologic' => $this->new_gender_biologic,
+                'is_primary'      => false,
+                'prevision'       => 'Particular',
+            ]);
 
-        // Feedback opcional
-        session()->flash('message', 'Familiar añadido correctamente.');
+            $this->reset(['new_full_name', 'new_rut', 'new_relationship', 'new_birth_date', 'new_gender_biologic', 'showAddFamily']);
+            $this->loadPatients();
+            $this->selected_patient_id = $patient->id;
 
-    } catch (\Exception $e) {
-        Log::error("Error al guardar familiar: " . $e->getMessage());
-        $this->addError('new_rut', 'No se pudo guardar: ' . $e->getMessage());
+            session()->flash('message', 'Familiar añadido correctamente.');
+
+        } catch (\Exception $e) {
+            Log::error("Error al guardar familiar: " . $e->getMessage());
+            $this->addError('new_rut', 'No se pudo guardar: ' . $e->getMessage());
+        }
     }
-}
 
     public function render()
     {

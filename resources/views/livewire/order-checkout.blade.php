@@ -86,7 +86,7 @@
                             <input type="radio" class="btn-check" wire:model="new_gender_biologic" value="Femenino" id="sexF">
                             <label class="btn btn-outline-primary" for="sexF">Fem.</label>
                         </div>
-                        @error('new_gender_biologic') <div class="text-danger small mt-1" style="font-size: 0.875em;">{{ $message }}</div> @enderror
+                        @error('new_gender_biologic') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="col-12 mt-4">
@@ -100,16 +100,34 @@
         </div>
     @endif
 
-    {{-- Resumen de Pago --}}
+    {{-- Resumen de Pago Adaptativo --}}
     @if($selected_patient_id)
         @php $sel = $patients->firstWhere('id', $selected_patient_id); @endphp
         @if($sel)
-            <div class="card border-0 shadow-lg" style="border-radius: 28px; background: white;">
-                <div class="p-4 bg-gradient-blue text-white text-center" style="background: linear-gradient(45deg, #0d6efd, #0099ff); border-radius: 28px 28px 0 0;">
+            <div class="card border-0 shadow-lg animate__animated animate__fadeIn" style="border-radius: 28px; background: white;">
+                <div class="p-4 text-white text-center" style="background: linear-gradient(45deg, #0d6efd, #0099ff); border-radius: 28px 28px 0 0;">
                     <p class="small text-uppercase fw-bold opacity-75 mb-1">Confirmación Final</p>
-                    <h4 class="mb-0 fw-bold">{{ $exam_type->name }}</h4>
+                    <h4 class="mb-0 fw-bold">
+                        {{ $is_multiple ? 'Orden Médica Personalizada' : $exam_type->name }}
+                    </h4>
                 </div>
+
                 <div class="card-body p-4">
+                    {{-- Bloque para flujo MÚLTIPLE (Muestra lista de exámenes) --}}
+                    @if($is_multiple)
+                        <div class="bg-light p-3 rounded-4 mb-3 border border-light-subtle">
+                            <small class="text-muted fw-bold d-block mb-2" style="font-size: 0.7rem;">EXÁMENES SELECCIONADOS:</small>
+                            <ul class="list-unstyled mb-0" style="max-height: 150px; overflow-y: auto;">
+                                @foreach($selected_exams as $ex)
+                                    <li class="small d-flex justify-content-between mb-1">
+                                        <span><i class="bi bi-check2 text-primary me-2"></i>{{ $ex->name }}</span>
+                                        {{-- <span class="text-muted">${{ number_format($ex->base_price, 0, ',', '.') }}</span> --}}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div class="bg-light p-3 rounded-4 mb-3">
                         <div class="d-flex justify-content-between mb-2 small">
                             <span class="text-muted">Paciente:</span>
@@ -125,28 +143,37 @@
                         </div>
                     </div>
 
-
-
                     <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-                        <span class="fw-bold text-dark fs-5">Total:</span>
-                        <span class="fs-2 fw-bold text-primary">${{ number_format($exam_type->base_price, 0, ',', '.') }}</span>
+                        <span class="fw-bold text-dark fs-5">Total a pagar:</span>
+                        <span class="fs-2 fw-bold text-primary">
+                            ${{ number_format($is_multiple ? 3990 : $exam_type->base_price, 0, ',', '.') }}
+                        </span>
                     </div>
 
-                                        {{-- Aviso de Producto de Consumo Inmediato --}}
+                    {{-- Aviso Legal --}}
                     <div class="p-3 rounded-4 mb-4" style="background-color: #fef2f2; border: 1px solid #fee2e2;">
                         <div class="d-flex align-items-center mb-1">
                             <i class="bi bi-info-circle-fill text-danger me-2"></i>
                             <span class="fw-bold text-danger small">Servicio de consumo inmediato</span>
                         </div>
                         <p class="mb-0 text-muted" style="font-size: 0.75rem; line-height: 1.3;">
-                            Al confirmar, se generará su orden médica de forma automática. Debido a la naturaleza digital e instantánea de este servicio, no aplica el derecho a retracto ni devoluciones una vez realizado el pago.
+                            Al confirmar, se generará su orden médica de forma automática. No aplica derecho a retracto.
                         </p>
                     </div>
 
+                    {{-- Formulario hacia el controlador --}}
                     <form action="{{ route('orders.store.public') }}" method="POST">
                         @csrf
                         <input type="hidden" name="patient_id" value="{{ $selected_patient_id }}">
-                        <input type="hidden" name="exam_type_id" value="{{ $exam_type->id }}">
+
+                        @if($is_multiple)
+                            <input type="hidden" name="type" value="multiple">
+                            <input type="hidden" name="exam_ids" value="{{ $selected_exams_ids }}">
+                        @else
+                            <input type="hidden" name="type" value="{{ $exam_type->children->count() > 0 ? 'pack' : 'individual' }}">
+                            <input type="hidden" name="exam_type_id" value="{{ $exam_type->id }}">
+                        @endif
+
                         <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold py-3 shadow" style="border-radius: 18px;">
                             Continuar al Pago <i class="bi bi-credit-card ms-2"></i>
                         </button>

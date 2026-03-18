@@ -1,9 +1,9 @@
-<div> {{-- 1. RAÍZ DEL COMPONENTE --}}
+<div class="position-relative"> {{-- 1. RAÍZ DEL COMPONENTE --}}
 
     {{-- Buscador --}}
     <div class="row justify-content-center mb-5">
         <div class="col-md-10 col-lg-8 text-center">
-            <div class="input-group input-group-lg shadow rounded-pill overflow-hidden border">
+            <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
                 <span class="input-group-text bg-white border-0 ps-4">
                     <i class="bi bi-search text-primary"></i>
                 </span>
@@ -14,7 +14,7 @@
             </div>
             @if(count($selectedExams) > 0)
                 <small class="text-primary fw-bold d-block mt-3 animate__animated animate__fadeIn">
-                    <i class="bi bi-info-circle me-1"></i> Puedes seguir buscando y añadiendo más exámenes a tu orden.
+                    <i class="bi bi-info-circle me-1"></i> Tienes {{ count($selectedExams) }} seleccionados. Puedes seguir añadiendo.
                 </small>
             @endif
         </div>
@@ -91,34 +91,43 @@
                 </div>
             </div>
         @empty
-            {{-- ... tu código de @empty se mantiene igual ... --}}
+            @if(strlen($search) > 2)
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-search text-muted fs-1 d-block mb-3"></i>
+                    <p class="text-muted">No encontramos exámenes que coincidan con "{{ $search }}"</p>
+                </div>
+            @endif
         @endforelse
     </div>
 
-    {{-- BARRA FLOTANTE DE SELECCIÓN MÚLTIPLE --}}
+    {{-- BARRA FLOTANTE --}}
     @if(count($selectedExams) > 0)
+        {{-- Espaciador para que el contenido no quede oculto detrás de la barra en Desktop --}}
+        <div style="height: 100px;"></div>
+
         <div class="fixed-bottom bg-white border-top shadow-lg animate__animated animate__slideInUp" style="z-index: 1050; padding-bottom: env(safe-area-inset-bottom);">
             <div class="container py-3">
                 <div class="row align-items-center">
                     <div class="col-md-7 d-none d-md-block">
                         <div class="d-flex align-items-center">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 45px; height: 45px;">
                                 <span class="fw-bold">{{ count($selectedExams) }}</span>
                             </div>
                             <div>
                                 <h6 class="fw-bold mb-0 text-dark">Tu Orden Personalizada</h6>
-                                <p class="small text-muted mb-0 text-truncate" style="max-width: 400px;">
+                                <p class="small text-muted mb-0 text-truncate" style="max-width: 450px;">
                                     {{ implode(', ', $selectedExams) }}
                                 </p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-12 col-md-5">
                         <div class="d-flex align-items-center gap-3">
                             <button wire:click="clearSelection" class="btn btn-link text-danger text-decoration-none small fw-bold">
                                 Limpiar
                             </button>
-                            <a href="{{ route('order.flow', ['type' => 'custom', 'ids' => implode(',', array_keys($selectedExams))]) }}"
+                            {{-- Usamos la propiedad computada $orderUrl del componente --}}
+                            <a href="{{ $orderUrl }}"
                                class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow">
                                 Solicitar por $3.990 <i class="bi bi-arrow-right ms-2"></i>
                             </a>
@@ -130,10 +139,17 @@
     @endif
 
     <style>
-        .transition-hover { transition: all 0.3s ease; }
-        .transition-hover:hover { transform: translateY(-8px); box-shadow: 0 1rem 2rem rgba(0,0,0,.1) !important; }
+        .transition-hover { transition: all 0.3s cubic-bezier(.25,.8,.25,1); }
+        .transition-hover:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important; }
         .transition-all { transition: all 0.2s ease-in-out; }
-        .ring-active { border: 2px solid #198754 !important; }
+        .ring-active {
+            border: 2px solid #198754 !important;
+            background-color: #f8fff9;
+        }
+        /* Ajuste para móviles para que la barra no tape el último botón */
+        @media (max-width: 767px) {
+            .fixed-bottom { padding-left: 10px; padding-right: 10px; }
+        }
     </style>
 
 </div>
