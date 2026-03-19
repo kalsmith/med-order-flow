@@ -97,6 +97,11 @@ public function index()
     return view('patient.orders.index', compact('orders'));
 }
 
+
+
+
+
+
 public function store(Request $request)
 {
     Log::info(" [DEBUG-ORDER] === INICIO PROCESO STORE ===");
@@ -248,6 +253,20 @@ public function download(Order $order, OrderPdfService $pdfService)
 
 
 
+    public function examHistory()
+{
+    // Obtenemos los pacientes vinculados al usuario (él + familia)
+    $patientIds = auth()->user()->patients()->pluck('id');
+
+    // Traemos las órdenes pagadas o en revisión, ordenadas por la más reciente
+    $orders = Order::whereIn('patient_id', $patientIds)
+        ->with(['patient', 'items', 'prescription'])
+        ->whereIn('status', ['paid', 'completed', 'manual_review'])
+        ->latest()
+        ->get();
+
+    return view('patient.exams.history', compact('orders'));
+}
 
 
 }

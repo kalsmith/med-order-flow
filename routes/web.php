@@ -238,6 +238,7 @@ Route::middleware([
         Route::get('/mis-ordenes', [PatientOrderController::class, 'index'])->name('patient.orders');
         Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
+        Route::get('/mi-historial-examenes', [PatientCircleController::class, 'examHistory'])->name('patient.exam.history');
 
         // Checkout
         Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
