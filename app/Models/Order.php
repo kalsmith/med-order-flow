@@ -161,4 +161,23 @@ public function items(): HasMany
     return $this->hasMany(OrderItem::class);
 }
 
+
+/**
+     * EL MÉTODO NUEVO: Historial de Exámenes
+     */
+    public function examHistory()
+    {
+        // 1. Obtenemos los IDs de todos los pacientes asociados al usuario (él + familia)
+        $patientIds = auth()->user()->patients()->pluck('id');
+
+        // 2. Traemos las órdenes con sus ítems (order_items)
+        $orders = Order::whereIn('patient_id', $patientIds)
+            ->with(['patient', 'items'])
+            ->whereIn('status', ['paid', 'completed', 'manual_review'])
+            ->latest()
+            ->get();
+
+        return view('patient.exams.history', compact('orders'));
+    }
+
 }
