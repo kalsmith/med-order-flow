@@ -229,6 +229,9 @@ Route::middleware([
     Route::post('/mi-circulo/agregar', [PatientCircleController::class, 'store'])->name('patient.circle.store');
     Route::delete('/mi-circulo/{patient}', [PatientCircleController::class, 'destroy'])->name('patient.circle.destroy');
 
+
+    Route::get('/mi-historial-examenes', [PatientCircleController::class, 'examHistory'])->name('patient.exam.history');
+
     // Flujo de Orden
     Route::get('/solicitar/{type}/{id?}', [OrderFlowController::class, 'handle'])->name('order.flow');
     Route::post('/validar-perfil-flow', [OrderFlowController::class, 'storeProfile'])->name('profile.store.flow');
@@ -238,7 +241,7 @@ Route::middleware([
         Route::get('/mis-ordenes', [PatientOrderController::class, 'index'])->name('patient.orders');
         Route::post('/enviar-pedido', [PatientOrderController::class, 'store'])->name('orders.store.public');
         Route::get('/descargar/{order}', [PatientOrderController::class, 'download'])->name('orders.download');
-        Route::get('/mi-historial-examenes', [PatientCircleController::class, 'examHistory'])->name('patient.exam.history');
+
 
         // Checkout
         Route::get('/checkout/{order}/process', [CheckoutController::class, 'process'])->name('checkout.index');
