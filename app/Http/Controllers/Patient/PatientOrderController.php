@@ -96,48 +96,74 @@ public function index()
     return view('patient.orders.index', compact('orders'));
 }
 
-
 public function store(Request $request)
 {
-    Log::info("=== INICIO CREACIÓN DE ORDEN ===", ['payload' => $request->all()]);
+    Log::info(" [DEBUG-ORDER] === INICIO PROCESO STORE ===");
+    Log::info(" [DEBUG-ORDER] Payload Recibido:", $request->all());
 
     // 1. NORMALIZACIÓN RADICAL
-    // Si el request trae un ID de examen, ignoramos cualquier 'type' que venga del front
-    // y lo seteamos como 'standard' para asegurar la firma automática.
     if ($request->filled('exam_type_id')) {
+        Log::info(" [DEBUG-ORDER] Detectado exam_type_id ({$request->exam_type_id}). Forzando type a 'standard'.");
         $request->merge(['type' => 'standard']);
     }
-    // Si no tiene examen y no tiene tipo, es un custom por descarte
+
+    // NUEVO: Manejo agresivo de 'multiple'
+    if ($request->type === 'multiple' && $request->filled('exam_ids')) {
+        Log::info(" [DEBUG-ORDER] Flujo MULTIPLE detectado. IDs: " . $request->exam_ids);
+
+        $ids = explode(',', $request->exam_ids);
+        $examNames = ExamType::whereIn('id', $ids)->pluck('name')->implode(', ');
+
+        Log::info(" [DEBUG-ORDER] Exámenes encontrados para el pack: " . $examNames);
+
+        $request->merge([
+            'custom_description' => "Solicitud de exámenes: " . $examNames
+        ]);
+
+        Log::info(" [DEBUG-ORDER] custom_description generada con éxito.");
+    }
     elseif (!$request->has('type')) {
+        Log::info(" [DEBUG-ORDER] Sin type definido. Asignando 'custom'.");
         $request->merge(['type' => 'custom']);
     }
 
-    // 2. VALIDACIÓN
-    $request->validate([
-        'patient_id'         => 'required|exists:patients,id',
-        'exam_type_id'       => 'required_unless:type,custom,multiple|nullable|exists:exam_types,id',
-        'custom_description' => 'required_if:type,custom,multiple|nullable|string|min:10',
-        'clinical_context'   => 'nullable|string'
+    Log::info(" [DEBUG-ORDER] Estado del Request pre-validación:", [
+        'type' => $request->type,
+        'custom_description' => $request->custom_description ? 'PRESENTE' : 'VACÍO'
     ]);
 
+    // 2. VALIDACIÓN
     try {
+        $request->validate([
+            'patient_id'         => 'required|exists:patients,id',
+            'exam_type_id'       => 'required_unless:type,custom,multiple|nullable|exists:exam_types,id',
+            'custom_description' => 'required_if:type,custom,multiple|nullable|string|min:5',
+            'clinical_context'   => 'nullable|string'
+        ]);
+        Log::info(" [DEBUG-ORDER] Validación PASADA.");
+    } catch (\Illuminate\Validation\ValidationException $ve) {
+        Log::error(" [DEBUG-ORDER] Error de Validación:", $ve->errors());
+        throw $ve;
+    }
+
+    try {
+        Log::info(" [DEBUG-ORDER] Iniciando Transacción DB...");
         $order = DB::transaction(function () use ($request) {
-            $orderType = $request->type; // Aquí ya vendrá como 'standard' si entró al primer IF
+            $orderType = $request->type;
             $examId = $request->exam_type_id;
             $amount = 0;
 
-            // 3. DETERMINACIÓN DE COSTOS
             if ($orderType === 'custom' || $orderType === 'multiple') {
                 $amount = 9990;
                 $examId = null;
+                Log::info(" [DEBUG-ORDER] Precio asignado: 9990 (Flujo " . $orderType . ")");
             } else {
-                // Flujo Standard (Packs e Individuales predefinidos)
                 $exam = ExamType::findOrFail($request->exam_type_id);
                 $amount = $exam->base_price;
+                Log::info(" [DEBUG-ORDER] Precio asignado: " . $amount . " (Examen: " . $exam->name . ")");
             }
 
-            // 4. CREACIÓN DE LA ORDEN
-            return Order::create([
+            $newOrder = Order::create([
                 'id'                 => (string) Str::uuid(),
                 'patient_id'         => $request->patient_id,
                 'exam_type_id'       => $examId,
@@ -147,20 +173,24 @@ public function store(Request $request)
                 'custom_description' => $request->custom_description,
                 'clinical_context'   => $request->clinical_context,
             ]);
+
+            Log::info(" [DEBUG-ORDER] Instancia de Orden creada en DB.", ['uuid' => $newOrder->id]);
+            return $newOrder;
         });
 
-        Log::info("Orden Comercial Creada con éxito", [
-            'order_id' => $order->id,
-            'final_type' => $order->type // Verifica aquí que diga 'standard'
-        ]);
+        Log::info(" [DEBUG-ORDER] === ÉXITO === Orden ID: {$order->id} | Tipo Final: {$order->type}");
 
         return redirect()->route('checkout.process', ['order' => $order->id]);
 
     } catch (\Exception $e) {
-        Log::error("Error Crítico en PatientOrderController@store: " . $e->getMessage());
-        return back()->with('error', 'Error al generar la orden.');
+        Log::error(" [DEBUG-ORDER] !!! ERROR CRÍTICO !!! " . $e->getMessage());
+        Log::error($e->getTraceAsString());
+        return back()->with('error', 'Error al generar la orden: ' . $e->getMessage());
     }
 }
+
+
+
 
     /**
      * Listado de órdenes del paciente.
