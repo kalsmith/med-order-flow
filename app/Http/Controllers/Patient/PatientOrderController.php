@@ -83,7 +83,7 @@ public function index()
     $patient = Patient::where('user_id', $user->id)->first();
 
     if (!$patient) {
-        Log para debugear: así sabrás qué ID de paciente tiene el usuario 30 en realidad
+
         Log::error("Usuario {$user->id} no tiene entrada en tabla patients");
         return redirect()->route('home')->with('error', 'Perfil de paciente no encontrado.');
     }
