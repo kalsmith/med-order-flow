@@ -9,18 +9,23 @@ use Illuminate\Support\Facades\Log;
 class ExamSearch extends Component
 {
     public $search = '';
-    // Guardamos un array de [id => name] para facilitar la gestión
     public $selectedExams = [];
 
-    /**
-     * Método para añadir/quitar exámenes de la lista
-     */
+    // Definimos el límite máximo de exámenes por pack personalizado
+    const MAX_EXAMS = 10;
+
     public function toggleExam($id, $name)
     {
         if (isset($this->selectedExams[$id])) {
             unset($this->selectedExams[$id]);
         } else {
-            // Solo permitimos añadir si no es un Pack (los packs tienen su propio botón directo)
+            // VALIDACIÓN DE LÍMITE
+            if (count($this->selectedExams) >= self::MAX_EXAMS) {
+                // Opcional: Puedes lanzar un evento para mostrar un mensaje tipo Toast
+                $this->dispatch('limit-reached');
+                return;
+            }
+
             $exam = ExamType::find($id);
             if ($exam && $exam->children->count() === 0) {
                 $this->selectedExams[$id] = $name;
