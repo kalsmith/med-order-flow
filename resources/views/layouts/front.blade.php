@@ -66,12 +66,16 @@
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userMenu" style="border-radius: 15px; min-width: 220px;">
                         <li><h6 class="dropdown-header text-uppercase small opacity-50">Gestión de Salud</h6></li>
                         <li><a class="dropdown-item fw-bold py-2" href="{{ route('patient.orders') }}"><i class="bi bi-file-earmark-medical me-2 text-primary"></i> Mis Órdenes</a></li>
-                        <li>
-                            <a class="dropdown-item fw-bold py-2 {{ request()->routeIs('patient.exam.history') ? 'active bg-light' : '' }}"
-                            href="{{ route('patient.exam.history') }}">
-                                <i class="bi bi-journal-medical me-2 text-primary"></i> Mi Historial de Exámenes
-                            </a>
-                        </li>
+
+
+@if(auth()->user()->profile_completed) {{-- O la lógica que uses para saber si tiene perfil --}}
+        <li>
+            <a class="dropdown-item fw-bold py-2 {{ request()->routeIs('patient.exam.history') ? 'active bg-light' : '' }}"
+               href="{{ route('patient.exam.history') }}">
+                <i class="bi bi-journal-medical me-2 text-primary"></i> Mi Historial de Exámenes
+            </a>
+        </li>
+    @endif
 
                         <li><a class="dropdown-item fw-bold py-2" href="{{ route('patient.circle') }}"><i class="bi bi-people me-2 text-primary"></i> Mi Círculo Familiar</a></li>
 
