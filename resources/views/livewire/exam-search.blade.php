@@ -1,6 +1,6 @@
 <div class="position-relative"> {{-- 1. RAÍZ DEL COMPONENTE --}}
 
-    {{-- Buscador y Alerta de Límite --}}
+    {{-- Buscador y Alerta de Límite (Se mantiene igual) --}}
     <div class="row justify-content-center mb-5">
         <div class="col-md-10 col-lg-8 text-center">
             <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border bg-white">
@@ -40,11 +40,9 @@
             <div class="col-12 col-md-6 col-lg-4 col-xl-3 animate__animated animate__fadeInUp">
                 <div class="card h-100 border-0 rounded-4 shadow-sm custom-exam-card {{ $isSelected ? 'card-selected' : '' }}">
 
-                    {{-- Barra de color superior sutil --}}
                     <div class="card-accent-bar" style="background-color: {{ $accentColor }};"></div>
 
                     <div class="card-body p-4 d-flex flex-column">
-                        {{-- Encabezado --}}
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <h6 class="fw-bold text-dark mb-0 lh-base exam-title">
                                 {{ $exam->name }}
@@ -54,7 +52,6 @@
                             @endif
                         </div>
 
-                        {{-- Cuerpo / Detalles --}}
                         <div class="flex-grow-1">
                             @if($isPack)
                                 <div class="inclusion-box p-3 rounded-3 mb-3">
@@ -66,9 +63,7 @@
                                             </li>
                                         @endforeach
                                         @if($exam->children->count() > 3)
-                                            <li class="inclusion-more text-primary fw-bold mt-1 small">
-                                                +{{ $exam->children->count() - 3 }} más...
-                                            </li>
+                                            <li class="inclusion-more text-primary fw-bold mt-1 small">+{{ $exam->children->count() - 3 }} más...</li>
                                         @endif
                                     </ul>
                                 </div>
@@ -81,33 +76,42 @@
                             @endif
                         </div>
 
-                        {{-- Footer: Precio y Botón --}}
                         <div class="mt-auto pt-3 border-top">
-                            <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
                                 <div class="price-container">
                                     <span class="price-symbol small fw-bold text-primary">$</span>
                                     <span class="price-amount fs-4 fw-extrabold text-primary">{{ number_format($exam->base_price, 0, ',', '.') }}</span>
                                 </div>
 
+                                {{-- BOTÓN DE ACCIÓN PRINCIPAL (SOLICITAR DIRECTO) --}}
                                 @if($isPack)
                                     <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $exam->id]) }}"
                                        class="btn btn-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
                                         Pedir Pack
                                     </a>
                                 @else
-                                    <button wire:click="toggleExam({{ $exam->id }}, '{{ $exam->name }}')"
-                                            @if($limitReached && !$isSelected) disabled @endif
-                                            class="btn btn-sm rounded-pill px-3 fw-bold shadow-sm transition-all {{ $isSelected ? 'btn-success' : 'btn-outline-primary' }}">
-                                        @if($isSelected)
-                                            <i class="bi bi-check-lg me-1"></i> Añadido
-                                        @elseif($limitReached)
-                                            <i class="bi bi-lock-fill"></i>
-                                        @else
-                                            <i class="bi bi-plus-lg me-1"></i> Añadir
-                                        @endif
-                                    </button>
+                                    <a href="{{ route('order.flow', ['type' => 'exam', 'id' => $exam->id]) }}"
+                                       class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">
+                                        Solicitar
+                                    </a>
                                 @endif
                             </div>
+
+                            {{-- OPCIÓN DE AÑADIR A ORDEN MULTIPLE (Solo para individuales) --}}
+                            @if(!$isPack)
+                                <button wire:click="toggleExam({{ $exam->id }}, '{{ $exam->name }}')"
+                                        @if($limitReached && !$isSelected) disabled @endif
+                                        class="btn btn-sm w-100 rounded-pill mt-2 fw-bold transition-all {{ $isSelected ? 'btn-success' : 'btn-outline-primary' }}"
+                                        style="font-size: 0.75rem;">
+                                    @if($isSelected)
+                                        <i class="bi bi-check-lg me-1"></i> Añadido a mi lista
+                                    @elseif($limitReached)
+                                        <i class="bi bi-lock-fill me-1"></i> Límite alcanzado
+                                    @else
+                                        <i class="bi bi-plus-lg me-1"></i> Añadir a lista múltiple
+                                    @endif
+                                </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -122,7 +126,7 @@
         @endforelse
     </div>
 
-    {{-- BARRA FLOTANTE --}}
+    {{-- BARRA FLOTANTE (Se mantiene igual) --}}
     @if(count($selectedExams) > 0)
         <div style="height: 100px;"></div>
         <div class="fixed-bottom bg-white border-top shadow-lg animate__animated animate__slideInUp" style="z-index: 1050; padding-bottom: env(safe-area-inset-bottom);">
@@ -134,7 +138,7 @@
                                 {{ count($selectedExams) }}
                             </div>
                             <div class="overflow-hidden">
-                                <h6 class="fw-bold mb-0 text-dark small">Tu Orden Personalizada</h6>
+                                <h6 class="fw-bold mb-0 text-dark small">Orden Múltiple Seleccionada</h6>
                                 <p class="small text-muted mb-0 text-truncate">
                                     {{ implode(', ', $selectedExams) }}
                                 </p>
@@ -143,11 +147,9 @@
                     </div>
                     <div class="col-12 col-md-5">
                         <div class="d-flex align-items-center gap-2">
-                            <button wire:click="clearSelection" class="btn btn-sm btn-link text-danger text-decoration-none fw-bold">
-                                Limpiar
-                            </button>
+                            <button wire:click="clearSelection" class="btn btn-sm btn-link text-danger text-decoration-none fw-bold">Limpiar</button>
                             <a href="{{ $orderUrl }}" class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow-sm fs-6">
-                                Solicitar Orden <i class="bi bi-arrow-right ms-2"></i>
+                                Solicitar Grupo <i class="bi bi-arrow-right ms-2"></i>
                             </a>
                         </div>
                     </div>
@@ -157,57 +159,18 @@
     @endif
 
     <style>
-        .custom-exam-card {
-            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.05) !important;
-        }
-        .custom-exam-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 1rem 3rem rgba(0,0,0,0.1) !important;
-        }
-        .card-accent-bar {
-            height: 4px;
-            width: 100%;
-        }
-        .exam-title {
-            font-size: 0.95rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            min-height: 2.8rem;
-        }
-        .inclusion-box {
-            background-color: #f8f9fa;
-            border: 1px solid rgba(0,0,0,0.02);
-        }
-        .inclusion-label {
-            font-size: 0.65rem;
-            font-weight: 800;
-            color: #adb5bd;
-            letter-spacing: 0.5px;
-            display: block;
-            margin-bottom: 5px;
-        }
+        /* Estilos base (Mantenidos de la versión anterior) */
+        .custom-exam-card { transition: all 0.3s cubic-bezier(.25,.8,.25,1); background: #ffffff; border: 1px solid rgba(0,0,0,0.05) !important; }
+        .custom-exam-card:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,0.1) !important; }
+        .card-accent-bar { height: 4px; width: 100%; }
+        .exam-title { font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.8rem; }
+        .inclusion-box { background-color: #f8f9fa; border: 1px solid rgba(0,0,0,0.02); }
+        .inclusion-label { font-size: 0.65rem; font-weight: 800; color: #adb5bd; letter-spacing: 0.5px; display: block; margin-bottom: 5px; }
         .inclusion-item { color: #555; }
-        .card-selected {
-            border: 2px solid #198754 !important;
-            background-color: #f8fff9 !important;
-        }
-        .pack-badge {
-            background-color: #6610f2;
-            font-size: 0.6rem;
-            padding: 4px 8px;
-        }
-        .promo-box {
-            background-color: rgba(13, 202, 240, 0.1);
-            color: #087990;
-            border: 1px dashed rgba(13, 202, 240, 0.3);
-        }
+        .card-selected { border: 2px solid #198754 !important; background-color: #f8fff9 !important; }
+        .pack-badge { background-color: #6610f2; font-size: 0.6rem; padding: 4px 8px; }
+        .promo-box { background-color: rgba(13, 202, 240, 0.1); color: #087990; border: 1px dashed rgba(13, 202, 240, 0.3); }
         .fw-extrabold { font-weight: 800; }
-        @media (max-width: 767px) {
-            .fixed-bottom { padding: 0 10px; }
-        }
+        @media (max-width: 767px) { .fixed-bottom { padding: 0 10px; } }
     </style>
 </div>

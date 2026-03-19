@@ -4,14 +4,12 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\ExamType;
-use Illuminate\Support\Facades\Log;
 
 class ExamSearch extends Component
 {
     public $search = '';
     public $selectedExams = [];
 
-    // Definimos el límite máximo de exámenes por pack personalizado
     const MAX_EXAMS = 16;
 
     public function toggleExam($id, $name)
@@ -19,13 +17,12 @@ class ExamSearch extends Component
         if (isset($this->selectedExams[$id])) {
             unset($this->selectedExams[$id]);
         } else {
-            // VALIDACIÓN DE LÍMITE
             if (count($this->selectedExams) >= self::MAX_EXAMS) {
-                // Opcional: Puedes lanzar un evento para mostrar un mensaje tipo Toast
                 $this->dispatch('limit-reached');
                 return;
             }
 
+            // Solo permitimos añadir a la lista múltiple si NO es un pack (opcional según tu lógica)
             $exam = ExamType::find($id);
             if ($exam && $exam->children->count() === 0) {
                 $this->selectedExams[$id] = $name;
@@ -33,21 +30,18 @@ class ExamSearch extends Component
         }
     }
 
-    /**
-     * Limpia la selección actual
-     */
     public function clearSelection()
     {
         $this->selectedExams = [];
     }
 
     /**
-     * Genera la URL para el flujo de orden múltiple
-     * Formato: /flow/multiple?ids=1,2,3
+     * URL para el flujo de orden múltiple (Botón de barra flotante)
      */
     public function getOrderUrlProperty()
     {
         $ids = implode(',', array_keys($this->selectedExams));
+        // Genera algo como: /solicitar/multiple?ids=1,2,3
         return route('order.flow', ['type' => 'multiple', 'ids' => $ids]);
     }
 
@@ -55,7 +49,6 @@ class ExamSearch extends Component
     {
         $results = [];
 
-        // Buscamos solo si hay más de 2 caracteres
         if (strlen(trim($this->search)) > 2) {
             $term = '%' . strtolower(trim($this->search)) . '%';
 
@@ -67,14 +60,14 @@ class ExamSearch extends Component
                         });
                 })
                 ->with(['parents', 'children'])
-                ->limit(15) // Limitar resultados mejora el rendimiento en vivo
+                ->limit(12) // Ajustado para que cuadre con la grilla de 4 o 3 columnas
                 ->get();
         }
 
         return view('livewire.exam-search', [
             'exams' => $results,
-            'orderUrl' => $this->order_url, // Pasamos la URL generada a la vista
-            'maxExams' => self::MAX_EXAMS, // <--- Pasamos la constante aquí
+            'orderUrl' => $this->order_url,
+            'maxExams' => self::MAX_EXAMS,
         ]);
     }
 }
