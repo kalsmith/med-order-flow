@@ -12,7 +12,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
+            background-color: #ffffff;
             height: 100vh;
             display: flex;
             align-items: center;
