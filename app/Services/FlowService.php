@@ -70,64 +70,75 @@ class FlowService
         }
     }
 
-    public function handleWebhook($token)
-    {
-        Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
+ public function handleWebhook($token)
+{
+    Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
 
-        try {
-            $statusResponse = $this->getPaymentStatus($token);
+    try {
+        $statusResponse = $this->getPaymentStatus($token);
 
-            if (!$statusResponse || (int)$statusResponse->status !== 2) {
-                Log::warning("Pago no autorizado en Flow", (array)$statusResponse);
-                return false;
+        if (!$statusResponse || (int)$statusResponse->status !== 2) {
+            Log::warning("Pago no autorizado en Flow", (array)$statusResponse);
+            return false;
+        }
+
+        $gatewayTrx = GatewayTransaction::where('token', $token)->first();
+        if (!$gatewayTrx) throw new \Exception("Transacción técnica no encontrada.");
+
+        $order = Order::with('patient.user')->findOrFail($gatewayTrx->payable_id);
+
+        return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token) {
+            // 1. Actualizar pasarela técnica
+            $gatewayTrx->update([
+                'status' => 'authorized',
+                'flow_order_id' => $statusResponse->flowOrder,
+                'raw_response' => json_encode($statusResponse)
+            ]);
+
+            // 2. Registro Contable
+            $this->registerTransaction($gatewayTrx, $order, $token, $statusResponse);
+
+            // --- 3. NORMALIZACIÓN DE FLUJO EN CALIENTE ---
+            // Si tiene un ID de examen, debe ser STANDARD sin importar el string en 'type'
+            $effectiveType = $order->type;
+            if (!empty($order->exam_type_id)) {
+                $effectiveType = 'standard';
             }
 
-            $gatewayTrx = GatewayTransaction::where('token', $token)->first();
-            if (!$gatewayTrx) throw new \Exception("Transacción técnica no encontrada.");
+            // 4. Lógica de Negocio según el tipo efectivo
+            if ($effectiveType === 'standard' || $effectiveType === 'medical_purchase') {
+                // FLUJO ESTÁNDAR: Firma automática (Laura Martínez)
+                $processStatus = $this->processMedicalOrder($order);
+                $this->handleProcessFailure($processStatus, $order, $statusResponse);
 
-            $order = Order::with('patient.user')->findOrFail($gatewayTrx->payable_id);
+            } elseif ($effectiveType === 'multiple') {
+                // FLUJO MÚLTIPLE: Firma automática usando texto libre
+                $processStatus = $this->processMedicalOrder($order, $order->custom_description);
+                $this->handleProcessFailure($processStatus, $order, $statusResponse);
 
-            return DB::transaction(function () use ($order, $gatewayTrx, $statusResponse, $token) {
-                // 1. Actualizar pasarela técnica
-                $gatewayTrx->update([
-                    'status' => 'authorized',
-                    'flow_order_id' => $statusResponse->flowOrder,
-                    'raw_response' => json_encode($statusResponse)
+            } else {
+                // FLUJO CUSTOM: Requiere revisión humana (Texto libre sin examen previo)
+                $this->createPendingPrescription($order);
+                $order->update([
+                    'status' => 'paid',
+                    'flow_order_id' => $statusResponse->flowOrder
                 ]);
+                Log::info("WEBHOOK: Orden personalizada preparada para revisión médica.", ['order_id' => $order->id]);
+            }
 
-                // 2. Registro Contable
-                $this->registerTransaction($gatewayTrx, $order, $token, $statusResponse);
+            Log::info("=== [FLOW WEBHOOK SUCCESS] ===", [
+                'order_id' => $order->id,
+                'processed_as' => $effectiveType
+            ]);
+            return true;
+        });
 
-                // 3. Lógica de Negocio según el tipo de orden
-                if ($order->type === 'standard' || $order->type === 'medical_purchase') {
-                    // FLUJO ESTÁNDAR: Firma automática de examen predefinido
-                    $processStatus = $this->processMedicalOrder($order);
-                    $this->handleProcessFailure($processStatus, $order, $statusResponse);
-
-                } elseif ($order->type === 'multiple') {
-                    // FLUJO MÚLTIPLE: Firma automática usando el texto libre del usuario como contenido
-                    $processStatus = $this->processMedicalOrder($order, $order->custom_description);
-                    $this->handleProcessFailure($processStatus, $order, $statusResponse);
-
-                } else {
-                    // FLUJO CUSTOM: Requiere revisión humana (Médico lo toma manualmente)
-                    $this->createPendingPrescription($order);
-                    $order->update([
-                        'status' => 'paid',
-                        'flow_order_id' => $statusResponse->flowOrder
-                    ]);
-                    Log::info("WEBHOOK: Orden personalizada preparada para revisión médica.", ['order_id' => $order->id]);
-                }
-
-                Log::info("=== [FLOW WEBHOOK SUCCESS] ===", ['order_id' => $order->id]);
-                return true;
-            });
-
-        } catch (\Exception $e) {
-            Log::error("ERROR FATAL WEBHOOK: " . $e->getMessage());
-            throw $e;
-        }
+    } catch (\Exception $e) {
+        Log::error("ERROR FATAL WEBHOOK: " . $e->getMessage());
+        throw $e;
     }
+}
+
 
     /**
      * Procesa el fallo de los flujos automáticos (Standard/Multiple)

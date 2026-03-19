@@ -97,18 +97,22 @@ public function index()
 }
 
 
-
 public function store(Request $request)
 {
     Log::info("=== INICIO CREACIÓN DE ORDEN ===", ['payload' => $request->all()]);
 
-    // 1. NORMALIZACIÓN: Forzamos tipos consistentes para el Webhook
-    if ($request->type === 'pack' || !$request->has('type')) {
-        // Si es pack o no tiene tipo, pero tiene un examen ID, es 'standard'
-        $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
+    // 1. NORMALIZACIÓN RADICAL
+    // Si el request trae un ID de examen, ignoramos cualquier 'type' que venga del front
+    // y lo seteamos como 'standard' para asegurar la firma automática.
+    if ($request->filled('exam_type_id')) {
+        $request->merge(['type' => 'standard']);
+    }
+    // Si no tiene examen y no tiene tipo, es un custom por descarte
+    elseif (!$request->has('type')) {
+        $request->merge(['type' => 'custom']);
     }
 
-    // 2. VALIDACIÓN: Agregamos 'multiple' a las excepciones de exam_type_id
+    // 2. VALIDACIÓN
     $request->validate([
         'patient_id'         => 'required|exists:patients,id',
         'exam_type_id'       => 'required_unless:type,custom,multiple|nullable|exists:exam_types,id',
@@ -118,23 +122,21 @@ public function store(Request $request)
 
     try {
         $order = DB::transaction(function () use ($request) {
-            $orderType = $request->type;
+            $orderType = $request->type; // Aquí ya vendrá como 'standard' si entró al primer IF
+            $examId = $request->exam_type_id;
             $amount = 0;
-            $examId = null;
 
-            // 3. DETERMINACIÓN DE COSTOS Y ASIGNACIÓN
+            // 3. DETERMINACIÓN DE COSTOS
             if ($orderType === 'custom' || $orderType === 'multiple') {
-                // Ambos flujos de texto libre tienen el mismo precio base
                 $amount = 9990;
                 $examId = null;
             } else {
-                // Flujo standard (incluye los anteriores 'pack')
+                // Flujo Standard (Packs e Individuales predefinidos)
                 $exam = ExamType::findOrFail($request->exam_type_id);
                 $amount = $exam->base_price;
-                $examId = $exam->id;
             }
 
-            // 4. CREACIÓN DE LA ORDEN COMERCIAL
+            // 4. CREACIÓN DE LA ORDEN
             return Order::create([
                 'id'                 => (string) Str::uuid(),
                 'patient_id'         => $request->patient_id,
@@ -147,17 +149,16 @@ public function store(Request $request)
             ]);
         });
 
-        Log::info("Orden Comercial Creada con éxito", ['order_id' => $order->id, 'type' => $order->type]);
+        Log::info("Orden Comercial Creada con éxito", [
+            'order_id' => $order->id,
+            'final_type' => $order->type // Verifica aquí que diga 'standard'
+        ]);
 
-        // 5. REDIRECCIÓN AL PROCESO DE PAGO
         return redirect()->route('checkout.process', ['order' => $order->id]);
 
     } catch (\Exception $e) {
-        Log::error("Error Crítico en PatientOrderController@store: " . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
-        ]);
-
-        return back()->with('error', 'Ocurrió un error al generar tu orden: ' . $e->getMessage());
+        Log::error("Error Crítico en PatientOrderController@store: " . $e->getMessage());
+        return back()->with('error', 'Error al generar la orden.');
     }
 }
 
