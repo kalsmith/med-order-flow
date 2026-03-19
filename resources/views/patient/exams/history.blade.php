@@ -1,4 +1,4 @@
-@extends('layouts.front') {{-- O el layout que estés usando --}}
+@extends('layouts.front')
 
 @section('content')
 <div class="container py-5" style="max-width: 900px;">
@@ -8,7 +8,7 @@
         </div>
         <div>
             <h2 class="fw-bold mb-0">Mi Historial</h2>
-            <p class="text-muted mb-0">Revisa y descarga tus órdenes médicas anteriores</p>
+            <p class="text-muted mb-0">Gestiona tus exámenes y vuelve a solicitarlos con un clic</p>
         </div>
     </div>
 
@@ -22,24 +22,37 @@
                         </span>
                         <h5 class="fw-bold text-dark mb-1">{{ $order->patient->name }}</h5>
                         <p class="small text-muted mb-0">
-                            <i class="bi bi-calendar3 me-1"></i> Generada el {{ $order->created_at->format('d/m/Y') }}
+                            <i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y') }}
                         </p>
                     </div>
-                    <div class="text-end">
-                        <span class="badge bg-success rounded-pill px-3 py-2">
-                            <i class="bi bi-check-circle-fill me-1"></i> Pagada
-                        </span>
+
+                    {{-- Botón para Volver a Solicitar (Checkout directo) --}}
+                    <div>
+                        @php
+                            $reorderUrl = '#';
+                            if($order->type == 'pack') {
+                                $reorderUrl = route('order.flow', ['type' => 'pack', 'id' => $order->exam_type_id]);
+                            } elseif($order->items->count() > 1) {
+                                $ids = $order->items->pluck('exam_type_id')->filter()->implode(',');
+                                $reorderUrl = route('order.flow', ['type' => 'multiple']) . '?ids=' . $ids;
+                            } else {
+                                $reorderUrl = route('order.flow', ['type' => 'exam', 'id' => $order->exam_type_id]);
+                            }
+                        @endphp
+                        <a href="{{ $reorderUrl }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                            <i class="bi bi-arrow-repeat me-1"></i> Volver a solicitar
+                        </a>
                     </div>
                 </div>
             </div>
 
             <div class="card-body p-4">
                 <div class="bg-light p-3 border-start border-primary border-4 rounded-3 mb-4">
-                    <p class="small text-uppercase fw-bold text-muted mb-2">Detalle de Exámenes:</p>
+                    <p class="small text-uppercase fw-bold text-muted mb-2">Exámenes solicitados:</p>
                     <div class="row">
                         @foreach($order->items as $item)
                             <div class="col-md-6 mb-1">
-                                <i class="bi bi-dot text-primary fs-4"></i>
+                                <i class="bi bi-check2 text-primary me-2"></i>
                                 <span class="fw-medium text-secondary">{{ $item->exam_name }}</span>
                             </div>
                         @endforeach
@@ -47,14 +60,14 @@
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    @if($order->status == 'paid' && $order->prescription)
-                        <a href="{{ route('orders.download', $order) }}" class="btn btn-primary rounded-pill px-4 fw-bold">
-                            <i class="bi bi-download me-2"></i> Descargar Orden Médica
+                    @if($order->activePrescription)
+                        <a href="{{ route('orders.download', $order) }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                            <i class="bi bi-download me-2"></i> Descargar Orden Médica (PDF)
                         </a>
                     @else
-                        <button class="btn btn-outline-secondary disabled rounded-pill px-4">
-                            <i class="bi bi-hourglass-split me-2"></i> En validación médica
-                        </button>
+                        <span class="text-muted small align-self-center me-3">
+                            <i class="bi bi-info-circle me-1"></i> Documento en preparación
+                        </span>
                     @endif
                 </div>
             </div>
