@@ -155,4 +155,10 @@ public function scopeAutoSignedStandard($query, $doctorId)
               ->where('status', 'signed');
         });
 }
+
+public function items(): HasMany
+{
+    return $this->hasMany(OrderItem::class);
+}
+
 }
