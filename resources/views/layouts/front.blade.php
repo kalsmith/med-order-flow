@@ -68,14 +68,17 @@
                         <li><a class="dropdown-item fw-bold py-2" href="{{ route('patient.orders') }}"><i class="bi bi-file-earmark-medical me-2 text-primary"></i> Mis Órdenes</a></li>
 
 
-@if(auth()->user()->patients()->where('relationship', 'self')->exists())
-    <li>
-        <a class="dropdown-item fw-bold py-2 {{ request()->routeIs('patient.exam.history') ? 'active bg-light' : '' }}"
-           href="{{ route('patient.exam.history') }}">
-            <i class="bi bi-journal-medical me-2 text-primary"></i> Mi Historial de Exámenes
-        </a>
-    </li>
-@endif
+@auth
+    {{-- Solo mostramos si el usuario tiene su propio perfil creado --}}
+    @if(auth()->user()->patients()->where('relationship', 'self')->exists())
+        <li>
+            <a class="dropdown-item fw-bold py-2 {{ request()->routeIs('patient.exam.history') ? 'active bg-light' : '' }}"
+               href="{{ route('patient.exam.history') }}">
+                <i class="bi bi-journal-medical me-2 text-primary"></i> Mi Historial de Exámenes
+            </a>
+        </li>
+    @endif
+@endauth
 
                         <li><a class="dropdown-item fw-bold py-2" href="{{ route('patient.circle') }}"><i class="bi bi-people me-2 text-primary"></i> Mi Círculo Familiar</a></li>
 
