@@ -12,7 +12,7 @@ class ExamSearch extends Component
     public $selectedExams = [];
 
     // Definimos el límite máximo de exámenes por pack personalizado
-    const MAX_EXAMS = 4;
+    const MAX_EXAMS = 16;
 
     public function toggleExam($id, $name)
     {
