@@ -30,4 +30,18 @@ class PatientCircleController extends Controller
 
         return view('front.patient.circle.index', compact('members'));
     }
+
+
+    public function examHistory()
+    {
+        $patientIds = auth()->user()->patients()->pluck('id');
+        $orders = Order::whereIn('patient_id', $patientIds)
+            ->with(['patient', 'items'])
+            ->whereIn('status', ['paid', 'completed', 'manual_review'])
+            ->latest()
+            ->get();
+
+        return view('patient.exams.history', compact('orders'));
+    }
+
 }

@@ -253,20 +253,7 @@ public function download(Order $order, OrderPdfService $pdfService)
 
 
 
-public function examHistory()
-{
-    // 1. Obtenemos los IDs de todos los pacientes asociados al usuario (él + familia)
-    $patientIds = auth()->user()->patients()->pluck('id');
 
-    // 2. Traemos las órdenes que ya pasaron por caja (pagadas) o están en revisión
-    $orders = Order::whereIn('patient_id', $patientIds)
-        ->with(['patient', 'items']) // 'items' es vital para el desglose que hicimos
-        ->whereIn('status', ['paid', 'completed', 'manual_review'])
-        ->latest()
-        ->get();
-
-    return view('patient.exams.history', compact('orders'));
-}
 
 
 }
