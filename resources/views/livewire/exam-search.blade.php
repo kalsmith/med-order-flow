@@ -1,6 +1,6 @@
 <div class="position-relative"> {{-- 1. RAÍZ DEL COMPONENTE --}}
 
-    {{-- Buscador --}}
+    {{-- Buscador y Alerta de Límite --}}
     <div class="row justify-content-center mb-5">
         <div class="col-md-10 col-lg-8 text-center">
             <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
@@ -12,11 +12,19 @@
                        class="form-control border-0 py-3 px-2 shadow-none"
                        placeholder="Escribe el nombre del examen (ej: Hemograma, Perfil, VIH...)">
             </div>
-            @if(count($selectedExams) > 0)
-                <small class="text-primary fw-bold d-block mt-3 animate__animated animate__fadeIn">
-                    <i class="bi bi-info-circle me-1"></i> Tienes {{ count($selectedExams) }} seleccionados. Puedes seguir añadiendo.
-                </small>
-            @endif
+
+            {{-- Mensaje de estado dinámico basado en MAX_EXAMS --}}
+            <div class="mt-3 animate__animated animate__fadeIn" style="min-height: 25px;">
+                @if(count($selectedExams) >= $maxExams)
+                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Has alcanzado el máximo de {{ $maxExams }} exámenes permitidos.
+                    </span>
+                @elseif(count($selectedExams) > 0)
+                    <small class="text-primary fw-bold">
+                        <i class="bi bi-info-circle me-1"></i> Tienes {{ count($selectedExams) }} de {{ $maxExams }} seleccionados. Puedes seguir añadiendo.
+                    </small>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -26,6 +34,7 @@
             @php
                 $isPack = $exam->children->count() > 0;
                 $isSelected = isset($selectedExams[$exam->id]);
+                $limitReached = count($selectedExams) >= $maxExams;
             @endphp
 
             <div class="col-12 col-md-6 col-xl-4 animate__animated animate__fadeInUp">
@@ -77,9 +86,12 @@
                                     </a>
                                 @else
                                     <button wire:click="toggleExam({{ $exam->id }}, '{{ $exam->name }}')"
+                                            @if($limitReached && !$isSelected) disabled @endif
                                             class="btn {{ $isSelected ? 'btn-success' : 'btn-outline-primary' }} rounded-pill px-4 fw-bold shadow-sm transition-all">
                                         @if($isSelected)
                                             <i class="bi bi-check-lg"></i> Añadido
+                                        @elseif($limitReached)
+                                            <i class="bi bi-lock"></i> Límite
                                         @else
                                             <i class="bi bi-plus-lg"></i> Añadir
                                         @endif
@@ -102,7 +114,6 @@
 
     {{-- BARRA FLOTANTE --}}
     @if(count($selectedExams) > 0)
-        {{-- Espaciador para que el contenido no quede oculto detrás de la barra en Desktop --}}
         <div style="height: 100px;"></div>
 
         <div class="fixed-bottom bg-white border-top shadow-lg animate__animated animate__slideInUp" style="z-index: 1050; padding-bottom: env(safe-area-inset-bottom);">
@@ -126,10 +137,9 @@
                             <button wire:click="clearSelection" class="btn btn-link text-danger text-decoration-none small fw-bold">
                                 Limpiar
                             </button>
-                            {{-- Usamos la propiedad computada $orderUrl del componente --}}
                             <a href="{{ $orderUrl }}"
                                class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow">
-                                Solicitar por $3.990 <i class="bi bi-arrow-right ms-2"></i>
+                                Solicitar Orden <i class="bi bi-arrow-right ms-2"></i>
                             </a>
                         </div>
                     </div>
@@ -146,7 +156,6 @@
             border: 2px solid #198754 !important;
             background-color: #f8fff9;
         }
-        /* Ajuste para móviles para que la barra no tape el último botón */
         @media (max-width: 767px) {
             .fixed-bottom { padding-left: 10px; padding-right: 10px; }
         }

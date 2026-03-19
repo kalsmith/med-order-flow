@@ -73,7 +73,8 @@ class ExamSearch extends Component
 
         return view('livewire.exam-search', [
             'exams' => $results,
-            'orderUrl' => $this->order_url // Pasamos la URL generada a la vista
+            'orderUrl' => $this->order_url, // Pasamos la URL generada a la vista
+            'maxExams' => self::MAX_EXAMS, // <--- Pasamos la constante aquí
         ]);
     }
 }
