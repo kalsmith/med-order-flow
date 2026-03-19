@@ -227,13 +227,30 @@
                         @endif
                     </div>
 
-                    {{-- Caso 1: Es Multiple o Custom (Mostramos el texto libre) --}}
+                    {{-- Contenido para flujos de texto libre (Multiple o Custom) --}}
                     @if($order->type === 'multiple' || $order->type === 'custom')
-                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap; color: #2d3436; line-height: 1.5;">
-                            {{ $prescription->clinical_context ?? $order->custom_description }}
+                        <div style="font-size: 12px; font-weight: bold; color: #2d3436; line-height: 1.8; padding: 5px 0;">
+                            @php
+                                $rawText = $prescription->clinical_context ?? $order->custom_description;
+                                // Limpiamos el prefijo para que no se repita en cada punto
+                                $cleanText = str_replace('Solicitud de exámenes: ', '', $rawText);
+                                // Separamos por comas
+                                $items = explode(',', $cleanText);
+                            @endphp
+
+                            <ul style="list-style-type: none; margin: 0; padding: 0;">
+                                @foreach($items as $item)
+                                    @if(trim($item) !== '')
+                                        <li style="margin-bottom: 6px; display: block;">
+                                            <span style="color: #0d6efd; margin-right: 10px;">•</span>
+                                            {{ trim($item) }}
+                                        </li>
+                                    @endif
+                                @endforeach
+                            </ul>
                         </div>
 
-                    {{-- Caso 2: Es un Perfil/Pack con hijos (Standard) --}}
+                    {{-- Contenido para flujos estándar (Perfiles con hijos) --}}
                     @elseif($order->examType && $order->examType->children->isNotEmpty())
                         <div style="margin-top: 5px;">
                             @foreach($order->examType->children as $child)
@@ -244,7 +261,7 @@
                             @endforeach
                         </div>
 
-                    {{-- Caso 3: Es un examen único (Standard) --}}
+                    {{-- Contenido para examen único --}}
                     @elseif($order->examType)
                         <div class="exam-item" style="border-bottom: none;">
                             <span class="exam-code">[{{ $order->examType->code_fonasa ?? 'S/C' }}]</span>
@@ -260,6 +277,26 @@
         </tr>
     </table>
 </div>
+
+
+
+
+
+
+{{-- Solo mostrar sección de Observaciones si NO es multiple/custom y hay texto --}}
+@if(!in_array($order->type, ['multiple', 'custom']) && $prescription->clinical_context)
+<div class="section">
+    <table width="100%">
+        <tr>
+            <td class="section-title">Observaciones</td>
+            <td style="font-size: 11px; color: #2d3436; white-space: pre-wrap; line-height: 1.5;">
+                {{ $prescription->clinical_context }}
+            </td>
+        </tr>
+    </table>
+</div>
+@endif
+
 
 {{-- Ocultar sección de observaciones si es multiple, ya que el contenido va arriba --}}
 @if($order->type !== 'multiple' && $order->type !== 'custom' && $prescription->clinical_context)
