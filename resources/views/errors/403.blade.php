@@ -121,7 +121,7 @@
 
     <div class="error-card">
         {{-- Logo sutil --}}
-        <img src="{{ asset('assets/logo/logo.png') }}" alt="Logo" height="40" class="mb-4" style="filter: brightness(0) invert(1) opacity(0.5);">
+        <img src="{{ asset('assets/logo/logo.png') }}" alt="Logo" height="40" class="mb-4" style="">
 
         <h1>403</h1>
         <div class="fw-bold tracking-widest text-uppercase mb-2" style="letter-spacing: 5px;">Acceso Denegado</div>
