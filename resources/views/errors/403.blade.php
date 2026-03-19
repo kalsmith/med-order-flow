@@ -1,145 +1,165 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>403 - Acceso Denegado, ¡No seas Nedry!</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      background: #0d001a;
-      color: #00ff41;
-      font-family: 'Courier New', Courier, monospace;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Ah, ah, ah! - 403 Access Denied</title>
 
-    .container {
-      position: relative;
-      max-width: 900px;
-      padding: 20px;
-    }
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    h1 {
-      font-size: 6rem;
-      margin: 0;
-      text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
-      animation: glitch 2s infinite;
-    }
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d001a; /* El fondo oscuro de tu versión */
+            color: #00ff41; /* Verde Matrix */
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
 
-    .subtitle {
-      font-size: 1.8rem;
-      margin: 20px 0;
-    }
+        .terminal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(13, 110, 253, 0.05) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+        }
 
-    .dino {
-      font-size: 8rem;
-      animation: spit 3s infinite;
-      display: inline-block;
-      transform-origin: center;
-    }
+        .error-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            border-radius: 25px;
+            padding: 3rem;
+            max-width: 700px;
+            width: 90%;
+            margin: auto;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+            position: relative;
+            z-index: 10;
+        }
 
-    .message {
-      font-size: 1.4rem;
-      max-width: 600px;
-      margin: 30px auto;
-      line-height: 1.6;
-    }
+        h1 {
+            font-size: 5rem;
+            font-weight: 900;
+            margin: 0;
+            text-shadow: 2px 0 #ff00c1, -2px 0 #00ff41;
+            animation: glitch 2s infinite;
+        }
 
-    .terminal {
-      background: rgba(0, 0, 0, 0.6);
-      border: 2px solid #00ff41;
-      padding: 20px;
-      margin-top: 30px;
-      text-align: left;
-      font-size: 1.1rem;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-    }
+        .dino-box {
+            position: relative;
+            font-size: 6rem;
+            margin: 1rem 0;
+            display: inline-block;
+        }
 
-    @keyframes glitch {
-      0%, 100% { text-shadow: 2px 0 #ff00c1, -2px 0 #00ff41; }
-      20% { text-shadow: -2px 0 #ff00c1, 2px 0 #00ff41; }
-      40% { text-shadow: 2px 0 #00ff41, -2px 0 #ff00c1; }
-      60% { text-shadow: -4px 0 #ff00c1, 4px 0 #00ff41; }
-      80% { text-shadow: 4px 0 #00ff41, -4px 0 #ff00c1; }
-    }
+        .dino {
+            display: inline-block;
+            animation: spit 3s infinite;
+        }
 
-    @keyframes spit {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      20% { transform: translateY(-10px) rotate(-5deg); }
-      40% { transform: translateY(5px) rotate(5deg); }
-      60%, 80% {
-        transform: translateY(0) rotate(0deg);
-        content: " spit ";
-      }
-    }
+        /* Animaciones Nedry */
+        @keyframes glitch {
+            0%, 100% { text-shadow: 2px 0 #ff00c1, -2px 0 #00ff41; }
+            20% { text-shadow: -2px 0 #ff00c1, 2px 0 #00ff41; }
+            50% { text-shadow: 4px 0 #00ff41, -4px 0 #ff00c1; }
+        }
 
-    .spit {
-      position: absolute;
-      font-size: 3rem;
-      color: #32ff6a;
-      opacity: 0;
-      pointer-events: none;
-      animation: fly 1.5s infinite;
-      left: 48%;
-      top: 38%;
-    }
+        @keyframes spit {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            20% { transform: translateY(-10px) rotate(-5deg); }
+            40% { transform: translateY(5px) rotate(5deg); }
+        }
 
-    @keyframes fly {
-      0% { opacity: 0; transform: translate(0, 0); }
-      10% { opacity: 1; }
-      100% { opacity: 0; transform: translate(120px, 80px) scale(0.5); }
-    }
+        .spit-emoji {
+            position: absolute;
+            font-size: 2rem;
+            color: #32ff6a;
+            opacity: 0;
+            pointer-events: none;
+            animation: fly 1.5s infinite;
+        }
 
-    @media (max-width: 600px) {
-      h1 { font-size: 4rem; }
-      .dino { font-size: 6rem; }
-    }
-  </style>
+        @keyframes fly {
+            0% { opacity: 0; transform: translate(0, 0); }
+            10% { opacity: 1; }
+            100% { opacity: 0; transform: translate(120px, 60px) scale(0.5); }
+        }
+
+        .terminal-text {
+            font-family: 'Source Code Pro', monospace;
+            background: rgba(0, 255, 65, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: left;
+            font-size: 0.9rem;
+            border-left: 3px solid #00ff41;
+            margin-top: 1.5rem;
+        }
+
+        .btn-matrix {
+            background: transparent;
+            color: #00ff41;
+            border: 2px solid #00ff41;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-matrix:hover {
+            background: #00ff41;
+            color: #000;
+            box-shadow: 0 0 20px #00ff41;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>403</h1>
-    <div class="subtitle">ACCESO DENEGADO</div>
+    <div class="terminal-overlay"></div>
 
-    <div class="dino">🦖</div>
-    <div class="spit">☣️</div> <!-- veneno volando -->
+    <div class="error-card">
+        {{-- Logo sutil --}}
+        <img src="{{ asset('assets/logo/logo.png') }}" alt="Logo" height="40" class="mb-4" style="filter: brightness(0) invert(1) opacity(0.5);">
 
-    <div class="message">
-      ¡Ey, Nedry! ¿Intentando hackear el sistema otra vez?<br>
-      No tienes permisos para esta zona restringida.<br>
-      Vuelve al comedor o... ¡cuidado con el dilofosaurio!
+        <h1>403</h1>
+        <div class="fw-bold tracking-widest text-uppercase mb-2" style="letter-spacing: 5px;">Acceso Denegado</div>
+
+        <div class="dino-box">
+            <div class="dino">🦖</div>
+            <div class="spit-emoji">☣️</div>
+        </div>
+
+        <h4 class="fw-bold mt-2 text-white">¡Ah, ah, ah! No has dicho la palabra mágica</h4>
+
+        <div class="terminal-text">
+            <span class="text-secondary">> C:\SECURITY\NEDRY_CONTROL...</span><br>
+            <span class="text-danger">> Access violation at address 0x403.</span><br>
+            <span class="text-white">> No intentes hackear el sistema de exámenes clínicos. El Dilofosaurio ha sido liberado.</span>
+        </div>
+
+        <div class="mt-4 d-flex gap-2 justify-content-center">
+            <a href="/" class="btn btn-matrix rounded-pill px-4">
+                <i class="bi bi-house-door-fill me-2"></i> ABORTAR Y VOLVER
+            </a>
+            <button onclick="window.history.back()" class="btn btn-outline-light rounded-pill px-4 opacity-50">
+                Atrás
+            </button>
+        </div>
     </div>
 
-    <div class="terminal">
-      C:\> dir /p<br>
-      Acceso denegado.<br>
-      Usuario no autorizado. Sistema de seguridad activado.<br>
-      ... escupitajo venenoso en 3... 2... 1...
-    </div>
-
-    <p style="margin-top:40px; font-size:1.1rem;">
-      <a href="/" style="color:#00ff41; text-decoration:none;">→ Volver al inicio (antes de que te coma)</a>
-    </p>
-  </div>
-
-  <script>
-    // Pequeña animación extra de "escupitajos" random
-    setInterval(() => {
-      const spit = document.createElement('div');
-      spit.className = 'spit';
-      spit.textContent = '☣️';
-      spit.style.left = (Math.random() * 40 + 30) + '%';
-      spit.style.top = (Math.random() * 20 + 30) + '%';
-      document.body.appendChild(spit);
-      setTimeout(() => spit.remove(), 2000);
-    }, 1800);
-  </script>
+    <script>
+        // Efecto de escupitajos random del código original
+        setInterval(() => {
+            const spit = document.createElement('div');
+            spit.className = 'spit-emoji';
+            spit.textContent = '☣️';
+            spit.style.left = (Math.random() * 20 + 40) + '%';
+            spit.style.top = (Math.random() * 20 + 40) + '%';
+            document.querySelector('.error-card').appendChild(spit);
+            setTimeout(() => spit.remove(), 1500);
+        }, 2000);
+    </script>
 </body>
 </html>
