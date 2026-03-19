@@ -98,7 +98,7 @@ public function index()
 
 public function store(Request $request)
 {
-    Log::info(" [DEBUG-ORDER] === INICIO PROCESO STORE ===");
+    // Log::info(" [DEBUG-ORDER] === INICIO PROCESO STORE ===");
     // Log::info(" [DEBUG-ORDER] Payload Recibido:", $request->all());
 
     // 1. NORMALIZACIÓN RADICAL

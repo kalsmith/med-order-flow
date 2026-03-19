@@ -39,8 +39,8 @@ class SignatureService
 
         // --- Happy Path (Simulación de Firma Electrónica) ---
 
-        Log::info("SERVICE: Iniciando proceso de firma para la prescripción: " . $prescription->id);
-        Log::info("MÉDICO FIRMANTE: " . ($doctor->user->name ?? 'N/A') . " (RUT: " . $doctor->rut . ")");
+        // Log::info("SERVICE: Iniciando proceso de firma para la prescripción: " . $prescription->id);
+        // Log::info("MÉDICO FIRMANTE: " . ($doctor->user->name ?? 'N/A') . " (RUT: " . $doctor->rut . ")");
 
         // Actualizamos el estado de la prescripción a 'signed' (si usas ese estado)
         // o guardamos los datos de la firma en metadata.

@@ -77,7 +77,7 @@ class FlowService
 
  public function handleWebhook($token)
 {
-    Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
+    // Log::info("=== [FLOW WEBHOOK START] ===", ['token' => $token]);
 
     try {
         $statusResponse = $this->getPaymentStatus($token);
@@ -181,10 +181,10 @@ class FlowService
 
     private function processMedicalOrder(Order $order, $customContent = null)
 {
-    Log::info(" [DEBUG-FLOW] === INICIO PROCESO MÉDICO === ", [
-        'order_id' => $order->id,
-        'type' => $order->type
-    ]);
+    // Log::info(" [DEBUG-FLOW] === INICIO PROCESO MÉDICO === ", [
+    //     'order_id' => $order->id,
+    //     'type' => $order->type
+    // ]);
 
     try {
         $specialtyId = null;
