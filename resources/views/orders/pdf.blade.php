@@ -283,20 +283,19 @@
 
 
 
-{{-- Solo mostrar sección de Observaciones si NO es multiple/custom y hay texto --}}
+{{-- Solo se muestra si NO es un flujo de texto libre (multiple/custom) y si realmente hay texto que mostrar --}}
 @if(!in_array($order->type, ['multiple', 'custom']) && $prescription->clinical_context)
-<div class="section">
-    <table width="100%">
-        <tr>
-            <td class="section-title">Observaciones</td>
-            <td style="font-size: 11px; color: #2d3436; white-space: pre-wrap; line-height: 1.5;">
-                {{ $prescription->clinical_context }}
-            </td>
-        </tr>
-    </table>
-</div>
+    <div class="section">
+        <table width="100%">
+            <tr>
+                <td class="section-title">Observaciones</td>
+                <td style="font-size: 11px; color: #2d3436; white-space: pre-wrap; line-height: 1.5;">
+                    {{ $prescription->clinical_context }}
+                </td>
+            </tr>
+        </table>
+    </div>
 @endif
-
 
 {{-- Ocultar sección de observaciones si es multiple, ya que el contenido va arriba --}}
 @if($order->type !== 'multiple' && $order->type !== 'custom' && $prescription->clinical_context)
