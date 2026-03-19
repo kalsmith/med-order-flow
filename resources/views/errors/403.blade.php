@@ -1,166 +1,145 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¡Ah, ah, ah! Acceso Denegado | {{ config('app.name') }}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>403 - Acceso Denegado, ¡No seas Nedry!</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #0d001a;
+      color: #00ff41;
+      font-family: 'Courier New', Courier, monospace;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    .container {
+      position: relative;
+      max-width: 900px;
+      padding: 20px;
+    }
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5; /* Un tono más gris para contrastar */
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            overflow: hidden;
-            /* Fondo sutil de "píxeles" o "red" */
-            background-image: radial-gradient(#d1d9e6 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
+    h1 {
+      font-size: 6rem;
+      margin: 0;
+      text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+      animation: glitch 2s infinite;
+    }
 
-        .error-card {
-            background: #ffffff;
-            border-radius: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.08);
-            border: 1px solid rgba(0,0,0,0.03);
-            padding: 3rem;
-            max-width: 550px;
-            width: 90%;
-            text-align: center;
-            position: relative;
-            animation: cardSlideIn 0.6s ease-out;
-        }
+    .subtitle {
+      font-size: 1.8rem;
+      margin: 20px 0;
+    }
 
-        /* GIF Container Mejorado */
-        .gif-frame {
-            position: relative;
-            display: inline-block;
-            border-radius: 20px;
-            overflow: hidden;
-            border: 8px solid #ffffff;
-            box-shadow: 0 10px 30px rgba(13, 110, 253, 0.15);
-            margin-bottom: 2rem;
-        }
+    .dino {
+      font-size: 8rem;
+      animation: spit 3s infinite;
+      display: inline-block;
+      transform-origin: center;
+    }
 
-        .nedry-gif {
-            width: 100%;
-            max-width: 380px;
-            display: block;
-        }
+    .message {
+      font-size: 1.4rem;
+      max-width: 600px;
+      margin: 30px auto;
+      line-height: 1.6;
+    }
 
-        /* Animación del texto de error */
-        .system-alert-text {
-            font-family: 'Source Code Pro', monospace;
-            color: #dc3545; /* Rojo de Bootstrap */
-            font-weight: 700;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            animation: textBlink 1.5s infinite; /* Parpadeo */
-            display: block;
-            margin-top: 10px;
-        }
+    .terminal {
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #00ff41;
+      padding: 20px;
+      margin-top: 30px;
+      text-align: left;
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
 
-        /* Palabra Mágica con más diseño */
-        .magic-word {
-            font-weight: 800;
-            color: #0d6efd;
-            font-size: 2rem;
-            letter-spacing: -1px;
-            margin-top: 1rem;
-            display: block;
-        }
+    @keyframes glitch {
+      0%, 100% { text-shadow: 2px 0 #ff00c1, -2px 0 #00ff41; }
+      20% { text-shadow: -2px 0 #ff00c1, 2px 0 #00ff41; }
+      40% { text-shadow: 2px 0 #00ff41, -2px 0 #ff00c1; }
+      60% { text-shadow: -4px 0 #ff00c1, 4px 0 #00ff41; }
+      80% { text-shadow: 4px 0 #00ff41, -4px 0 #ff00c1; }
+    }
 
-        /* Subtítulo temático */
-        .perm-denied-sub {
-            font-size: 1.1rem;
-            color: #212529;
-            font-weight: 700;
-            margin-top: 0.5rem;
-        }
+    @keyframes spit {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      20% { transform: translateY(-10px) rotate(-5deg); }
+      40% { transform: translateY(5px) rotate(5deg); }
+      60%, 80% {
+        transform: translateY(0) rotate(0deg);
+        content: " spit ";
+      }
+    }
 
-        /* Botón de volver atrás más sutil */
-        .btn-outline-subtle {
-            color: #adb5bd;
-            border: 1px solid #dee2e6;
-            background: transparent;
-        }
-        .btn-outline-subtle:hover {
-            background-color: #f8f9fa;
-            color: #495057;
-            border-color: #ced4da;
-        }
+    .spit {
+      position: absolute;
+      font-size: 3rem;
+      color: #32ff6a;
+      opacity: 0;
+      pointer-events: none;
+      animation: fly 1.5s infinite;
+      left: 48%;
+      top: 38%;
+    }
 
-        /* Footer de Sistema retro */
-        .retro-sys-footer {
-            font-family: 'Source Code Pro', monospace;
-            font-size: 0.7rem;
-            color: #ced4da;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 3rem;
-            opacity: 0.7;
-        }
+    @keyframes fly {
+      0% { opacity: 0; transform: translate(0, 0); }
+      10% { opacity: 1; }
+      100% { opacity: 0; transform: translate(120px, 80px) scale(0.5); }
+    }
 
-        /* ANIMACIONES CSS */
-        @keyframes cardSlideIn {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes textBlink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-    </style>
+    @media (max-width: 600px) {
+      h1 { font-size: 4rem; }
+      .dino { font-size: 6rem; }
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1>403</h1>
+    <div class="subtitle">ACCESO DENEGADO</div>
 
-    <div class="error-card">
-        {{-- Logo (Mantenido de tu layout) --}}
-        <div class="mb-5">
-            <img src="{{ asset('assets/logo/logo.png') }}" alt="PideTuExamen" height="45">
-        </div>
+    <div class="dino">🦖</div>
+    <div class="spit">☣️</div> <!-- veneno volando -->
 
-        {{-- Contenedor del GIF con diseño y parpadeo --}}
-        <div class="gif-frame">
-            <img src="https://media.giphy.com/media/uOAXda7ZeJJzW/giphy.gif" alt="Ah ah ah!" class="nedry-gif">
-        </div>
-
-        {{-- Texto de error parpadeante --}}
-        <span class="system-alert-text">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i> PROTOCOLO SEGURIDAD ACTIVO <i class="bi bi-exclamation-triangle-fill ms-1"></i>
-        </span>
-
-        {{-- Títulos y Mensajes --}}
-        <span class="magic-word">¡Ah, ah, ah!</span>
-        <h5 class="perm-denied-sub">No has dicho la palabra mágica...</h5>
-
-        <p class="text-muted mt-3 small px-3">
-            Lo sentimos, pero tu perfil no tiene los permisos necesarios para acceder a esta sección o archivo. Por favor, verifica tus credenciales o vuelve al inicio.
-        </p>
-
-        {{-- Acciones (Ajustadas a tu estilo de botones) --}}
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4 pt-2">
-            <a href="/" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm fs-6">
-                <i class="bi bi-house-fill me-2"></i> Ir al Inicio
-            </a>
-            <button onclick="window.history.back()" class="btn btn-outline-subtle rounded-pill px-4 fw-bold small">
-                <i class="bi bi-arrow-left me-1 small"></i> Volver atrás
-            </a>
-        </div>
-
-        {{-- Footer Retro --}}
-        <div class="retro-sys-footer">
-            ERROR 403: ACCESO DENEGADO // SYS_ERR: NEDRY_PROTOCOL_V1.0.4
-        </div>
+    <div class="message">
+      ¡Ey, Nedry! ¿Intentando hackear el sistema otra vez?<br>
+      No tienes permisos para esta zona restringida.<br>
+      Vuelve al comedor o... ¡cuidado con el dilofosaurio!
     </div>
 
+    <div class="terminal">
+      C:\> dir /p<br>
+      Acceso denegado.<br>
+      Usuario no autorizado. Sistema de seguridad activado.<br>
+      ... escupitajo venenoso en 3... 2... 1...
+    </div>
+
+    <p style="margin-top:40px; font-size:1.1rem;">
+      <a href="/" style="color:#00ff41; text-decoration:none;">→ Volver al inicio (antes de que te coma)</a>
+    </p>
+  </div>
+
+  <script>
+    // Pequeña animación extra de "escupitajos" random
+    setInterval(() => {
+      const spit = document.createElement('div');
+      spit.className = 'spit';
+      spit.textContent = '☣️';
+      spit.style.left = (Math.random() * 40 + 30) + '%';
+      spit.style.top = (Math.random() * 20 + 30) + '%';
+      document.body.appendChild(spit);
+      setTimeout(() => spit.remove(), 2000);
+    }, 1800);
+  </script>
 </body>
 </html>
