@@ -253,17 +253,23 @@ public function download(Order $order, OrderPdfService $pdfService)
 
 
 
-    public function examHistory()
+public function examHistory()
 {
-    // Obtenemos los pacientes vinculados al usuario (él + familia)
-    $patientIds = auth()->user()->patients()->pluck('id');
+    // Log::info(" [DEBUG-HISTORY] Cargando historial para usuario: " . auth()->id());
 
-    // Traemos las órdenes pagadas o en revisión, ordenadas por la más reciente
+    // 1. Buscamos todos los pacientes del círculo familiar (incluido el titular)
+    $patientIds = auth()->user()->patients()->pluck('id');
+    // Log::info(" [DEBUG-HISTORY] IDs de pacientes encontrados: " . $patientIds->implode(', '));
+
+    // 2. Traemos las órdenes con sus ítems desglosados
+    // Solo traemos lo pagado (status 'paid') o en revisión manual
     $orders = Order::whereIn('patient_id', $patientIds)
-        ->with(['patient', 'items', 'prescription'])
+        ->with(['patient', 'items']) // 'items' es clave para el desglose
         ->whereIn('status', ['paid', 'completed', 'manual_review'])
         ->latest()
         ->get();
+
+    // Log::info(" [DEBUG-HISTORY] Órdenes encontradas: " . $orders->count());
 
     return view('patient.exams.history', compact('orders'));
 }
