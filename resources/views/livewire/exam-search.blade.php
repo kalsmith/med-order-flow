@@ -3,7 +3,7 @@
     {{-- Buscador y Alerta de Límite --}}
     <div class="row justify-content-center mb-5">
         <div class="col-md-10 col-lg-8 text-center">
-            <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
+            <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border bg-white">
                 <span class="input-group-text bg-white border-0 ps-4">
                     <i class="bi bi-search text-primary"></i>
                 </span>
@@ -13,15 +13,14 @@
                        placeholder="Escribe el nombre del examen (ej: Hemograma, Perfil, VIH...)">
             </div>
 
-            {{-- Mensaje de estado dinámico basado en MAX_EXAMS --}}
             <div class="mt-3 animate__animated animate__fadeIn" style="min-height: 25px;">
                 @if(count($selectedExams) >= $maxExams)
                     <span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i> Has alcanzado el máximo de {{ $maxExams }} exámenes permitidos.
                     </span>
                 @elseif(count($selectedExams) > 0)
-                    <small class="text-primary fw-bold">
-                        <i class="bi bi-info-circle me-1"></i> Tienes {{ count($selectedExams) }} de {{ $maxExams }} seleccionados. Puedes seguir añadiendo.
+                    <small class="text-primary fw-bold bg-white px-3 py-1 rounded-pill shadow-sm border">
+                        <i class="bi bi-info-circle me-1"></i> {{ count($selectedExams) }} de {{ $maxExams }} seleccionados.
                     </small>
                 @endif
             </div>
@@ -35,65 +34,76 @@
                 $isPack = $exam->children->count() > 0;
                 $isSelected = isset($selectedExams[$exam->id]);
                 $limitReached = count($selectedExams) >= $maxExams;
+                $accentColor = $isPack ? '#6610f2' : ($exam->parents->count() > 0 ? '#0dcaf0' : '#0d6efd');
             @endphp
 
-            <div class="col-12 col-md-6 col-xl-4 animate__animated animate__fadeInUp">
-                <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover overflow-hidden {{ $isSelected ? 'ring-active' : '' }}"
-                     style="border-top: 6px solid {{ $isPack ? '#6610f2' : ($exam->parents->count() > 0 ? '#0dcaf0' : '#0d6efd') }} !important;">
+            <div class="col-12 col-md-6 col-lg-4 col-xl-3 animate__animated animate__fadeInUp">
+                <div class="card h-100 border-0 rounded-4 shadow-sm custom-exam-card {{ $isSelected ? 'card-selected' : '' }}">
+
+                    {{-- Barra de color superior sutil --}}
+                    <div class="card-accent-bar" style="background-color: {{ $accentColor }};"></div>
 
                     <div class="card-body p-4 d-flex flex-column">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5 class="fw-bold mb-0 text-dark">{{ $exam->name }}</h5>
-                                @if($isPack)
-                                    <span class="badge bg-primary rounded-pill ms-2" style="font-size: 0.65rem;">PACK</span>
-                                @endif
-                            </div>
+                        {{-- Encabezado --}}
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h6 class="fw-bold text-dark mb-0 lh-base exam-title">
+                                {{ $exam->name }}
+                            </h6>
+                            @if($isPack)
+                                <span class="badge rounded-pill pack-badge shadow-sm">PACK</span>
+                            @endif
                         </div>
 
-                        <div class="flex-grow-1 mb-3">
+                        {{-- Cuerpo / Detalles --}}
+                        <div class="flex-grow-1">
                             @if($isPack)
-                                <div class="p-2 bg-light rounded-3">
-                                    <small class="text-muted d-block mb-1 fw-bold" style="font-size: 0.65rem;">INCLUYE:</small>
-                                    <ul class="list-unstyled mb-0" style="font-size: 0.75rem;">
+                                <div class="inclusion-box p-3 rounded-3 mb-3">
+                                    <span class="inclusion-label">INCLUYE:</span>
+                                    <ul class="list-unstyled mb-0">
                                         @foreach($exam->children->take(3) as $child)
-                                            <li class="text-truncate"><i class="bi bi-check2 text-success"></i> {{ $child->name }}</li>
+                                            <li class="inclusion-item text-truncate small">
+                                                <i class="bi bi-check2 text-primary me-1"></i> {{ $child->name }}
+                                            </li>
                                         @endforeach
                                         @if($exam->children->count() > 3)
-                                            <li class="text-primary fw-bold">+{{ $exam->children->count() - 3 }} más...</li>
+                                            <li class="inclusion-more text-primary fw-bold mt-1 small">
+                                                +{{ $exam->children->count() - 3 }} más...
+                                            </li>
                                         @endif
                                     </ul>
                                 </div>
                             @elseif($exam->parents->count() > 0)
-                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 w-100 py-2">
+                                <div class="promo-box p-2 mb-3 text-center rounded-3 small fw-bold">
                                     <i class="bi bi-gift-fill me-1"></i> Disponible en Pack
-                                </span>
+                                </div>
                             @else
-                                <small class="text-muted">Examen Individual</small>
+                                <p class="text-muted small mb-3">Análisis clínico individual de alta precisión.</p>
                             @endif
                         </div>
 
-                        <div class="pt-3 border-top mt-auto">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-primary fw-bold fs-4">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
+                        {{-- Footer: Precio y Botón --}}
+                        <div class="mt-auto pt-3 border-top">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="price-container">
+                                    <span class="price-symbol small fw-bold text-primary">$</span>
+                                    <span class="price-amount fs-4 fw-extrabold text-primary">{{ number_format($exam->base_price, 0, ',', '.') }}</span>
                                 </div>
 
                                 @if($isPack)
                                     <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $exam->id]) }}"
-                                       class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm">
+                                       class="btn btn-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
                                         Pedir Pack
                                     </a>
                                 @else
                                     <button wire:click="toggleExam({{ $exam->id }}, '{{ $exam->name }}')"
                                             @if($limitReached && !$isSelected) disabled @endif
-                                            class="btn {{ $isSelected ? 'btn-success' : 'btn-outline-primary' }} rounded-pill px-4 fw-bold shadow-sm transition-all">
+                                            class="btn btn-sm rounded-pill px-3 fw-bold shadow-sm transition-all {{ $isSelected ? 'btn-success' : 'btn-outline-primary' }}">
                                         @if($isSelected)
-                                            <i class="bi bi-check-lg"></i> Añadido
+                                            <i class="bi bi-check-lg me-1"></i> Añadido
                                         @elseif($limitReached)
-                                            <i class="bi bi-lock"></i> Límite
+                                            <i class="bi bi-lock-fill"></i>
                                         @else
-                                            <i class="bi bi-plus-lg"></i> Añadir
+                                            <i class="bi bi-plus-lg me-1"></i> Añadir
                                         @endif
                                     </button>
                                 @endif
@@ -106,7 +116,7 @@
             @if(strlen($search) > 2)
                 <div class="col-12 text-center py-5">
                     <i class="bi bi-search text-muted fs-1 d-block mb-3"></i>
-                    <p class="text-muted">No encontramos exámenes que coincidan con "{{ $search }}"</p>
+                    <p class="text-muted">No encontramos resultados para "{{ $search }}"</p>
                 </div>
             @endif
         @endforelse
@@ -115,30 +125,28 @@
     {{-- BARRA FLOTANTE --}}
     @if(count($selectedExams) > 0)
         <div style="height: 100px;"></div>
-
         <div class="fixed-bottom bg-white border-top shadow-lg animate__animated animate__slideInUp" style="z-index: 1050; padding-bottom: env(safe-area-inset-bottom);">
             <div class="container py-3">
                 <div class="row align-items-center">
                     <div class="col-md-7 d-none d-md-block">
                         <div class="d-flex align-items-center">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 45px; height: 45px;">
-                                <span class="fw-bold">{{ count($selectedExams) }}</span>
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm fw-bold" style="width: 40px; height: 40px;">
+                                {{ count($selectedExams) }}
                             </div>
-                            <div>
-                                <h6 class="fw-bold mb-0 text-dark">Tu Orden Personalizada</h6>
-                                <p class="small text-muted mb-0 text-truncate" style="max-width: 450px;">
+                            <div class="overflow-hidden">
+                                <h6 class="fw-bold mb-0 text-dark small">Tu Orden Personalizada</h6>
+                                <p class="small text-muted mb-0 text-truncate">
                                     {{ implode(', ', $selectedExams) }}
                                 </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-12 col-md-5">
-                        <div class="d-flex align-items-center gap-3">
-                            <button wire:click="clearSelection" class="btn btn-link text-danger text-decoration-none small fw-bold">
+                        <div class="d-flex align-items-center gap-2">
+                            <button wire:click="clearSelection" class="btn btn-sm btn-link text-danger text-decoration-none fw-bold">
                                 Limpiar
                             </button>
-                            <a href="{{ $orderUrl }}"
-                               class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow">
+                            <a href="{{ $orderUrl }}" class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow-sm fs-6">
                                 Solicitar Orden <i class="bi bi-arrow-right ms-2"></i>
                             </a>
                         </div>
@@ -149,16 +157,57 @@
     @endif
 
     <style>
-        .transition-hover { transition: all 0.3s cubic-bezier(.25,.8,.25,1); }
-        .transition-hover:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important; }
-        .transition-all { transition: all 0.2s ease-in-out; }
-        .ring-active {
-            border: 2px solid #198754 !important;
-            background-color: #f8fff9;
+        .custom-exam-card {
+            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.05) !important;
         }
+        .custom-exam-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,0.1) !important;
+        }
+        .card-accent-bar {
+            height: 4px;
+            width: 100%;
+        }
+        .exam-title {
+            font-size: 0.95rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 2.8rem;
+        }
+        .inclusion-box {
+            background-color: #f8f9fa;
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+        .inclusion-label {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #adb5bd;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .inclusion-item { color: #555; }
+        .card-selected {
+            border: 2px solid #198754 !important;
+            background-color: #f8fff9 !important;
+        }
+        .pack-badge {
+            background-color: #6610f2;
+            font-size: 0.6rem;
+            padding: 4px 8px;
+        }
+        .promo-box {
+            background-color: rgba(13, 202, 240, 0.1);
+            color: #087990;
+            border: 1px dashed rgba(13, 202, 240, 0.3);
+        }
+        .fw-extrabold { font-weight: 800; }
         @media (max-width: 767px) {
-            .fixed-bottom { padding-left: 10px; padding-right: 10px; }
+            .fixed-bottom { padding: 0 10px; }
         }
     </style>
-
 </div>
