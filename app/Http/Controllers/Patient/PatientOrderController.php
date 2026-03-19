@@ -98,21 +98,21 @@ public function index()
 
 
 
-
 public function store(Request $request)
 {
     Log::info("=== INICIO CREACIÓN DE ORDEN ===", ['payload' => $request->all()]);
 
-    // 1. NORMALIZACIÓN: Determinamos el tipo antes de validar
-    if (!$request->has('type')) {
+    // 1. NORMALIZACIÓN: Forzamos tipos consistentes para el Webhook
+    if ($request->type === 'pack' || !$request->has('type')) {
+        // Si es pack o no tiene tipo, pero tiene un examen ID, es 'standard'
         $request->merge(['type' => $request->has('exam_type_id') ? 'standard' : 'custom']);
     }
 
-    // 2. VALIDACIÓN
+    // 2. VALIDACIÓN: Agregamos 'multiple' a las excepciones de exam_type_id
     $request->validate([
         'patient_id'         => 'required|exists:patients,id',
-        'exam_type_id'       => 'required_unless:type,custom|nullable|exists:exam_types,id',
-        'custom_description' => 'required_if:type,custom|nullable|string|min:10',
+        'exam_type_id'       => 'required_unless:type,custom,multiple|nullable|exists:exam_types,id',
+        'custom_description' => 'required_if:type,custom,multiple|nullable|string|min:10',
         'clinical_context'   => 'nullable|string'
     ]);
 
@@ -122,19 +122,19 @@ public function store(Request $request)
             $amount = 0;
             $examId = null;
 
-            // 3. DETERMINACIÓN DE COSTOS (Fuente de verdad)
-            if ($orderType === 'custom') {
+            // 3. DETERMINACIÓN DE COSTOS Y ASIGNACIÓN
+            if ($orderType === 'custom' || $orderType === 'multiple') {
+                // Ambos flujos de texto libre tienen el mismo precio base
                 $amount = 9990;
                 $examId = null;
             } else {
+                // Flujo standard (incluye los anteriores 'pack')
                 $exam = ExamType::findOrFail($request->exam_type_id);
                 $amount = $exam->base_price;
                 $examId = $exam->id;
             }
 
             // 4. CREACIÓN DE LA ORDEN COMERCIAL
-            // Importante: No pasamos 'verification_code' ni 'doctor_id' aquí.
-            // La orden nace como un documento de venta puro.
             return Order::create([
                 'id'                 => (string) Str::uuid(),
                 'patient_id'         => $request->patient_id,
@@ -147,10 +147,9 @@ public function store(Request $request)
             ]);
         });
 
-        Log::info("Orden Comercial Creada con éxito", ['order_id' => $order->id]);
+        Log::info("Orden Comercial Creada con éxito", ['order_id' => $order->id, 'type' => $order->type]);
 
         // 5. REDIRECCIÓN AL PROCESO DE PAGO
-        // Usamos 'checkout.process' que es el que dispara hacia Flow
         return redirect()->route('checkout.process', ['order' => $order->id]);
 
     } catch (\Exception $e) {
@@ -161,7 +160,6 @@ public function store(Request $request)
         return back()->with('error', 'Ocurrió un error al generar tu orden: ' . $e->getMessage());
     }
 }
-
 
     /**
      * Listado de órdenes del paciente.
