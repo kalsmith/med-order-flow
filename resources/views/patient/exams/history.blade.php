@@ -2,15 +2,18 @@
 
 @section('content')
 <div class="container py-5" style="max-width: 900px;">
-    <div class="d-flex align-items-center mb-4">
-        <div class="bg-primary text-white rounded-circle p-3 me-3">
-            <i class="bi bi-journal-medical fs-4"></i>
-        </div>
-        <div>
-            <h2 class="fw-bold mb-0">Mi Historial</h2>
-            <p class="text-muted mb-0">Gestiona tus exámenes y vuelve a solicitarlos con un clic</p>
-        </div>
+<div class="d-flex align-items-center mb-4">
+    {{-- Contenedor del icono con tamaño fijo para evitar el "achatado" --}}
+    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+         style="width: 60px; height: 60px; min-width: 60px; flex-shrink: 0;">
+        <i class="bi bi-journal-medical fs-3"></i>
     </div>
+
+    <div>
+        <h2 class="fw-bold mb-0 text-dark">Mi Historial</h2>
+        <p class="text-muted mb-0">Gestiona tus exámenes y vuelve a solicitarlos con un clic</p>
+    </div>
+</div>
 
     @forelse($orders as $order)
         @php
