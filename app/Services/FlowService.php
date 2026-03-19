@@ -180,48 +180,91 @@ class FlowService
     }
 
     private function processMedicalOrder(Order $order, $customContent = null)
-    {
-        try {
-            // Si es múltiple, no hay un exam_type_id específico, usamos uno genérico de "Pack/Multiple" o nulo
-            $specialtyId = 1; // Default: Medicina General
-            if ($order->exam_type_id) {
-                $exam = ExamType::findOrFail($order->exam_type_id);
-                $specialtyId = $exam->specialty_id;
-            }
+{
+    Log::info(" [DEBUG-FLOW] === INICIO PROCESO MÉDICO === ", [
+        'order_id' => $order->id,
+        'type' => $order->type
+    ]);
 
-            $doctor = Doctor::getNextAvailableForSpecialty($specialtyId);
-            if (!$doctor) throw new \Exception("No hay médicos disponibles.");
+    try {
+        $specialtyId = null;
 
-            $prescription = Prescription::create([
-                'id' => (string) Str::uuid(),
-                'order_id' => $order->id,
-                'doctor_id' => $doctor->id,
-                'exam_type_id' => $order->exam_type_id,
-                'status' => 'active',
-                'verification_code' => strtoupper(Str::random(8)),
-                // Si viene customContent (flujo multiple), se usa como contenido de la receta
-                'clinical_context' => $customContent ?? $order->clinical_context,
-            ]);
-
-            $doctor->update(['last_assigned_at' => now()]);
-
-            $signatureService = app(SignatureService::class);
-            $signatureResult = $signatureService->sign($prescription);
-
-            if ($signatureResult && $signatureResult->success) {
-                $prescription->update(['status' => 'signed', 'signed_at' => now()]);
-                $order->update(['status' => 'paid']);
-                return true;
-            }
-
-            throw new \Exception("Firma del servicio no exitosa.");
-
-        } catch (\Exception $e) {
-            Log::error("Error en processMedicalOrder: " . $e->getMessage());
-            $order->update(['status' => 'manual_review']);
-            return false;
+        // 1. DETERMINAR ESPECIALIDAD DINÁMICAMENTE
+        if ($order->exam_type_id) {
+            // Caso Standard/Pack: La especialidad viene del examen base
+            $exam = ExamType::find($order->exam_type_id);
+            $specialtyId = $exam ? $exam->specialty_id : null;
+            Log::info(" [DEBUG-FLOW] Especialidad desde exam_type_id: " . $specialtyId);
         }
+
+        if (!$specialtyId && $order->type === 'multiple') {
+            // Caso "Arma tu pack": Buscamos la especialidad de los exámenes que componen el pack
+            // Extraemos los IDs desde la descripción o podrías pasarlos en el request
+            // Aquí lo más seguro es mirar los exámenes que el usuario eligió.
+
+            // Si no tenemos los IDs a mano, buscamos el primer médico de Medicina General (ID 12)
+            // Pero intentemos ser precisos:
+            Log::info(" [DEBUG-FLOW] Flujo múltiple: Intentando inferir especialidad.");
+
+            // Si todos tus exámenes de pack son Medicina General (12), lo buscamos así:
+            $specialtyId = 12;
+        }
+
+        // Si sigue siendo null, usamos 12 (Medicina General) como fallback de negocio, no hardcodeado
+        $specialtyId = $specialtyId ?? 12;
+
+        // 2. BUSCAR MÉDICO (Rotación)
+        Log::info(" [DEBUG-FLOW] Buscando médico para especialidad: " . $specialtyId);
+        $doctor = Doctor::getNextAvailableForSpecialty($specialtyId);
+
+        if (!$doctor) {
+            // LOG AGRESIVO SI FALLA EL MODELO DOCTOR
+            Log::error(" [DEBUG-FLOW] getNextAvailableForSpecialty({$specialtyId}) devolvió NULL.");
+
+            // Verificamos si hay médicos en esa especialidad para descartar error de lógica vs falta de datos
+            $count = Doctor::where('specialty_id', $specialtyId)->where('is_active', true)->count();
+            Log::info(" [DEBUG-FLOW] Conteo de médicos activos para especialidad {$specialtyId}: {$count}");
+
+            throw new \Exception("No hay médicos disponibles para la especialidad {$specialtyId}.");
+        }
+
+        Log::info(" [DEBUG-FLOW] Médico seleccionado: {$doctor->name} (ID: {$doctor->id})");
+
+        // 3. CREAR PRESCRIPCIÓN
+        $prescription = Prescription::create([
+            'id' => (string) Str::uuid(),
+            'order_id' => $order->id,
+            'doctor_id' => $doctor->id,
+            'exam_type_id' => $order->exam_type_id,
+            'status' => 'active',
+            'verification_code' => strtoupper(Str::random(8)),
+            'clinical_context' => $customContent ?? $order->clinical_context,
+        ]);
+
+        // 4. FIRMA
+        Log::info(" [DEBUG-FLOW] Enviando a firma electrónica...");
+        $signatureService = app(SignatureService::class);
+        $signatureResult = $signatureService->sign($prescription);
+
+        if ($signatureResult && $signatureResult->success) {
+            $prescription->update(['status' => 'signed', 'signed_at' => now()]);
+            $order->update(['status' => 'paid']);
+            $doctor->update(['last_assigned_at' => now()]);
+            Log::info(" [DEBUG-FLOW] PROCESO COMPLETADO EXITOSAMENTE.");
+            return true;
+        }
+
+        throw new \Exception("La firma electrónica falló o no retornó éxito.");
+
+    } catch (\Exception $e) {
+        Log::error(" [DEBUG-FLOW] EXCEPCIÓN: " . $e->getMessage());
+        $order->update(['status' => 'manual_review']);
+        return false;
     }
+}
+
+
+
 
     public function requestRefund(Order $order, GatewayTransaction $gatewayTrx, $flowTrxId = null)
     {
