@@ -131,10 +131,10 @@ class FlowService
                 Log::info("WEBHOOK: Orden personalizada preparada para revisión médica.", ['order_id' => $order->id]);
             }
 
-            Log::info("=== [FLOW WEBHOOK SUCCESS] ===", [
-                'order_id' => $order->id,
-                'processed_as' => $effectiveType
-            ]);
+            // Log::info("=== [FLOW WEBHOOK SUCCESS] ===", [
+            //     'order_id' => $order->id,
+            //     'processed_as' => $effectiveType
+            // ]);
             return true;
         });
 
@@ -194,7 +194,7 @@ class FlowService
             // Caso Standard/Pack: La especialidad viene del examen base
             $exam = ExamType::find($order->exam_type_id);
             $specialtyId = $exam ? $exam->specialty_id : null;
-            Log::info(" [DEBUG-FLOW] Especialidad desde exam_type_id: " . $specialtyId);
+            // Log::info(" [DEBUG-FLOW] Especialidad desde exam_type_id: " . $specialtyId);
         }
 
         if (!$specialtyId && $order->type === 'multiple') {
@@ -204,7 +204,7 @@ class FlowService
 
             // Si no tenemos los IDs a mano, buscamos el primer médico de Medicina General (ID 12)
             // Pero intentemos ser precisos:
-            Log::info(" [DEBUG-FLOW] Flujo múltiple: Intentando inferir especialidad.");
+            // Log::info(" [DEBUG-FLOW] Flujo múltiple: Intentando inferir especialidad.");
 
             // Si todos tus exámenes de pack son Medicina General (12), lo buscamos así:
             $specialtyId = 12;
@@ -214,7 +214,7 @@ class FlowService
         $specialtyId = $specialtyId ?? 12;
 
         // 2. BUSCAR MÉDICO (Rotación)
-        Log::info(" [DEBUG-FLOW] Buscando médico para especialidad: " . $specialtyId);
+        // Log::info(" [DEBUG-FLOW] Buscando médico para especialidad: " . $specialtyId);
         $doctor = Doctor::getNextAvailableForSpecialty($specialtyId);
 
         if (!$doctor) {
@@ -228,7 +228,7 @@ class FlowService
             throw new \Exception("No hay médicos disponibles para la especialidad {$specialtyId}.");
         }
 
-        Log::info(" [DEBUG-FLOW] Médico seleccionado: {$doctor->name} (ID: {$doctor->id})");
+        // Log::info(" [DEBUG-FLOW] Médico seleccionado: {$doctor->name} (ID: {$doctor->id})");
 
         // 3. CREAR PRESCRIPCIÓN
         $prescription = Prescription::create([
@@ -242,7 +242,7 @@ class FlowService
         ]);
 
         // 4. FIRMA
-        Log::info(" [DEBUG-FLOW] Enviando a firma electrónica...");
+        // Log::info(" [DEBUG-FLOW] Enviando a firma electrónica...");
         $signatureService = app(SignatureService::class);
         $signatureResult = $signatureService->sign($prescription);
 
@@ -250,7 +250,7 @@ class FlowService
             $prescription->update(['status' => 'signed', 'signed_at' => now()]);
             $order->update(['status' => 'paid']);
             $doctor->update(['last_assigned_at' => now()]);
-            Log::info(" [DEBUG-FLOW] PROCESO COMPLETADO EXITOSAMENTE.");
+            // Log::info(" [DEBUG-FLOW] PROCESO COMPLETADO EXITOSAMENTE.");
             return true;
         }
 

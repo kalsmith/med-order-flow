@@ -99,38 +99,38 @@ public function index()
 public function store(Request $request)
 {
     Log::info(" [DEBUG-ORDER] === INICIO PROCESO STORE ===");
-    Log::info(" [DEBUG-ORDER] Payload Recibido:", $request->all());
+    // Log::info(" [DEBUG-ORDER] Payload Recibido:", $request->all());
 
     // 1. NORMALIZACIÓN RADICAL
     if ($request->filled('exam_type_id')) {
-        Log::info(" [DEBUG-ORDER] Detectado exam_type_id ({$request->exam_type_id}). Forzando type a 'standard'.");
+        // Log::info(" [DEBUG-ORDER] Detectado exam_type_id ({$request->exam_type_id}). Forzando type a 'standard'.");
         $request->merge(['type' => 'standard']);
     }
 
     // NUEVO: Manejo agresivo de 'multiple'
     if ($request->type === 'multiple' && $request->filled('exam_ids')) {
-        Log::info(" [DEBUG-ORDER] Flujo MULTIPLE detectado. IDs: " . $request->exam_ids);
+        // Log::info(" [DEBUG-ORDER] Flujo MULTIPLE detectado. IDs: " . $request->exam_ids);
 
         $ids = explode(',', $request->exam_ids);
         $examNames = ExamType::whereIn('id', $ids)->pluck('name')->implode(', ');
 
-        Log::info(" [DEBUG-ORDER] Exámenes encontrados para el pack: " . $examNames);
+        // Log::info(" [DEBUG-ORDER] Exámenes encontrados para el pack: " . $examNames);
 
         $request->merge([
             'custom_description' => "Solicitud de exámenes: " . $examNames
         ]);
 
-        Log::info(" [DEBUG-ORDER] custom_description generada con éxito.");
+        // Log::info(" [DEBUG-ORDER] custom_description generada con éxito.");
     }
     elseif (!$request->has('type')) {
-        Log::info(" [DEBUG-ORDER] Sin type definido. Asignando 'custom'.");
+        // Log::info(" [DEBUG-ORDER] Sin type definido. Asignando 'custom'.");
         $request->merge(['type' => 'custom']);
     }
 
-    Log::info(" [DEBUG-ORDER] Estado del Request pre-validación:", [
-        'type' => $request->type,
-        'custom_description' => $request->custom_description ? 'PRESENTE' : 'VACÍO'
-    ]);
+    // Log::info(" [DEBUG-ORDER] Estado del Request pre-validación:", [
+    //     'type' => $request->type,
+    //     'custom_description' => $request->custom_description ? 'PRESENTE' : 'VACÍO'
+    // ]);
 
     // 2. VALIDACIÓN
     try {
@@ -140,14 +140,14 @@ public function store(Request $request)
             'custom_description' => 'required_if:type,custom,multiple|nullable|string|min:5',
             'clinical_context'   => 'nullable|string'
         ]);
-        Log::info(" [DEBUG-ORDER] Validación PASADA.");
+        // Log::info(" [DEBUG-ORDER] Validación PASADA.");
     } catch (\Illuminate\Validation\ValidationException $ve) {
-        Log::error(" [DEBUG-ORDER] Error de Validación:", $ve->errors());
+        // Log::error(" [DEBUG-ORDER] Error de Validación:", $ve->errors());
         throw $ve;
     }
 
     try {
-        Log::info(" [DEBUG-ORDER] Iniciando Transacción DB...");
+        // Log::info(" [DEBUG-ORDER] Iniciando Transacción DB...");
         $order = DB::transaction(function () use ($request) {
             $orderType = $request->type;
             $examId = $request->exam_type_id;
@@ -156,11 +156,11 @@ public function store(Request $request)
             if ($orderType === 'custom' || $orderType === 'multiple') {
                 $amount = 9990;
                 $examId = null;
-                Log::info(" [DEBUG-ORDER] Precio asignado: 9990 (Flujo " . $orderType . ")");
+                // Log::info(" [DEBUG-ORDER] Precio asignado: 9990 (Flujo " . $orderType . ")");
             } else {
                 $exam = ExamType::findOrFail($request->exam_type_id);
                 $amount = $exam->base_price;
-                Log::info(" [DEBUG-ORDER] Precio asignado: " . $amount . " (Examen: " . $exam->name . ")");
+                // Log::info(" [DEBUG-ORDER] Precio asignado: " . $amount . " (Examen: " . $exam->name . ")");
             }
 
             $newOrder = Order::create([
@@ -174,11 +174,11 @@ public function store(Request $request)
                 'clinical_context'   => $request->clinical_context,
             ]);
 
-            Log::info(" [DEBUG-ORDER] Instancia de Orden creada en DB.", ['uuid' => $newOrder->id]);
+            // Log::info(" [DEBUG-ORDER] Instancia de Orden creada en DB.", ['uuid' => $newOrder->id]);
             return $newOrder;
         });
 
-        Log::info(" [DEBUG-ORDER] === ÉXITO === Orden ID: {$order->id} | Tipo Final: {$order->type}");
+        // Log::info(" [DEBUG-ORDER] === ÉXITO === Orden ID: {$order->id} | Tipo Final: {$order->type}");
 
         return redirect()->route('checkout.process', ['order' => $order->id]);
 
