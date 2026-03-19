@@ -13,9 +13,27 @@
     </div>
 
     @forelse($orders as $order)
-        <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px; overflow: hidden;">
+        @php
+            // Lógica de tiempo: ¿Pasaron más de 90 días?
+            $isOld = $order->created_at->diffInDays(now()) > 90;
+
+            // Lógica de Re-ordenar
+            $reorderUrl = '#';
+            if($order->type == 'pack') {
+                $reorderUrl = route('order.flow', ['type' => 'pack', 'id' => $order->exam_type_id]);
+            } elseif($order->items->count() > 1) {
+                $ids = $order->items->pluck('exam_type_id')->filter()->implode(',');
+                $reorderUrl = route('order.flow', ['type' => 'multiple']) . '?ids=' . $ids;
+            } else {
+                // Si es single, buscamos el id del primer item si exam_type_id de la orden es nulo
+                $examId = $order->exam_type_id ?? $order->items->first()->exam_type_id;
+                $reorderUrl = route('order.flow', ['type' => 'exam', 'id' => $examId]);
+            }
+        @endphp
+
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 20px; overflow: hidden; {{ $isOld ? 'opacity: 0.85;' : '' }}">
             <div class="card-header bg-white border-0 p-4 pb-0">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <span class="badge bg-light text-primary border border-primary-subtle rounded-pill px-3 mb-2">
                             Orden #{{ substr($order->id, 0, 8) }}
@@ -23,32 +41,23 @@
                         <h5 class="fw-bold text-dark mb-1">{{ $order->patient->name }}</h5>
                         <p class="small text-muted mb-0">
                             <i class="bi bi-calendar3 me-1"></i> {{ $order->created_at->format('d/m/Y') }}
+                            @if($isOld)
+                                <span class="text-danger ms-2 fw-bold">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> Hace más de 90 días
+                                </span>
+                            @endif
                         </p>
                     </div>
 
-                    {{-- Botón para Volver a Solicitar (Checkout directo) --}}
-                    <div>
-                        @php
-                            $reorderUrl = '#';
-                            if($order->type == 'pack') {
-                                $reorderUrl = route('order.flow', ['type' => 'pack', 'id' => $order->exam_type_id]);
-                            } elseif($order->items->count() > 1) {
-                                $ids = $order->items->pluck('exam_type_id')->filter()->implode(',');
-                                $reorderUrl = route('order.flow', ['type' => 'multiple']) . '?ids=' . $ids;
-                            } else {
-                                $reorderUrl = route('order.flow', ['type' => 'exam', 'id' => $order->exam_type_id]);
-                            }
-                        @endphp
-                        <a href="{{ $reorderUrl }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
-                            <i class="bi bi-arrow-repeat me-1"></i> Volver a solicitar
-                        </a>
-                    </div>
+                    <a href="{{ $reorderUrl }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="bi bi-arrow-repeat me-1"></i> Volver a solicitar
+                    </a>
                 </div>
             </div>
 
             <div class="card-body p-4">
-                <div class="bg-light p-3 border-start border-primary border-4 rounded-3 mb-4">
-                    <p class="small text-uppercase fw-bold text-muted mb-2">Exámenes solicitados:</p>
+                <div class="bg-light p-3 border-start border-primary border-4 rounded-3">
+                    <p class="small text-uppercase fw-bold text-muted mb-2">Exámenes de esta orden:</p>
                     <div class="row">
                         @foreach($order->items as $item)
                             <div class="col-md-6 mb-1">
@@ -57,18 +66,6 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
-
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    @if($order->activePrescription)
-                        <a href="{{ route('orders.download', $order) }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
-                            <i class="bi bi-download me-2"></i> Descargar Orden Médica (PDF)
-                        </a>
-                    @else
-                        <span class="text-muted small align-self-center me-3">
-                            <i class="bi bi-info-circle me-1"></i> Documento en preparación
-                        </span>
-                    @endif
                 </div>
             </div>
         </div>
