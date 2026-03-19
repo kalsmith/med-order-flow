@@ -210,6 +210,7 @@
 
 <div class="document-title" style="margin-top: 10px;">Orden Médica</div>
 
+
 <div class="section">
     <table width="100%">
         <tr>
@@ -217,15 +218,22 @@
             <td>
                 <div class="prestacion-card">
                     <div class="value" style="font-size: 14px; color: #0d6efd; margin-bottom: 12px; border-bottom: 2px solid #f8f9fa; padding-bottom: 8px; letter-spacing: 0.5px;">
-                        @if($order->type === 'custom')
+                        @if($order->type === 'multiple')
+                            PACK DE EXÁMENES SELECCIONADOS
+                        @elseif($order->type === 'custom')
                             ORDEN MÉDICA PERSONALIZADA
                         @else
                             {{ strtoupper($order->examType->name ?? 'EXAMEN ESTÁNDAR') }}
                         @endif
                     </div>
 
-                    @if($order->type === 'custom')
-                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap; color: #2d3436; line-height: 1.5;">{{ $prescription->clinical_context }}</div>
+                    {{-- Caso 1: Es Multiple o Custom (Mostramos el texto libre) --}}
+                    @if($order->type === 'multiple' || $order->type === 'custom')
+                        <div style="font-size: 11px; font-weight: bold; white-space: pre-wrap; color: #2d3436; line-height: 1.5;">
+                            {{ $prescription->clinical_context ?? $order->custom_description }}
+                        </div>
+
+                    {{-- Caso 2: Es un Perfil/Pack con hijos (Standard) --}}
                     @elseif($order->examType && $order->examType->children->isNotEmpty())
                         <div style="margin-top: 5px;">
                             @foreach($order->examType->children as $child)
@@ -235,6 +243,8 @@
                                 </div>
                             @endforeach
                         </div>
+
+                    {{-- Caso 3: Es un examen único (Standard) --}}
                     @elseif($order->examType)
                         <div class="exam-item" style="border-bottom: none;">
                             <span class="exam-code">[{{ $order->examType->code_fonasa ?? 'S/C' }}]</span>
@@ -250,6 +260,18 @@
         </tr>
     </table>
 </div>
+
+{{-- Ocultar sección de observaciones si es multiple, ya que el contenido va arriba --}}
+@if($order->type !== 'multiple' && $order->type !== 'custom' && $prescription->clinical_context)
+<div class="section">
+    <table width="100%">
+        <tr>
+            <td class="section-title">Observaciones</td>
+            <td style="font-size: 11px; color: #2d3436; white-space: pre-wrap; line-height: 1.5;">{{ $prescription->clinical_context }}</td>
+        </tr>
+    </table>
+</div>
+@endif
 
 @if($order->type !== 'custom' && $prescription->clinical_context)
 <div class="section">
