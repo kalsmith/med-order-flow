@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="canonical" href="{{ url()->current() }}">
+    <meta name="robots" content="index, follow">
     <title>
         @hasSection('title')
             @yield('title') | {{ config('app.name', 'PideTuExamen') }}
@@ -47,9 +49,9 @@
 
 {{-- NAVEGACIÓN --}}
 {{-- NAVEGACIÓN --}}
-<nav class="navbar navbar-expand-lg navbar-light sticky-top border-bottom bg-white">
+<nav class="navbar navbar-expand-lg navbar-light sticky-top border-bottom bg-white" role="navigation" aria-label="Navegación principal">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="/">
+        <a class="navbar-brand d-flex align-items-center" href="/" aria-label="{{ config('app.name') }} Home">
             <img src="{{ asset('assets/logo/logo.png') }}"
                  alt="PideTuExamen Logo"
                  height="50"
