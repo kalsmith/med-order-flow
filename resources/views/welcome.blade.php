@@ -52,7 +52,7 @@
         ],
         "description" => "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
     ]) !!}
-
+</script>
 @endsection
 
 @section('content')
