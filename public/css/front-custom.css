@@ -3,7 +3,7 @@
 ========================================
 */
 :root {
-    --primary-color: #0d6efd;
+--primary-color: #0d6efd;
     --primary-hover: #004dc7;
     --success-color: #198754;
     --soft-bg: #f8faff;
@@ -11,11 +11,11 @@
 }
 
 html, body {
-    height: 100%;
+height: 100%;
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+font-family: 'Inter', sans-serif;
     scroll-behavior: smooth;
     background-color: #ffffff;
     color: #212529;
@@ -26,11 +26,11 @@ body {
 
 /* Empuja el footer al final */
 main {
-    flex-grow: 1;
+flex-grow: 1;
 }
 
 .fw-800 {
-    font-weight: 800 !important;
+font-weight: 800 !important;
 }
 
 /* ========================================
@@ -38,18 +38,18 @@ main {
 ========================================
 */
 .navbar {
-    background: rgba(255, 255, 255, 0.9);
+background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
 
 .hero-section {
-    padding: 100px 0 80px;
+padding: 100px 0 80px;
     background: radial-gradient(circle at 100% 0%, #eef5ff 0%, #ffffff 40%);
 }
 
 .hero-title {
-    font-weight: 800;
+font-weight: 800;
     letter-spacing: -2px;
     line-height: 1.1;
 }
@@ -59,14 +59,14 @@ main {
 ========================================
 */
 .btn-primary, .btn-success, .btn-save, .btn-send {
-    border-radius: 12px !important;
+border-radius: 12px !important;
     padding: 12px 24px;
     font-weight: 700;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-primary:hover, .btn-success:hover {
-    transform: translateY(-2px);
+transform: translateY(-2px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
@@ -75,24 +75,24 @@ main {
 ========================================
 */
 .card-order {
-    border: none;
+border: none;
     border-radius: 20px;
     background: #ffffff;
     transition: all 0.25s ease;
 }
 
 .card-order:hover {
-    transform: translateY(-4px);
+transform: translateY(-4px);
     box-shadow: 0 12px 24px rgba(0,0,0,0.06) !important;
 }
 
 .card-order .card-body {
-    padding: 2.5rem !important;
+padding: 2.5rem !important;
 }
 
 /* Estilos de Packs y Especiales */
 .card-pack, .card-profile, .card-confirm, .card-custom {
-    border: 1px solid #eef2f7;
+border: 1px solid #eef2f7;
     border-radius: 28px;
     background: white;
     overflow: hidden;
@@ -100,7 +100,7 @@ main {
 }
 
 .card-special {
-    background: linear-gradient(135deg, #0d6efd 0%, #004dc7 100%);
+background: linear-gradient(135deg, #0d6efd 0%, #004dc7 100%);
     color: white;
     border-radius: 28px;
     padding: 2.5rem;
@@ -113,14 +113,14 @@ main {
 */
 /* Badges de Estado */
 .badge-status-signed {
-    background-color: #d1e7dd !important;
+background-color: #d1e7dd !important;
     color: #0f5132 !important;
     border-radius: 10px;
     padding: 0.6em 1.2em;
 }
 
 .badge-status-pending {
-    background-color: #fff3cd !important;
+background-color: #fff3cd !important;
     color: #856404 !important;
     border-radius: 10px;
     padding: 0.6em 1.2em;
@@ -128,7 +128,7 @@ main {
 
 /* ID y Tags */
 .badge-id {
-    background: #f8f9fa !important;
+background: #f8f9fa !important;
     color: #212529 !important;
     border: 1px solid #dee2e6 !important;
     border-radius: 8px !important;
@@ -136,7 +136,7 @@ main {
 }
 
 .patient-tag {
-    font-size: 0.75rem;
+font-size: 0.75rem;
     background: #f0f7ff;
     color: #0056b3;
     padding: 4px 12px;
@@ -146,12 +146,12 @@ main {
 
 /* Info Boxes */
 .info-box {
-    border-radius: 16px;
+border-radius: 16px;
     border-left: 4px solid !important;
 }
 
 .bg-waiting {
-    background-color: #f0f7ff;
+background-color: #f0f7ff;
     border-color: #0d6efd !important;
 }
 
@@ -160,14 +160,14 @@ main {
 ========================================
 */
 .form-label {
-    font-size: 0.75rem;
+font-size: 0.75rem;
     letter-spacing: 0.5px;
     margin-bottom: 0.5rem;
     font-weight: 600;
 }
 
 .form-control, .form-select {
-    border-radius: 14px;
+border-radius: 14px;
     padding: 12px 16px;
     border: 1px solid var(--border-color);
     font-size: 0.95rem;
@@ -175,12 +175,12 @@ main {
 }
 
 .form-control:focus, .form-select:focus {
-    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.08);
+box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.08);
     border-color: var(--primary-color);
 }
 
 .input-group-text {
-    border-radius: 14px 0 0 14px;
+border-radius: 14px 0 0 14px;
     border: 1px solid var(--border-color);
     border-right: none;
     background: #f8fafc;
@@ -192,20 +192,20 @@ main {
 ========================================
 */
 footer {
-    margin-top: auto;
+margin-top: auto;
 }
 
 footer a {
-    transition: all 0.3s ease;
+transition: all 0.3s ease;
 }
 
 footer a:hover {
-    color: var(--primary-color) !important;
+color: var(--primary-color) !important;
     padding-left: 5px;
 }
 
 .empty-state {
-    padding: 5rem 2rem;
+padding: 5rem 2rem;
     background: white;
     border-radius: 24px;
     text-align: center;
@@ -215,7 +215,7 @@ footer a:hover {
 
 /* Contenedor de lista de pacientes (asumiendo que Livewire usa tarjetas) */
 .circle-item-card {
-    background: white;
+background: white;
     border: 1px solid var(--border-color);
     border-radius: 20px;
     padding: 1.5rem;
@@ -224,13 +224,13 @@ footer a:hover {
 }
 
 .circle-item-card:hover {
-    border-color: var(--primary-color);
+border-color: var(--primary-color);
     box-shadow: 0 10px 20px rgba(0,0,0,0.05);
 }
 
 /* Avatar circular para pacientes */
 .patient-avatar {
-    width: 48px;
+width: 48px;
     height: 48px;
     background: var(--soft-bg);
     color: var(--primary-color);
@@ -244,18 +244,18 @@ footer a:hover {
 
 /* Estilo específico para la caja de aviso en Mi Círculo */
 .bg-waiting {
-    background-color: #f0f7ff !important;
+background-color: #f0f7ff !important;
     border-left: 4px solid var(--primary-color) !important;
 }
 
 /* Animación para el componente Livewire al cargar/actualizar */
 [wire\:loading] {
-    opacity: 0.8;
+opacity: 0.8;
 }
 
 /* --- Modales Manuales Livewire --- */
 .modal-backdrop-custom {
-    position: fixed;
+position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -267,7 +267,7 @@ footer a:hover {
 }
 
 .custom-modal {
-    position: fixed;
+position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -277,27 +277,30 @@ footer a:hover {
     animation: modalScale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes modalScale {
-    from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
-    to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+from {
+transform: translate(-50%, -50%) scale(0.9); opacity: 0;
+}
+
+to {
+transform: translate(-50%, -50%) scale(1); opacity: 1;
 }
 
 /* --- Filas de Miembros --- */
 .member-row {
-    background: white;
+background: white;
     border-radius: 16px;
     border: 1px solid #f1f5f9 !important;
     transition: all 0.2s ease;
 }
 
 .member-row:hover {
-    border-color: var(--primary-color) !important;
+border-color: var(--primary-color) !important;
     background-color: #f8faff;
     transform: translateX(5px);
 }
 
 .avatar-circle {
-    width: 48px;
+width: 48px;
     height: 48px;
     background: #eff6ff;
     color: var(--primary-color);
@@ -311,7 +314,7 @@ footer a:hover {
 /* ACA VAN LOS CSS DEL CHAT PACIENTE DOCTOR */
 /* Globos de texto estilo moderno */
 .message-bubble {
-    padding: 12px 16px;
+padding: 12px 16px;
     max-width: 85%;
     position: relative;
     font-size: 0.95rem;
@@ -320,7 +323,7 @@ footer a:hover {
 
 /* El Doctor: Gris claro / Blanco */
 .doctor-msg {
-    background-color: #ffffff;
+background-color: #ffffff;
     border: 1px solid #e2e8f0;
     color: #1e293b;
     border-radius: 18px 18px 18px 4px;
@@ -328,13 +331,13 @@ footer a:hover {
 
 /* El Paciente (Tú): Azul de marca */
 .patient-msg {
-    background-color: #3b82f6; /* Ajusta a tu azul primario */
+background-color: #3b82f6; /* Ajusta a tu azul primario */
     color: #ffffff;
     border-radius: 18px 18px 4px 18px;
 }
 
 .msg-time {
-    display: block;
+display: block;
     font-size: 0.6rem;
     margin-top: 4px;
     opacity: 0.7;
@@ -343,10 +346,92 @@ footer a:hover {
 
 /* Scrollbar estética */
 .chat-messages::-webkit-scrollbar {
-    width: 5px;
+width: 5px;
 }
+
 .chat-messages::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+background: #cbd5e1;
     border-radius: 10px;
 }
+
 /* ACA VAN LOS CSS DEL CHAT PACIENTE DOCTOR */
+
+
+    /* Efecto de Elevación de la Card */
+    .transition-hover {
+transition: all 0.3s ease;
+        border: 1px solid transparent !important;
+}
+
+.transition-hover:hover {
+transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.12) !important;
+        border-color: rgba(13, 110, 253, 0.2) !important;
+}
+
+/* Estilo del Badge Informativo (Cápsula) */
+    .info-pill {
+background: rgba(13, 110, 253, 0.06);
+        border: 1px solid rgba(13, 110, 253, 0.15);
+        border-radius: 50px;
+        padding: 3px 10px 3px 4px;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+}
+
+.info-pill-icon {
+background: #0d6efd;
+        color: white;
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-right: 6px;
+        font-size: 0.7rem;
+}
+
+.info-pill-text {
+font-size: 0.65rem;
+        font-weight: 800;
+        color: #0d6efd;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+}
+
+.info-pill:hover {
+background: #0d6efd;
+        transform: scale(1.05);
+}
+
+.info-pill:hover .info-pill-text {
+color: white;
+}
+
+.info-pill:hover .info-pill-icon {
+background: white; color: #0d6efd;
+}
+
+/* Link secundario debajo del precio */
+    .info-link-sub {
+font-size: 0.72rem;
+        color: #6c757d;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s;
+}
+
+.info-link-sub:hover {
+color: #0d6efd; text-decoration: underline;
+}
+
+/* Botón de compra animado */
+    .btn-buy {
+transition: all 0.3s ease;
+}
+
+.btn-buy:hover {
+letter-spacing: 0.5px; filter: brightness(1.1);
+}
