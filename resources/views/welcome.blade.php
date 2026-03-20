@@ -36,23 +36,22 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
 
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "MedicalOrganization",
-  "name": "PideTuExamen",
-  "url": "{{ url('/') }}",
-  "logo": "{{ asset('assets/img/logo.png') }}",
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "telephone": "+56-XXXXXXXXX",
-    "contactType": "customer service",
-    "areaServed": "CL",
-    "availableLanguage": "Spanish"
-  },
-  "description": "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
-}
-</script>
+<script type="application/ld+json">
+    {!! json_encode([
+        "@context" => "https://schema.org",
+        "@type" => "MedicalOrganization",
+        "name" => "PideTuExamen",
+        "url" => url('/'),
+        "logo" => asset('assets/img/logo.png'),
+        "contactPoint" => [
+            "@type" => "ContactPoint",
+            "telephone" => "+56-XXXXXXXXX",
+            "contactType" => "customer service",
+            "areaServed" => "CL",
+            "availableLanguage" => "Spanish"
+        ],
+        "description" => "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
+    ]) !!}
 
 @endsection
 
