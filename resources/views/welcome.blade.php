@@ -22,33 +22,7 @@
     {{-- SEO Standard --}}
     <meta name="description" content="Obtén tu orden oficial firmada por médicos colegiados, válida para Fonasa, Isapre y todos los laboratorios de Chile.">
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "MedicalOrganization",
-  "name": "PideTuExamen",
-  "alternateName": "Pide Tu Examen Chile",
-  "url": "https://med-order-flow.soltys.cl",
-  "logo": "https://med-order-flow.soltys.cl/assets/logo/logo.png",
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "telephone": "+569XXXXXXXX", {{-- Pon tu WhatsApp o teléfono aquí --}}
-    "contactType": "customer service",
-    "areaServed": "CL",
-    "availableLanguage": "Spanish"
-  },
-  "sameAs": [
-    "https://www.facebook.com/pidetuexamen", {{-- Tus redes sociales si las tienes --}}
-    "https://www.instagram.com/pidetuexamen"
-  ],
-  "description": "Plataforma líder en Chile para la emisión de órdenes médicas electrónicas 100% online, válidas para Fonasa e Isapre.",
-  "address": {
-    "@type": "PostalAddress",
-    "addressCountry": "CL",
-    "addressRegion": "Metropolitana"
-  }
-}
-</script>
+
 
 @endsection
 
