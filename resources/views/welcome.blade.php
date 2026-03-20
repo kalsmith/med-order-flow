@@ -21,7 +21,7 @@
     <meta name="twitter:description" content="Obtén tu orden oficial firmada por médicos en Chile. 100% online.">
     <meta name="twitter:image" content="{{ asset('assets/img/og-main.jpg') }}">
 
-    {{-- JSON-LD: Microdatos para Google (SEO de Producto) --}}
+    {{-- JSON-LD: Microdatos para Google --}}
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -90,8 +90,8 @@
 
             <div class="col-lg-6 d-none d-lg-block">
                 <div class="position-relative">
-                    <img src="{{ asset('assets/img/hero-doctor.jpg') }}" alt="Médico colegiado firmando orden" class="img-fluid rounded-4 shadow-sm">
-                    <div class="position-absolute bottom-0 start-0 bg-white p-3 shadow-lg rounded-4 mb-4 ms-n4 border-start border-primary border-4 animate__animated animate__fadeInUp">
+                    <img src="{{ asset('assets/img/hero-doctor.jpg') }}" alt="Médico colegiado" class="img-fluid rounded-4 shadow-sm">
+                    <div class="position-absolute bottom-0 start-0 bg-white p-3 shadow-lg rounded-4 mb-4 ms-n4 border-start border-primary border-4">
                         <div class="d-flex align-items-center gap-3">
                             <div class="bg-success bg-opacity-10 p-2 rounded-circle text-success fs-4">
                                 <i class="bi bi-check2-circle"></i>
@@ -146,21 +146,21 @@
                     <i class="bi bi-list-check fs-3"></i>
                 </div>
                 <h3 class="h5 fw-bold">1. Elige tu Examen</h3>
-                <p class="text-muted small px-lg-4">Selecciona un pack preventivo o solicita una orden personalizada.</p>
+                <p class="text-muted small px-lg-4">Selecciona un pack o solicita una orden personalizada.</p>
             </div>
             <div class="col-md-4">
                 <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
                     <i class="bi bi-credit-card fs-3"></i>
                 </div>
                 <h3 class="h5 fw-bold">2. Paga Online</h3>
-                <p class="text-muted small px-lg-4">Proceso 100% digital. Olvida las filas y las salas de espera.</p>
+                <p class="text-muted small px-lg-4">Proceso 100% digital.</p>
             </div>
             <div class="col-md-4">
                 <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
                     <i class="bi bi-file-earmark-pdf fs-3"></i>
                 </div>
                 <h3 class="h5 fw-bold">3. Recibe tu Orden</h3>
-                <p class="text-muted small px-lg-4">Descarga tu PDF firmado y preséntalo en cualquier laboratorio.</p>
+                <p class="text-muted small px-lg-4">Descarga tu PDF firmado.</p>
             </div>
         </div>
     </div>
@@ -169,7 +169,6 @@
 {{-- SECCIÓN DE PRODUCTOS --}}
 <section id="packs" class="py-5 bg-light rounded-5 mx-2 shadow-inner">
     <div class="container">
-        {{-- 1. PACKS PREVENTIVOS --}}
         <h2 class="fw-bold mb-4 h3"><i class="bi bi-collection-fill text-primary"></i> Packs Preventivos</h2>
 
         @php $limit = 4; @endphp
@@ -178,15 +177,12 @@
             @foreach($packs as $pack)
             <div class="col-lg-4 col-md-6">
                 <article class="card card-pack p-4 shadow-sm border-0 h-100 rounded-4 d-flex flex-column transition-hover">
-
-                    {{-- Header --}}
                     <div class="mb-3 d-flex justify-content-between align-items-center">
                         <span class="badge {{ $loop->first ? 'bg-primary' : 'bg-secondary bg-opacity-10 text-secondary' }} rounded-pill px-3 py-2">
                             {{ $loop->first ? 'MÁS SOLICITADO' : 'PACK RECOMENDADO' }}
                         </span>
-
                         @if($pack->post_id && $pack->post)
-                            <a href="{{ route('blog.show', $pack->post->slug) }}" class="info-pill text-decoration-none shadow-sm" title="Leer guía médica">
+                            <a href="{{ route('blog.show', $pack->post->slug) }}" class="info-pill text-decoration-none shadow-sm">
                                 <span class="info-pill-icon"><i class="bi bi-journal-medical"></i></span>
                                 <span class="info-pill-text">Info</span>
                             </a>
@@ -194,43 +190,33 @@
                     </div>
 
                     <h3 class="h4 fw-bold mb-1 text-dark">{{ $pack->name }}</h3>
-
                     @if($pack->description)
                         <p class="text-muted small mb-3 fst-italic">{{ $pack->description }}</p>
                     @endif
 
-                    {{-- Lista de Exámenes --}}
-                    <div class="flex-grow-1 mb-4 text-start">
+                    <div class="flex-grow-1 mb-4">
                         <div class="d-flex flex-wrap gap-2">
                             @foreach($pack->children->take($limit) as $child)
                                 <div class="exam-chip bg-white border small px-2 py-1 rounded-3">
                                     <i class="bi bi-check-circle-fill text-success"></i> {{ $child->name }}
                                 </div>
                             @endforeach
-
                             @if($pack->children->count() > $limit)
-                                <div class="exam-chip bg-light border small px-2 py-1 rounded-3 text-secondary fw-bold"
-                                     data-bs-toggle="tooltip" title="{{ $pack->children->slice($limit)->pluck('name')->implode(', ') }}">
+                                <div class="exam-chip bg-light border small px-2 py-1 rounded-3 text-secondary fw-bold">
                                     + {{ $pack->children->count() - $limit }} más
                                 </div>
                             @endif
                         </div>
                     </div>
 
-                    {{-- Footer: Precio y CTA --}}
                     <div class="pt-4 border-top mt-auto">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <span class="text-muted small d-block mb-0">Total Pack</span>
-                                @if($pack->post_id && $pack->post)
-                                    <a href="{{ route('blog.show', $pack->post->slug) }}" class="info-link-sub">Ver detalles</a>
-                                @endif
-                            </div>
+                            <div><span class="text-muted small d-block">Total Pack</span></div>
                             <div class="text-end">
                                 <span class="price-text fs-3 fw-bold text-primary">${{ number_format($pack->base_price, 0, ',', '.') }}</span>
                             </div>
                         </div>
-                        <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $pack->id]) }}" class="btn btn-primary w-100 py-3 fw-bold rounded-3 btn-buy">
+                        <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $pack->id]) }}" class="btn btn-primary w-100 py-3 fw-bold rounded-3">
                             Seleccionar Pack <i class="bi bi-chevron-right ms-1"></i>
                         </a>
                     </div>
@@ -239,25 +225,7 @@
             @endforeach
         </div>
 
-        {{-- 2. BANNER ORDEN PERSONALIZADA --}}
-        <div class="card bg-dark text-white border-0 shadow-lg p-4 p-md-5 rounded-5 mb-5 overflow-hidden position-relative">
-            <div class="row align-items-center position-relative" style="z-index: 2;">
-                <div class="col-md-8 mb-4 mb-md-0">
-                    <h2 class="fw-bold mb-3">¿No encuentras el examen que buscas?</h2>
-                    <p class="lead opacity-75 mb-0">Carga tu lista de exámenes y un médico colegiado emitirá una orden personalizada a tu medida.</p>
-                </div>
-                <div class="col-md-4 text-md-end">
-                    <div class="mb-3">
-                        <span class="fs-4">Desde</span>
-                        <span class="display-6 fw-bold text-primary"> $9.990</span>
-                    </div>
-                    <a href="{{ route('order.flow', ['type' => 'personalizada']) }}" class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill shadow">Solicitar a Medida</a>
-                </div>
-            </div>
-            <i class="bi bi-clipboard2-pulse position-absolute text-white opacity-10" style="font-size: 10rem; right: -20px; bottom: -30px; transform: rotate(-15deg);"></i>
-        </div>
-
-        {{-- 3. EXÁMENES INDIVIDUALES --}}
+        {{-- EXÁMENES INDIVIDUALES --}}
         <div id="frecuentes" class="mb-5">
             <h2 class="fw-bold mb-4 h4"><i class="bi bi-star-fill text-warning"></i> Exámenes Frecuentes</h2>
             <div class="row g-3">
@@ -281,9 +249,6 @@
         <div class="bg-white p-4 p-md-5 rounded-5 shadow-sm border border-primary border-opacity-10">
             <div class="text-center mb-4">
                 <h2 class="h4 fw-bold">¿Necesitas otro examen?</h2>
-                <p class="text-muted">Busca en nuestro catálogo completo de exámenes individuales.</p>
-            </div>
-            <div class="mx-auto" style="max-width: 1200px;">
                 @livewire('exam-search')
             </div>
         </div>
@@ -293,15 +258,8 @@
 <style>
     .transition-hover { transition: all 0.3s ease; border: 1px solid transparent !important; }
     .transition-hover:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.12) !important; border-color: rgba(13, 110, 253, 0.2) !important; }
-    .info-pill { background: rgba(13, 110, 253, 0.06); border: 1px solid rgba(13, 110, 253, 0.15); border-radius: 50px; padding: 3px 10px 3px 4px; display: flex; align-items: center; transition: all 0.3s ease; }
+    .info-pill { background: rgba(13, 110, 253, 0.06); border: 1px solid rgba(13, 110, 253, 0.15); border-radius: 50px; padding: 3px 10px 3px 4px; display: flex; align-items: center; }
     .info-pill-icon { background: #0d6efd; color: white; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 6px; font-size: 0.7rem; }
-    .info-pill-text { font-size: 0.65rem; font-weight: 800; color: #0d6efd; text-transform: uppercase; letter-spacing: 0.4px; }
-    .info-pill:hover { background: #0d6efd; transform: scale(1.05); }
-    .info-pill:hover .info-pill-text { color: white; }
-    .info-pill:hover .info-pill-icon { background: white; color: #0d6efd; }
-    .info-link-sub { font-size: 0.72rem; color: #6c757d; text-decoration: none; font-weight: 600; }
-    .info-link-sub:hover { color: #0d6efd; text-decoration: underline; }
-    .btn-buy { transition: all 0.3s ease; }
-    .btn-buy:hover { letter-spacing: 0.5px; filter: brightness(1.1); }
+    .info-pill-text { font-size: 0.65rem; font-weight: 800; color: #0d6efd; }
 </style>
 @endsection
