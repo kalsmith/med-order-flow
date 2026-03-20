@@ -14,7 +14,7 @@
         "@context" => "https://schema.org/",
         "@type" => "Product",
         "name" => $pack->name,
-        "image" => asset('assets/img/og-main.jpg'), // SOLUCIÓN AL ERROR CRÍTICO
+        "image" => asset('assets/img/og-main.jpg'),
         "description" => $pack->description ?? "Orden médica oficial firmada para " . $pack->name,
         "brand" => [
             "@type" => "Brand",
@@ -27,7 +27,7 @@
             "price" => $pack->base_price,
             "availability" => "https://schema.org/InStock",
             "itemCondition" => "https://schema.org/NewCondition",
-            "priceValidUntil" => now()->addMonths(6)->format('Y-m-d'), // Evita advertencias de fecha
+            "priceValidUntil" => now()->addMonths(6)->format('Y-m-d'),
             "shippingDetails" => [
                 "@type" => "OfferShippingDetails",
                 "shippingRate" => [
@@ -48,10 +48,7 @@
             "hasMerchantReturnPolicy" => [
                 "@type" => "MerchantReturnPolicy",
                 "applicableCountry" => "CL",
-                "returnPolicyCategory" => "https://schema.org/UnconditionalReturn",
-                "merchantReturnDays" => 10,
-                "returnMethod" => "https://schema.org/ReturnByMail",
-                "returnFees" => "https://schema.org/FreeReturn"
+                "returnPolicyCategory" => "https://schema.org/MerchantReturnNotPermitted"
             ]
         ]
     ];
