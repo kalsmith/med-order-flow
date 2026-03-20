@@ -5,7 +5,9 @@
 @section('meta')
     {{-- Open Graph / Facebook / WhatsApp --}}
     <meta property="og:type" content="website">
+    <meta property="og:locale" content="es_CL">
     <meta property="og:url" content="{{ url('/') }}">
+    <meta property="og:site_name" content="PideTuExamen">
     <meta property="og:title" content="PideTuExamen - Tu orden médica lista en minutos">
     <meta property="og:description" content="Obtén tu orden oficial firmada por médicos colegiados, válida para Fonasa, Isapre y todos los laboratorios de Chile.">
     <meta property="og:image" content="{{ asset('assets/img/og-main.jpg') }}">
@@ -36,4 +38,25 @@
          @include('front.partials.search-exams')
     </div>
 </section>
+
+{{-- JSON-LD de Organización Médica (SEO) --}}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalOrganization",
+      "name": "PideTuExamen",
+      "url": "{{ url('/') }}",
+      "logo": "{{ asset('assets/img/logo.png') }}",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+56-XXXXXXXXX",
+        "contactType": "customer service",
+        "areaServed": "CL",
+        "availableLanguage": "Spanish"
+      },
+      "description": "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
+    }
+    </script>
+
+
 @endsection
