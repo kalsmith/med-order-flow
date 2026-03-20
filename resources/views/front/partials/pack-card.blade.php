@@ -14,29 +14,11 @@
         "@context" => "https://schema.org/",
         "@type" => "Product",
         "name" => $pack->name,
-        "image" => asset('assets/img/og-main.jpg'),
+        "image" => asset('assets/img/og-main.jpg'), // SOLUCIÓN AL ERROR CRÍTICO
         "description" => $pack->description ?? "Orden médica oficial firmada para " . $pack->name,
         "brand" => [
             "@type" => "Brand",
             "name" => "PideTuExamen"
-        ],
-        {{-- SOLUCIÓN A LAS ADVERTENCIAS: Rating y Review base --}}
-        "aggregateRating" => [
-            "@type" => "AggregateRating",
-            "ratingValue" => "4.9",
-            "reviewCount" => "127"
-        ],
-        "review" => [
-            "@type" => "Review",
-            "reviewRating" => [
-                "@type" => "Rating",
-                "ratingValue" => "5",
-                "bestRating" => "5"
-            ],
-            "author" => [
-                "@type" => "Person",
-                "name" => "Usuario Verificado"
-            ]
         ],
         "offers" => [
             "@type" => "Offer",
@@ -45,13 +27,22 @@
             "price" => $pack->base_price,
             "availability" => "https://schema.org/InStock",
             "itemCondition" => "https://schema.org/NewCondition",
-            "priceValidUntil" => now()->addMonths(6)->format('Y-m-d'),
+            "priceValidUntil" => now()->addMonths(6)->format('Y-m-d'), // Evita advertencias de fecha
             "shippingDetails" => [
                 "@type" => "OfferShippingDetails",
-                "shippingRate" => ["@type" => "MonetaryAmount", "value" => 0, "currency" => "CLP"],
+                "shippingRate" => [
+                    "@type" => "MonetaryAmount",
+                    "value" => 0,
+                    "currency" => "CLP"
+                ],
                 "deliveryTime" => [
                     "@type" => "ShippingDeliveryTime",
-                    "handlingTime" => ["@type" => "QuantitativeValue", "minValue" => 0, "maxValue" => 0, "unitCode" => "MIN"]
+                    "handlingTime" => [
+                        "@type" => "QuantitativeValue",
+                        "minValue" => 0,
+                        "maxValue" => 0,
+                        "unitCode" => "MIN"
+                    ]
                 ]
             ],
             "hasMerchantReturnPolicy" => [
