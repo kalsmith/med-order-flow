@@ -1,4 +1,3 @@
-
 {{-- PASOS --}}
 <section id="como-funciona" class="py-5">
     <div class="container py-4 text-center">
