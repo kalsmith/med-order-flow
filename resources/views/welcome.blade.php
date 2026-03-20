@@ -32,45 +32,42 @@
     <meta name="twitter:description" content="Evita filas. Obtén tu orden oficial firmada por médicos en Chile de forma digital.">
     <meta name="twitter:image" content="{{ asset('assets/img/og-main.jpg') }}">
 
-    {{-- Favicons (Asegúrate de tener estos archivos) --}}
+    {{-- Favicons --}}
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
-
-
 @endsection
-
-<script type="application/ld+json">
-    {{ json_encode([
-        "@context" => "https://schema.org",
-        "@type" => "MedicalOrganization",
-        "name" => "PideTuExamen",
-        "url" => url('/'),
-        "logo" => asset('assets/img/logo.png'),
-        "contactPoint" => [
-            "@type" => "ContactPoint",
-            "telephone" => "+56-XXXXXXXXX",
-            "contactType" => "customer service",
-            "areaServed" => "CL",
-            "availableLanguage" => "Spanish"
-        ],
-        "description" => "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
-    ]) }}
-</script>
 
 @section('content')
     @include('front.partials.hero')
     @include('front.partials.trust-badges')
     @include('front.partials.steps')
+
+    {{-- Sección de Packs y Exámenes --}}
     @include('front.partials.pack-card')
+    @include('front.partials.banner-custom')
+    @include('front.partials.individual-exams')
+    @include('front.partials.search-exams')
 
-
-        @include('front.partials.banner-custom')
-        @include('front.partials.individual-exams')
-        @include('front.partials.search-exams')
-
-
-
-
-    </div>
-</section>
+    {{--
+       JSON-LD de Organización Médica
+       Al ponerlo al final del body, evitamos conflictos en el head
+       y aseguramos que Google indexe la entidad correctamente.
+    --}}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalOrganization",
+      "name": "PideTuExamen",
+      "url": "{{ url('/') }}",
+      "logo": "{{ asset('assets/img/logo.png') }}",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+56-XXXXXXXXX",
+        "contactType": "customer service",
+        "areaServed": "CL",
+        "availableLanguage": "Spanish"
+      },
+      "description": "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
+    }
+    </script>
 @endsection
