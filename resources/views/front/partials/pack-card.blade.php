@@ -9,26 +9,53 @@
         <div class="row g-4 mb-5">
             @foreach($packs as $pack)
                 {{-- SEO DINÁMICO POR PRODUCTO --}}
-                @php
-                    $packSchema = [
-                        "@context" => "https://schema.org/",
-                        "@type" => "Product",
-                        "name" => $pack->name,
-                        "description" => $pack->description ?? "Orden médica oficial firmada para " . $pack->name,
-                        "brand" => [
-                            "@type" => "Brand",
-                            "name" => "PideTuExamen"
-                        ],
-                        "offers" => [
-                            "@type" => "Offer",
-                            "url" => route('order.flow', ['type' => 'pack', 'id' => $pack->id]),
-                            "priceCurrency" => "CLP",
-                            "price" => $pack->base_price,
-                            "availability" => "https://schema.org/InStock",
-                            "itemCondition" => "https://schema.org/NewCondition"
-                        ]
-                    ];
-                @endphp
+@php
+    $packSchema = [
+        "@context" => "https://schema.org/",
+        "@type" => "Product",
+        "name" => $pack->name,
+        "image" => asset('assets/img/og-main.jpg'), // SOLUCIÓN AL ERROR CRÍTICO
+        "description" => $pack->description ?? "Orden médica oficial firmada para " . $pack->name,
+        "brand" => [
+            "@type" => "Brand",
+            "name" => "PideTuExamen"
+        ],
+        "offers" => [
+            "@type" => "Offer",
+            "url" => route('order.flow', ['type' => 'pack', 'id' => $pack->id]),
+            "priceCurrency" => "CLP",
+            "price" => $pack->base_price,
+            "availability" => "https://schema.org/InStock",
+            "itemCondition" => "https://schema.org/NewCondition",
+            "priceValidUntil" => now()->addMonths(6)->format('Y-m-d'), // Evita advertencias de fecha
+            "shippingDetails" => [
+                "@type" => "OfferShippingDetails",
+                "shippingRate" => [
+                    "@type" => "MonetaryAmount",
+                    "value" => 0,
+                    "currency" => "CLP"
+                ],
+                "deliveryTime" => [
+                    "@type" => "ShippingDeliveryTime",
+                    "handlingTime" => [
+                        "@type" => "QuantitativeValue",
+                        "minValue" => 0,
+                        "maxValue" => 0,
+                        "unitCode" => "MIN"
+                    ]
+                ]
+            ],
+            "hasMerchantReturnPolicy" => [
+                "@type" => "MerchantReturnPolicy",
+                "applicableCountry" => "CL",
+                "returnPolicyCategory" => "https://schema.org/UnconditionalReturn",
+                "merchantReturnDays" => 10,
+                "returnMethod" => "https://schema.org/ReturnByMail",
+                "returnFees" => "https://schema.org/FreeReturn"
+            ]
+        ]
+    ];
+@endphp
                 <script type="application/ld+json">
                     {!! json_encode($packSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
                 </script>
