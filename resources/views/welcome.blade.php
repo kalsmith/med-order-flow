@@ -48,26 +48,5 @@
     @include('front.partials.individual-exams')
     @include('front.partials.search-exams')
 
-    {{--
-       JSON-LD de Organización Médica
-       Al ponerlo al final del body, evitamos conflictos en el head
-       y aseguramos que Google indexe la entidad correctamente.
-    --}}
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "MedicalOrganization",
-      "name": "PideTuExamen",
-      "url": "{{ url('/') }}",
-      "logo": "{{ asset('assets/img/logo.png') }}",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+56-XXXXXXXXX",
-        "contactType": "customer service",
-        "areaServed": "CL",
-        "availableLanguage": "Spanish"
-      },
-      "description": "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
-    }
-    </script>
+
 @endsection
