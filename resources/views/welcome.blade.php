@@ -40,7 +40,7 @@
 @endsection
 
 <script type="application/ld+json">
-    {!! json_encode([
+    {{ json_encode([
         "@context" => "https://schema.org",
         "@type" => "MedicalOrganization",
         "name" => "PideTuExamen",
@@ -54,7 +54,7 @@
             "availableLanguage" => "Spanish"
         ],
         "description" => "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
-    ]) !!}
+    ]) }}
 </script>
 
 @section('content')
