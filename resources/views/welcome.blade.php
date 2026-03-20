@@ -40,23 +40,7 @@
 </section>
 
 {{-- JSON-LD de Organización Médica (SEO) --}}
-<script type="application/ld+json">
-{!! json_encode([
-  "@context" => "https://schema.org",
-  "@type" => "MedicalOrganization",
-  "name" => "PideTuExamen",
-  "url" => url('/'),
-  "logo" => asset('assets/img/logo.png'),
-  "contactPoint" => [
-    "@type" => "ContactPoint",
-    "telephone" => "+56-XXXXXXXXX",
-    "contactType" => "customer service",
-    "areaServed" => "CL",
-    "availableLanguage" => "Spanish"
-  ],
-  "description" => "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
-</script>
+
 
 
 @endsection
