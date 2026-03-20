@@ -36,6 +36,9 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
 
+
+@endsection
+
 <script type="application/ld+json">
     {!! json_encode([
         "@context" => "https://schema.org",
@@ -53,7 +56,6 @@
         "description" => "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
     ]) !!}
 </script>
-@endsection
 
 @section('content')
     @include('front.partials.hero')
