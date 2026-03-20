@@ -40,8 +40,8 @@
 </section>
 
 {{-- JSON-LD de Organización Médica (SEO) --}}
-<script type="application/ld+json">
-{!! json_encode([
+@php
+$schema = [
   "@context" => "https://schema.org",
   "@type" => "MedicalOrganization",
   "name" => "PideTuExamen",
@@ -55,7 +55,11 @@
     "availableLanguage" => "Spanish"
   ],
   "description" => "Servicio online de órdenes médicas oficiales en Chile, válidas para Fonasa e Isapre."
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+];
+@endphp
+
+<script type="application/ld+json">
+{!! json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
 </script>
 
 
