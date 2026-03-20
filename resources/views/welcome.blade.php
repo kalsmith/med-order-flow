@@ -24,37 +24,8 @@
 @section('content')
     @include('front.partials.hero')
     @include('front.partials.trust-badges')
+    @include('front.partials.steps')
 
-
-{{-- PASOS --}}
-<section id="como-funciona" class="py-5">
-    <div class="container py-4 text-center">
-        <h2 class="fw-bold mb-5">Obtén tu orden médica en 3 pasos</h2>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
-                    <i class="bi bi-list-check fs-3"></i>
-                </div>
-                <h5 class="fw-bold">1. Elige tu Examen</h5>
-                <p class="text-muted small px-lg-4">Selecciona un pack preventivo o solicita una orden personalizada.</p>
-            </div>
-            <div class="col-md-4">
-                <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
-                    <i class="bi bi-credit-card fs-3"></i>
-                </div>
-                <h5 class="fw-bold">2. Paga Online</h5>
-                <p class="text-muted small px-lg-4">Proceso 100% digital. Olvida las filas y las salas de espera.</p>
-            </div>
-            <div class="col-md-4">
-                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
-                    <i class="bi bi-file-earmark-pdf fs-3"></i>
-                </div>
-                <h5 class="fw-bold">3. Recibe tu Orden</h5>
-                <p class="text-muted small px-lg-4">Descarga tu PDF firmado y preséntalo en cualquier laboratorio.</p>
-            </div>
-        </div>
-    </div>
-</section>
 
 {{-- SECCIÓN DE PRODUCTOS --}}
 <section id="packs" class="py-5 bg-light rounded-5 mx-2 shadow-inner">
@@ -208,44 +179,10 @@
     .btn-buy:hover { letter-spacing: 0.5px; filter: brightness(1.1); }
 </style>
 
+    @include('front.partials.banner-custom')
+    @include('front.partials.individual-exams')
 
-        {{-- 2. BANNER ORDEN PERSONALIZADA --}}
-        <div class="card bg-dark text-white border-0 shadow-lg p-4 p-md-5 rounded-5 mb-5 overflow-hidden position-relative">
-            <div class="row align-items-center position-relative" style="z-index: 2;">
-                <div class="col-md-8 mb-4 mb-md-0">
-                    <h2 class="fw-bold mb-3">¿No encuentras el examen que buscas?</h2>
-                    <p class="lead opacity-75 mb-0">Carga tu lista de exámenes y un médico colegiado emitirá una orden personalizada a tu medida.</p>
-                </div>
-                <div class="col-md-4 text-md-end">
-                    <div class="mb-3">
-                        <span class="fs-4">Desde</span>
-                        <span class="display-6 fw-bold text-primary"> $9.990</span>
-                    </div>
-                    <a href="{{ route('order.flow', ['type' => 'personalizada']) }}" class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill shadow">Solicitar a Medida</a>
-                </div>
-            </div>
-            <i class="bi bi-clipboard2-pulse position-absolute text-white opacity-10" style="font-size: 10rem; right: -20px; bottom: -30px; transform: rotate(-15deg);"></i>
-        </div>
 
-        {{-- 3. EXÁMENES INDIVIDUALES --}}
-        <div id="frecuentes" class="mb-5">
-            <h3 class="fw-bold mb-4"><i class="bi bi-star-fill text-warning"></i> Exámenes Frecuentes</h3>
-            <div class="row g-3">
-                @foreach($individuales as $exam)
-                <div class="col-lg-3 col-md-4 col-sm-6">
-                    <div class="card h-100 shadow-sm border-0 p-3 rounded-4">
-                        <div class="d-flex flex-column h-100">
-                            <h6 class="fw-bold mb-2 text-dark">{{ $exam->name }}</h6>
-                            <div class="mt-auto d-flex justify-content-between align-items-center pt-2">
-                                <span class="text-primary fw-bold">${{ number_format($exam->base_price, 0, ',', '.') }}</span>
-                                <a href="{{ route('order.flow', ['type' => 'exam', 'id' => $exam->id]) }}" class="btn btn-outline-primary btn-sm px-3 rounded-pill">Pedir</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
 
 {{-- BUSCADOR LIVEWIRE --}}
 <div class="bg-white p-4 p-md-5 rounded-5 shadow-sm border border-primary border-opacity-10">
