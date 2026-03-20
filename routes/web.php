@@ -75,6 +75,13 @@ Route::post('/logout', function() {
     return redirect('/');
 })->name('logout');
 
+
+Route::get('robots.txt', function () {
+    return response(view('public.robots'), 200)
+        ->header('Content-Type', 'text/plain');
+});
+
+Route::get('sitemap.xml', [LandingController::class, 'sitemap']);
 /*
 |--------------------------------------------------------------------------
 | 2. DISTRIBUIDOR DE TRÁFICO (Post-Login)

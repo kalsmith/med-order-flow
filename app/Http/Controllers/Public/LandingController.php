@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExamType;
+use App\Models\Post;
 
 class LandingController extends Controller
 {
@@ -26,4 +27,16 @@ class LandingController extends Controller
 
         return view('welcome', compact('packs', 'individuales'));
     }
+
+    public function sitemap()
+    {
+        $posts = Post::where('is_published', true)->latest()->get();
+        // $packs = Pack::all();
+
+        return response()->view('public.sitemap', [
+            'posts' => $posts,
+            // 'packs' => $packs
+        ])->header('Content-Type', 'text/xml');
+    }
+
 }
