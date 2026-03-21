@@ -70,10 +70,7 @@ class Doctor extends Model
     /**
      * Recetas que el doctor ya firmó (lo que genera dinero)
      */
-    public function signedPrescriptions()
-    {
-        return $this->hasMany(Prescription::class)->where('status', 'signed');
-    }
+
 
     /**
      * Historial de retiros
@@ -83,25 +80,31 @@ class Doctor extends Model
         return $this->hasMany(PayoutRequest::class);
     }
 
-    /**
-     * CÁLCULO DE SALDO DISPONIBLE
-     */
+/**
+ * Recetas que el doctor ya firmó
+ */
+public function signedPrescriptions()
+{
+    // Especificamos 'prescriptions.status' para evitar ambigüedad
+    return $this->hasMany(Prescription::class)->where('prescriptions.status', 'signed');
+}
+
+/**
+ * CÁLCULO DE SALDO DISPONIBLE
+ */
 public function getBalanceAttribute()
 {
     $totalEarned = $this->signedPrescriptions()
         ->join('orders', 'prescriptions.order_id', '=', 'orders.id')
         ->selectRaw("SUM(CASE WHEN orders.type = 'custom' THEN 2800 ELSE 1800 END) as total")
+        // Agregamos explícitamente el filtro de status con tabla si no viene del signedPrescriptions
+        ->where('prescriptions.status', 'signed')
         ->value('total') ?? 0;
 
     $totalPaid = $this->payoutRequests()->where('status', 'paid')->sum('amount');
+
     return $totalEarned - $totalPaid;
 }
-
-public function prescriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
-{
-    return $this->hasMany(Prescription::class, 'doctor_id');
-}
-
 /**
  * Helper para obtener solo las que ya están firmadas (para contabilidad)
  */
