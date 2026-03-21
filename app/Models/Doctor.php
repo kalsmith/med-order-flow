@@ -97,4 +97,15 @@ public function getBalanceAttribute()
     return $totalEarned - $totalPaid;
 }
 
+public function prescriptions(): HasMany
+{
+    return $this->hasMany(Prescription::class, 'doctor_id');
+}
+
+/**
+ * Helper para obtener solo las que ya están firmadas (para contabilidad)
+ */
+
+
+
 }
