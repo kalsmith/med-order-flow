@@ -49,14 +49,14 @@
                 <button wire:click="setTab('multiple_auto')"
                     class="nav-link {{ $tab === 'multiple_auto' ? 'active fw-bold border-bottom border-success border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
                     <i class="bi bi-layers-half me-1"></i> Auto-Múltiples
-                    @php
+                    {{-- @php
                         $multiCount = \App\Models\Order::autoSignedMultiple(auth()->user()->doctor->id ?? 0)->count();
                     @endphp
                     @if($multiCount > 0)
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="font-size: 0.6rem;">
                             {{ $multiCount }}
                         </span>
-                    @endif
+                    @endif --}}
                 </button>
             </li>
 
