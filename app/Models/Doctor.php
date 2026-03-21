@@ -27,6 +27,8 @@ class Doctor extends Model
         'last_assigned_at' => 'datetime',
     ];
 
+    // --- RELACIONES ---
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -37,23 +39,58 @@ class Doctor extends Model
         return $this->belongsToMany(Specialty::class, 'doctor_specialty');
     }
 
+    /**
+     * Relación principal con Recetas (La que faltaba y causaba el Error 500)
+     */
+    public function prescriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Prescription::class, 'doctor_id');
+    }
+
     public function medicalOrders()
     {
-        // Corregido: Apuntar al modelo Order
         return $this->hasMany(Order::class, 'doctor_id');
     }
+
+    public function payoutRequests()
+    {
+        return $this->hasMany(PayoutRequest::class);
+    }
+
+    // --- ATRIBUTOS (ACCESSORS) ---
 
     public function getNameAttribute()
     {
         return $this->user ? $this->prefix . ' ' . $this->user->name : 'Sin Nombre';
     }
 
+    /**
+     * CÁLCULO DE SALDO DISPONIBLE
+     * Resuelve el error de "Column status is ambiguous" especificando la tabla
+     */
+    public function getBalanceAttribute()
+    {
+        $totalEarned = $this->prescriptions()
+            ->join('orders', 'prescriptions.order_id', '=', 'orders.id')
+            ->where('prescriptions.status', 'signed')
+            ->selectRaw("SUM(CASE WHEN orders.type = 'custom' THEN 2800 ELSE 1800 END) as total")
+            ->value('total') ?? 0;
+
+        $totalPaid = $this->payoutRequests()->where('status', 'paid')->sum('amount');
+
+        return $totalEarned - $totalPaid;
+    }
+
+    // --- SCOPES & LÓGICA ---
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    // Motor Round Robin (Mantenlo igual, funciona bien)
+    /**
+     * Motor Round Robin para asignación de médicos
+     */
     public static function getNextAvailableForSpecialty($specialtyId)
     {
         return self::where('is_active', true)
@@ -65,50 +102,11 @@ class Doctor extends Model
             ->first();
     }
 
-    // En app/Models/Doctor.php
-
     /**
-     * Recetas que el doctor ya firmó (lo que genera dinero)
+     * Helper para recetas firmadas
      */
-
-
-    /**
-     * Historial de retiros
-     */
-    public function payoutRequests()
+    public function signedPrescriptions()
     {
-        return $this->hasMany(PayoutRequest::class);
+        return $this->prescriptions()->where('prescriptions.status', 'signed');
     }
-
-/**
- * Recetas que el doctor ya firmó
- */
-public function signedPrescriptions()
-{
-    // Especificamos 'prescriptions.status' para evitar ambigüedad
-    return $this->hasMany(Prescription::class)->where('prescriptions.status', 'signed');
-}
-
-/**
- * CÁLCULO DE SALDO DISPONIBLE
- */
-public function getBalanceAttribute()
-{
-    $totalEarned = $this->signedPrescriptions()
-        ->join('orders', 'prescriptions.order_id', '=', 'orders.id')
-        ->selectRaw("SUM(CASE WHEN orders.type = 'custom' THEN 2800 ELSE 1800 END) as total")
-        // Agregamos explícitamente el filtro de status con tabla si no viene del signedPrescriptions
-        ->where('prescriptions.status', 'signed')
-        ->value('total') ?? 0;
-
-    $totalPaid = $this->payoutRequests()->where('status', 'paid')->sum('amount');
-
-    return $totalEarned - $totalPaid;
-}
-/**
- * Helper para obtener solo las que ya están firmadas (para contabilidad)
- */
-
-
-
 }
