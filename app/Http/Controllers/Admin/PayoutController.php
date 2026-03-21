@@ -54,7 +54,7 @@ public function requestStore(Request $request)
 
             // 2. RESTAR EL SALDO INMEDIATAMENTE
             // El dinero sale del "Disponible" y queda en manos del "Admin" (virtualmente)
-            $doctorRefresh->decrement('balance', $amount);
+            $doctorRefresh->decrement('wallet_balance', $amount);
 
             // 3. Crear la solicitud administrativa
             $payout = PayoutRequest::create([
