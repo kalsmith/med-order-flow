@@ -119,7 +119,7 @@ class CustomOrderFlow extends Component
                 'custom_description' => $this->description,
                 'status'             => 'pending',
                 'type'               => 'custom',
-                'amount'             => 9990,
+                'amount'             => 5990,
                 'verification_code'  => strtoupper(Str::random(8)),
             ]);
         });

@@ -153,9 +153,9 @@ public function store(Request $request)
 
             // Determinar monto base de la orden
             if ($orderType === 'custom' || $orderType === 'multiple') {
-                $amount = 9990;
+                $amount = 5990;
                 $examId = null;
-                Log::info(" [DEBUG-ORDER] Precio fijo asignado: 9990 (Flujo {$orderType})");
+                Log::info(" [DEBUG-ORDER] Precio fijo asignado: 5990 (Flujo {$orderType})");
             } else {
                 $exam = ExamType::findOrFail($request->exam_type_id);
                 $amount = $exam->base_price;

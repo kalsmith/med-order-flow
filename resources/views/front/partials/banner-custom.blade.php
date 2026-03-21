@@ -8,7 +8,7 @@
                 <div class="col-md-4 text-md-end">
                     <div class="mb-3">
                         <span class="fs-4">Desde</span>
-                        <span class="display-6 fw-bold text-primary"> $9.990</span>
+                        <span class="display-6 fw-bold text-primary"> $5.990</span>
                     </div>
                     <a href="{{ route('order.flow', ['type' => 'personalizada']) }}" class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill shadow">Solicitar a Medida</a>
                 </div>
