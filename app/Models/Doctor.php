@@ -68,18 +68,17 @@ class Doctor extends Model
      * CÁLCULO DE SALDO DISPONIBLE
      * Resuelve el error de "Column status is ambiguous" especificando la tabla
      */
-    public function getBalanceAttribute()
-    {
-        $totalEarned = $this->prescriptions()
-            ->join('orders', 'prescriptions.order_id', '=', 'orders.id')
-            ->where('prescriptions.status', 'signed')
-            ->selectRaw("SUM(CASE WHEN orders.type = 'custom' THEN 2800 ELSE 1800 END) as total")
-            ->value('total') ?? 0;
+public function getBalanceAttribute()
+{
+    $totalEarned = $this->total_earned;
 
-        $totalPaid = $this->payoutRequests()->where('status', 'paid')->sum('amount');
+    // Restamos lo que ya salió o está "en la cola" para salir
+    $totalOut = $this->payoutRequests()
+        ->whereIn('status', ['pending', 'paid'])
+        ->sum('amount');
 
-        return $totalEarned - $totalPaid;
-    }
+    return $totalEarned - $totalOut;
+}
 
     // --- SCOPES & LÓGICA ---
 
@@ -109,4 +108,45 @@ class Doctor extends Model
     {
         return $this->prescriptions()->where('prescriptions.status', 'signed');
     }
+
+
+    /**
+ * TOTAL HISTÓRICO GANADO (Todo lo firmado)
+ */
+public function getTotalEarnedAttribute()
+{
+    return $this->prescriptions()
+        ->join('orders', 'prescriptions.order_id', '=', 'orders.id')
+        ->where('prescriptions.status', 'signed')
+        ->selectRaw("SUM(CASE WHEN orders.type = 'custom' THEN 2800 ELSE 1800 END) as total")
+        ->value('total') ?? 0;
+}
+
+/**
+ * SALDO EN PROCESO (Solicitado pero aún no pagado)
+ */
+public function getPendingBalanceAttribute()
+{
+    return $this->payoutRequests()
+        ->where('status', 'pending')
+        ->sum('amount');
+}
+
+/**
+ * SALDO YA PAGADO (Historial de retiros completados)
+ */
+public function getTotalPaidAttribute()
+{
+    return $this->payoutRequests()
+        ->where('status', 'paid')
+        ->sum('amount');
+}
+
+/**
+ * SALDO DISPONIBLE (Lo que puede pedir ahora)
+ * Restamos tanto lo pagado como lo que ya está pedido (pending)
+ */
+
+
+
 }

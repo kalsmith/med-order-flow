@@ -15,42 +15,67 @@ class PayoutController extends Controller
     /**
      * EL MÉDICO PIDE EL DINERO
      */
-    public function requestStore(Request $request)
-    {
-        $user = auth()->user();
-        $doctor = $user->doctor;
+/**
+ * EL MÉDICO PIDE EL DINERO
+ */
+public function requestStore(Request $request)
+{
+    $user = auth()->user();
+    $doctor = $user->doctor;
 
-        if (!$doctor) {
-            Log::warning("Intento de solicitud de retiro sin perfil de médico. User ID: {$user->id}");
-            return back()->with('error', 'No se encontró perfil médico.');
-        }
-
-        $availableBalance = $doctor->balance;
-
-        if ($availableBalance <= 0) {
-            Log::info("Médico intentó retirar sin saldo. Doctor ID: {$doctor->id}, Nombre: {$user->name}");
-            return back()->with('error', 'No tienes saldo disponible.');
-        }
-
-        try {
-            $payout = PayoutRequest::create([
-                'doctor_id' => $doctor->id,
-                'amount' => $availableBalance,
-                'status' => 'pending'
-            ]);
-
-            Log::info("Solicitud de retiro creada. Doctor: {$user->name}, Monto: {$availableBalance}, Request ID: {$payout->id}");
-
-            return back()->with('success', 'Solicitud enviada correctamente.');
-
-        } catch (Exception $e) {
-            Log::error("Error al crear solicitud de retiro: " . $e->getMessage(), [
-                'doctor_id' => $doctor->id,
-                'amount' => $availableBalance
-            ]);
-            return back()->with('error', 'Hubo un problema al procesar tu solicitud.');
-        }
+    // 1. Verificación de existencia del perfil
+    if (!$doctor) {
+        Log::warning("Intento de retiro sin perfil médico. User ID: {$user->id}");
+        return back()->with('error', 'No se encontró perfil médico vinculado.');
     }
+
+    // 2. Verificación de solicitudes pendientes (Evita duplicados)
+    $hasPending = PayoutRequest::where('doctor_id', $doctor->id)
+        ->where('status', 'pending')
+        ->exists();
+
+    if ($hasPending) {
+        return back()->with('error', 'Ya tienes una solicitud de pago en proceso. Espera a que sea procesada.');
+    }
+
+    // 3. Obtención del saldo (Usando el getBalanceAttribute que descuenta lo pendiente)
+    $availableBalance = (int) $doctor->balance;
+
+    if ($availableBalance <= 0) {
+        Log::info("Médico intentó retirar sin saldo real. Doctor ID: {$doctor->id}");
+        return back()->with('error', 'No tienes saldo disponible para retirar en este momento.');
+    }
+
+    // 4. (Opcional) Validación de monto mínimo para que no te pidan pagos de $1.800 cada hora
+    if ($availableBalance < 5000) {
+        return back()->with('info', 'El monto mínimo de retiro es de $5.000.');
+    }
+
+    try {
+        // 5. Creación de la solicitud
+        $payout = PayoutRequest::create([
+            'doctor_id' => $doctor->id,
+            'amount' => $availableBalance,
+            'status' => 'pending'
+        ]);
+
+        Log::info("Solicitud de retiro creada con éxito.", [
+            'doctor' => $user->name,
+            'monto' => $availableBalance,
+            'payout_id' => $payout->id
+        ]);
+
+        return back()->with('success', '¡Solicitud enviada! El monto ha sido bloqueado de tu saldo disponible y será procesado por administración.');
+
+    } catch (Exception $e) {
+        Log::error("Error crítico al crear solicitud de retiro: " . $e->getMessage(), [
+            'doctor_id' => $doctor->id,
+            'trace' => $e->getTraceAsString()
+        ]);
+        return back()->with('error', 'Hubo un error interno. Por favor, intenta más tarde.');
+    }
+}
+
 
     /**
      * TÚ (ADMIN) VES TODAS LAS SOLICITUDES
