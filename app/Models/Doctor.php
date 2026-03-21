@@ -97,7 +97,7 @@ public function getBalanceAttribute()
     return $totalEarned - $totalPaid;
 }
 
-public function prescriptions(): HasMany
+public function prescriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
 {
     return $this->hasMany(Prescription::class, 'doctor_id');
 }
