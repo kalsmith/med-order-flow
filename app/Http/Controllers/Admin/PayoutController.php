@@ -20,6 +20,7 @@ class PayoutController extends Controller
 /**
  * EL MÉDICO PIDE EL DINERO
  */
+
 public function requestStore(Request $request)
 {
     $user = auth()->user();
@@ -29,8 +30,8 @@ public function requestStore(Request $request)
         return back()->with('error', 'Perfil de médico no encontrado.');
     }
 
-    // Evitar duplicados si ya hay una solicitud pendiente
-    $hasPending = \App\Models\PayoutRequest::where('doctor_id', $doctor->id)
+    // 1. Evitar duplicados (Control de concurrencia)
+    $hasPending = PayoutRequest::where('doctor_id', $doctor->id)
         ->where('status', 'pending')
         ->exists();
 
@@ -47,40 +48,45 @@ public function requestStore(Request $request)
     try {
         return DB::transaction(function () use ($doctor, $user, $amount) {
 
-            // 1. Crear la solicitud administrativa (para gestión de archivos/admin)
-            $payout = \App\Models\PayoutRequest::create([
+            // --- BLOQUEO PARA EVITAR RACE CONDITIONS ---
+            // Re-obtenemos el doctor con lock para asegurar que el saldo no cambió en milisegundos
+            $doctorRefresh = Doctor::where('id', $doctor->id)->lockForUpdate()->first();
+
+            // 2. RESTAR EL SALDO INMEDIATAMENTE
+            // El dinero sale del "Disponible" y queda en manos del "Admin" (virtualmente)
+            $doctorRefresh->decrement('balance', $amount);
+
+            // 3. Crear la solicitud administrativa
+            $payout = PayoutRequest::create([
                 'doctor_id' => $doctor->id,
                 'amount' => $amount,
                 'status' => 'pending'
             ]);
 
-            // 2. Registrar el movimiento en la tabla de transacciones
-            // NOTA: Se usa el ID 1 (Admin/Sistema) como sender_id para evitar error NOT NULL
+            // 4. Registrar la transacción (Aparecerá en AMARILLO en la cartola)
             Transaction::create([
-                /* --- CAMBIAR AL PASAR A ASIENTO CONTABLE --- */
-                'sender_id' => 1,
-                /* ------------------------------------------- */
+                'sender_id' => 1, // Sistema/Admin
                 'receiver_id' => $user->id,
                 'reference_id' => $payout->id,
                 'type' => 'payout',
                 'amount' => $amount,
                 'platform_fee' => 0,
-                'status' => 'pending',
+                'status' => 'pending', // <--- Importante: nace como pending
                 'metadata' => [
-                    'description' => 'Retiro de honorarios médicos',
-                    'method' => 'Transferencia Bancaria',
-                    'payout_request_id' => $payout->id
+                    'description' => 'Retiro de honorarios médicos solicitado',
+                    'previous_balance' => $amount + $doctorRefresh->balance,
+                    'new_balance' => $doctorRefresh->balance
                 ]
             ]);
 
-            Log::info("Solicitud de retiro creada: Doctor ID {$doctor->id}, Monto {$amount}");
+            Log::info("Solicitud de retiro y descuento de saldo: Doctor ID {$doctor->id}, Monto {$amount}");
 
-            return back()->with('success', 'Tu solicitud de retiro ha sido enviada con éxito.');
+            return back()->with('success', 'Solicitud enviada. Tu saldo se ha actualizado y el pago está en proceso de validación.');
         });
 
     } catch (\Exception $e) {
         Log::error("Error al procesar solicitud de retiro: " . $e->getMessage());
-        return back()->with('error', 'Ocurrió un error al procesar tu solicitud. Intenta nuevamente.');
+        return back()->with('error', 'Ocurrió un error al procesar tu solicitud.');
     }
 }
 
@@ -174,7 +180,7 @@ public function doctorWallet()
         return redirect()->route('admin.panel')->with('error', 'Perfil de médico no encontrado.');
     }
 
-    // 1. Obtener las firmas (Ingresos)
+    // 1. Obtener las firmas (Igual que antes)
     $signatures = $doctor->prescriptions()
         ->where('status', 'signed')
         ->with('order.patient.user')
@@ -188,10 +194,10 @@ public function doctorWallet()
             return $item;
         });
 
-    // 2. Obtener los pagos (Egresos) desde la tabla Transactions
-    $payments = \App\Models\Transaction::where('receiver_id', $user->id)
+    // 2. Obtener los movimientos de retiro (Pendientes y Completados)
+    $payments = Transaction::where('receiver_id', $user->id)
         ->where('type', 'payout')
-        ->where('status', 'completed')
+        ->whereIn('status', ['pending', 'completed']) // <-- Traemos ambos
         ->latest()
         ->take(10)
         ->get()
@@ -202,18 +208,14 @@ public function doctorWallet()
             return $item;
         });
 
-    // 3. Unificar y ordenar por fecha descendente
+    // 3. Unificar y ordenar
     $combinedMovements = $signatures->concat($payments)
         ->sortByDesc('date_for_sort')
-        ->take(20);
+        ->take(25);
 
     $payoutRequests = $doctor->payoutRequests()->latest()->take(10)->get();
 
-    return view('doctor.wallet', [
-        'doctor' => $doctor,
-        'combinedMovements' => $combinedMovements,
-        'payoutRequests' => $payoutRequests
-    ]);
+    return view('doctor.wallet', compact('doctor', 'combinedMovements', 'payoutRequests'));
 }
 
 public function downloadEvidence(PayoutRequest $payout)
