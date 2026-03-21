@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PayoutRequest;
 use App\Models\Doctor;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log; // Importante
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class PayoutController extends Controller
 {
@@ -35,7 +37,7 @@ public function requestStore(Request $request)
     if ($amount <= 0) return back()->with('error', 'No hay saldo.');
 
     try {
-        return \DB::transaction(function () use ($doctor, $user, $amount) {
+        return DB::transaction(function () use ($doctor, $user, $amount) {
             // 1. Crear solicitud administrativa
             $payout = PayoutRequest::create([
                 'doctor_id' => $doctor->id,
@@ -102,7 +104,7 @@ public function process(Request $request, PayoutRequest $payout)
     ]);
 
     try {
-        return \DB::transaction(function () use ($request, $payout, $admin) {
+        return DB::transaction(function () use ($request, $payout, $admin) {
 
             if (!$request->hasFile('evidence')) {
                 throw new \Exception("El comprobante de pago es obligatorio.");
@@ -121,7 +123,7 @@ public function process(Request $request, PayoutRequest $payout)
 
             // 3. Actualizar la transacción contable vinculada
             // Buscamos la transacción que tenga el ID de este payout como referencia
-            \App\Models\Transaction::where('reference_id', $payout->id)
+            Transaction::where('reference_id', $payout->id)
                 ->where('receiver_id', $payout->doctor->user_id)
                 ->where('type', 'payout')
                 ->update([
