@@ -15,9 +15,6 @@ use Exception;
 
 class PayoutController extends Controller
 {
-    /**
-     * TÚ (ADMIN) VES TODAS LAS SOLICITUDES
-     */
     public function index()
     {
         $pendingPayouts = PayoutRequest::with('doctor.user')
@@ -34,60 +31,46 @@ class PayoutController extends Controller
     }
 
     /**
-     * EL MÉDICO PIDE EL DINERO
+     * MOVIMIENTO 1: SOLICITUD (Status: pending)
      */
     public function requestStore(Request $request)
     {
         $user = auth()->user();
         $doctor = $user->doctor;
 
-        if (!$doctor) {
-            return back()->with('error', 'Perfil de médico no encontrado.');
-        }
+        if (!$doctor) return back()->with('error', 'Perfil de médico no encontrado.');
 
-        // 1. Evitar duplicados (Control de concurrencia)
-        $hasPending = PayoutRequest::where('doctor_id', $doctor->id)
-            ->where('status', 'pending')
-            ->exists();
+        $hasPending = PayoutRequest::where('doctor_id', $doctor->id)->where('status', 'pending')->exists();
+        if ($hasPending) return back()->with('error', 'Ya tienes una solicitud de retiro en proceso.');
 
-        if ($hasPending) {
-            return back()->with('error', 'Ya tienes una solicitud de retiro en proceso.');
-        }
-
-        // El saldo viene del modelo doctor (que se descuenta para "congelarlo")
         $amount = (int) $doctor->balance;
-
-        if ($amount <= 0) {
-            return back()->with('error', 'No tienes saldo disponible para retirar.');
-        }
+        if ($amount <= 0) return back()->with('error', 'No tienes saldo disponible para retirar.');
 
         try {
             return DB::transaction(function () use ($doctor, $user, $amount) {
-
-                // BLOQUEO PARA EVITAR RACE CONDITIONS
                 $doctorRefresh = Doctor::where('id', $doctor->id)->lockForUpdate()->first();
 
-                // 2. RESTAR EL SALDO INMEDIATAMENTE (Se mueve a "proceso")
+                // 1. Restamos saldo para "congelar" el dinero
                 $doctorRefresh->decrement('balance', $amount);
 
-                // 3. Crear la solicitud administrativa
+                // 2. Creamos la solicitud para el Admin
                 $payout = PayoutRequest::create([
                     'doctor_id' => $doctor->id,
                     'amount' => $amount,
                     'status' => 'pending'
                 ]);
 
-                // 4. Registrar la transacción (Aparecerá en AMARILLO: status pending)
+                // 3. REGISTRO CONTABLE: Solicitud de Retiro (AMARILLO)
                 Transaction::create([
                     'uuid' => (string) Str::uuid(),
                     'reference_code' => 'REQ-' . strtoupper(Str::random(8)),
-                    'sender_id' => 1, // <--- USUARIO PLATAFORMA (SISTEMA)
-                    'receiver_id' => $user->id,
+                    'sender_id' => $user->id,
+                    'receiver_id' => 1, // Hacia el sistema
                     'reference_id' => $payout->id,
                     'type' => 'payout',
                     'amount' => $amount,
                     'platform_fee' => 0,
-                    'status' => 'pending', // <--- Mantiene el color AMARILLO
+                    'status' => 'pending',
                     'metadata' => json_encode([
                         'description' => 'Retiro de honorarios médicos solicitado',
                         'previous_balance' => $amount + $doctorRefresh->balance,
@@ -95,40 +78,27 @@ class PayoutController extends Controller
                     ])
                 ]);
 
-                Log::info("Solicitud de retiro generada: Doctor ID {$doctor->id}, Monto {$amount}");
-
                 return back()->with('success', 'Solicitud enviada. Tu saldo se ha actualizado y el pago está en proceso de validación.');
             });
-
         } catch (Exception $e) {
-            Log::error("Error al procesar solicitud de retiro: " . $e->getMessage());
-            return back()->with('error', 'Ocurrió un error al procesar tu solicitud.');
+            Log::error("Error en requestStore: " . $e->getMessage());
+            return back()->with('error', 'Error al procesar la solicitud.');
         }
     }
 
     /**
-     * TÚ (ADMIN) MARCAS COMO PAGADO Y SUBES COMPROBANTE
+     * MOVIMIENTO 2: PAGO EFECTIVO (Status: completed)
      */
     public function process(Request $request, PayoutRequest $payout)
     {
         $admin = auth()->user();
-
-        $request->validate([
-            'evidence' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
-            'admin_notes' => 'nullable|string|max:500'
-        ]);
+        $request->validate(['evidence' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048']);
 
         try {
             return DB::transaction(function () use ($request, $payout, $admin) {
-
-                if (!$request->hasFile('evidence')) {
-                    throw new Exception("El comprobante de pago es obligatorio.");
-                }
-
-                // 1. Guardar el archivo físicamente
                 $path = $request->file('evidence')->store('payouts', 'public');
 
-                // 2. Actualizar la solicitud administrativa
+                // 1. Actualizamos la solicitud a pagada
                 $payout->update([
                     'status' => 'paid',
                     'evidence_path' => $path,
@@ -136,64 +106,58 @@ class PayoutController extends Controller
                     'admin_notes' => $request->admin_notes
                 ]);
 
-                // 3. ACTUALIZAR TRANSACCIÓN A VERDE (Status completed)
-                Transaction::where('reference_id', $payout->id)
-                    ->where('receiver_id', $payout->doctor->user_id)
-                    ->where('type', 'payout')
-                    ->update([
-                        'status' => 'completed', // <--- Cambia a VERDE en la vista
-                        'updated_at' => now()
-                    ]);
-
-                Log::info("Pago completado por Admin.", [
-                    'admin' => $admin->name,
-                    'doctor' => $payout->doctor->user->name,
-                    'monto' => $payout->amount
+                // 2. IMPORTANTE: Creamos un NUEVO registro de transacción para el pago realizado
+                // Esto es lo que aparecerá en VERDE como dinero efectivamente enviado.
+                Transaction::create([
+                    'uuid' => (string) Str::uuid(),
+                    'reference_code' => 'PAY-' . strtoupper(Str::random(8)),
+                    'sender_id' => 1, // Sale del sistema
+                    'receiver_id' => $payout->doctor->user_id, // Llega al médico
+                    'reference_id' => $payout->id,
+                    'type' => 'payout',
+                    'amount' => $payout->amount,
+                    'platform_fee' => 0,
+                    'status' => 'completed',
+                    'metadata' => json_encode([
+                        'description' => 'Transferencia de honorarios médicos realizada',
+                        'admin_executor' => $admin->name
+                    ])
                 ]);
 
                 return back()->with('success', 'Pago procesado exitosamente.');
             });
-
         } catch (Exception $e) {
-            Log::error("Error al procesar el pago: " . $e->getMessage());
+            Log::error("Error en process: " . $e->getMessage());
             return back()->with('error', 'Error al procesar el registro del pago.');
         }
     }
 
-    /**
-     * VISTA PARA EL MÉDICO (Su Billetera)
-     */
     public function doctorWallet()
     {
         $user = auth()->user();
         $doctor = $user->doctor;
 
-        if (!$doctor) {
-            return redirect()->route('admin.panel')->with('error', 'Perfil de médico no encontrado.');
-        }
+        if (!$doctor) return redirect()->route('admin.panel')->with('error', 'Médico no encontrado.');
 
-        // 1. Obtener las firmas (Ingresos)
+        // 1. Firmas (Ingresos)
         $signatures = $doctor->prescriptions()
             ->where('status', 'signed')
             ->with('order.patient.user')
-            ->latest('signed_at')
-            ->take(20)
-            ->get()
+            ->latest('signed_at')->take(20)->get()
             ->map(function($item) {
                 $item->is_payment = false;
                 $item->date_for_sort = $item->signed_at;
-                // Lógica de montos según tus tablas
                 $item->display_amount = in_array($item->type, ['custom', 'multiple']) ? 2800 : 1800;
                 return $item;
             });
 
-        // 2. Obtener movimientos de retiro (Egresos: Pendientes y Completados)
-        $payments = Transaction::where('receiver_id', $user->id)
+        // 2. Movimientos (Egresos y Pagos)
+        // Buscamos donde el médico sea sender (solicitud) o receiver (pago recibido)
+        $payments = Transaction::where(function($q) use ($user) {
+                $q->where('receiver_id', $user->id)->orWhere('sender_id', $user->id);
+            })
             ->where('type', 'payout')
-            ->whereIn('status', ['pending', 'completed'])
-            ->latest()
-            ->take(10)
-            ->get()
+            ->latest()->take(20)->get()
             ->map(function($item) {
                 $item->is_payment = true;
                 $item->date_for_sort = $item->created_at;
@@ -201,10 +165,8 @@ class PayoutController extends Controller
                 return $item;
             });
 
-        // 3. Unificar y ordenar para la tabla única de movimientos
         $combinedMovements = $signatures->concat($payments)
-            ->sortByDesc('date_for_sort')
-            ->take(25);
+            ->sortByDesc('date_for_sort')->take(30);
 
         $payoutRequests = $doctor->payoutRequests()->latest()->take(10)->get();
 
@@ -213,11 +175,7 @@ class PayoutController extends Controller
 
     public function downloadEvidence(PayoutRequest $payout)
     {
-        if (!$payout->evidence_path || !Storage::disk('public')->exists($payout->evidence_path)) {
-            Log::error("Archivo no encontrado: " . $payout->evidence_path);
-            abort(404, 'El archivo no existe.');
-        }
-
+        if (!$payout->evidence_path || !Storage::disk('public')->exists($payout->evidence_path)) abort(404);
         return Storage::disk('public')->response($payout->evidence_path);
     }
 }

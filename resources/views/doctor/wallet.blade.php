@@ -69,7 +69,7 @@
         <div class="col-md-7">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-white py-3 border-0">
-                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-journal-check me-2 text-primary"></i>Historial de Retiros</h5>
+                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-journal-check me-2 text-primary"></i>Historial de Solicitudes</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -102,7 +102,7 @@
                                                 <i class="bi bi-file-earmark-pdf"></i> Comprobante
                                             </a>
                                         @else
-                                            <span class="text-muted x-small italic">Pendiente de pago</span>
+                                            <span class="text-muted small italic">Pendiente de pago</span>
                                         @endif
                                     </td>
                                 </tr>
@@ -123,10 +123,6 @@
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold"><i class="bi bi-arrow-down-up me-2 text-secondary"></i>Cartola Detallada de Movimientos</h5>
-                    <div class="d-none d-md-flex gap-2">
-                        <span class="badge bg-success-subtle text-success rounded-pill fw-normal border border-success-subtle px-3">Ingreso (Firma)</span>
-                        <span class="badge bg-dark-subtle text-dark rounded-pill fw-normal border border-dark-subtle px-3">Egreso (Retiro)</span>
-                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -134,47 +130,66 @@
                             <thead>
                                 <tr class="text-muted small bg-light">
                                     <th class="ps-4">Fecha y Hora</th>
-                                    <th>Concepto</th>
-                                    <th>Referencia</th>
+                                    <th>Concepto / Tipo</th>
+                                    <th>Detalle / Referencia</th>
                                     <th class="text-end pe-4">Monto</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($combinedMovements as $mov)
                                     @if($mov->is_payment)
-                                        {{-- FILA DE RETIRO (EGRESO) --}}
+                                        {{-- FILA DE MOVIMIENTO DE DINERO (SOLICITUD O PAGO) --}}
                                         @php
                                             $isPending = $mov->status == 'pending';
-                                            $rowColor = $isPending ? 'bg-warning-light' : 'bg-light text-muted';
+                                            // Si es pending, es la SOLICITUD (Amarillo)
+                                            // Si es completed, es el PAGO RECIBIDO (Verde/Oscuro)
+                                            $rowClass = $isPending ? 'bg-warning-light border-warning' : 'bg-light border-success';
                                         @endphp
-                                        <tr class="{{ $rowColor }} border-start border-4 {{ $isPending ? 'border-warning' : 'border-secondary' }}">
-                                            <td class="ps-4 small fw-bold">{{ $mov->date_for_sort->format('d/m/Y H:i') }}</td>
+                                        <tr class="{{ $rowClass }} border-start border-4">
+                                            <td class="ps-4 small text-muted">{{ $mov->date_for_sort->format('d/m/Y H:i') }}</td>
                                             <td>
-                                                <span class="badge {{ $isPending ? 'bg-warning text-dark' : 'bg-secondary' }} rounded-pill px-3">
-                                                    {{ $isPending ? 'RETIRO SOLICITADO' : 'PAGO COMPLETADO' }}
-                                                </span>
+                                                @if($isPending)
+                                                    <span class="badge bg-warning text-dark rounded-pill px-3 shadow-sm">
+                                                        <i class="bi bi-hourglass-split me-1"></i> SOLICITUD DE RETIRO
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-success rounded-pill px-3 shadow-sm">
+                                                        <i class="bi bi-check-circle-fill me-1"></i> PAGO REALIZADO
+                                                    </span>
+                                                @endif
                                             </td>
                                             <td class="small">
-                                                <i class="bi bi-bank me-1"></i> {{ $isPending ? 'Pendiente de transferencia' : 'Transferido a su cuenta' }}
+                                                @if($isPending)
+                                                    <span class="text-dark fw-medium">Fondos retenidos para transferencia</span>
+                                                @else
+                                                    <span class="text-success fw-bold">Transferencia enviada a su cuenta</span>
+                                                    @php $payoutReqId = $mov->reference_id; @endphp
+                                                    <a href="{{ route('admin.payouts.download', $payoutReqId) }}" class="ms-2 text-danger text-decoration-none">
+                                                        <i class="bi bi-file-pdf"></i> Ver Comprobante
+                                                    </a>
+                                                @endif
+                                                <div class="text-muted x-small">Ref: {{ $mov->reference_code }}</div>
                                             </td>
-                                            <td class="text-end pe-4 fw-bold">
-                                                - ${{ number_format($mov->display_amount, 0, ',', '.') }}
+                                            <td class="text-end pe-4 fw-bold {{ $isPending ? 'text-dark' : 'text-success' }}">
+                                                {{ $isPending ? '-' : '+' }} ${{ number_format($mov->display_amount, 0, ',', '.') }}
                                             </td>
                                         </tr>
                                     @else
-                                        {{-- FILA DE FIRMA (INGRESO) --}}
+                                        {{-- FILA DE FIRMA (INGRESO NORMAL) --}}
                                         <tr>
                                             <td class="ps-4 small text-muted">{{ $mov->date_for_sort->format('d/m/Y H:i') }}</td>
                                             <td>
                                                 @if(isset($mov->order) && $mov->order->type == 'custom')
-                                                    <span class="badge bg-info-subtle text-info rounded-pill px-2">Firma Custom</span>
+                                                    <span class="badge bg-info-subtle text-info rounded-pill px-2 border border-info-subtle">Firma Custom</span>
                                                 @elseif(isset($mov->order) && $mov->order->type == 'multiple')
-                                                    <span class="badge rounded-pill px-2" style="background-color: #f3e5f5; color: #7b1fa2;">Firma Múltiple</span>
+                                                    <span class="badge rounded-pill px-2 border border-purple-subtle" style="background-color: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7;">Firma Múltiple</span>
                                                 @else
-                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2">Firma Standard</span>
+                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 border border-secondary-subtle">Firma Standard</span>
                                                 @endif
                                             </td>
-                                            <td class="text-dark small">Paciente: {{ $mov->order->patient->user->name ?? 'N/A' }}</td>
+                                            <td class="text-dark small">
+                                                Paciente: {{ $mov->order->patient->user->name ?? 'N/A' }}
+                                            </td>
                                             <td class="text-end pe-4 fw-bold text-success">
                                                 + ${{ number_format($mov->display_amount, 0, ',', '.') }}
                                             </td>
@@ -191,7 +206,7 @@
                 </div>
                 <div class="card-footer bg-light border-0 py-3">
                     <p class="text-muted x-small mb-0 text-center">
-                        <i class="bi bi-shield-check me-1"></i> Los movimientos marcados en amarillo están bloqueados hasta que se confirme el depósito en su cuenta bancaria.
+                        <i class="bi bi-info-circle me-1"></i> La cartola muestra el histórico de solicitudes de retiro y los abonos confirmados por la administración.
                     </p>
                 </div>
             </div>
@@ -205,6 +220,7 @@
     .bg-warning-light { background-color: rgba(255, 193, 7, 0.05) !important; }
     .transition-all { transition: all 0.3s ease; }
     .transition-all:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .border-purple-subtle { border-color: #e1bee7; }
 
     @keyframes spin {
         from { transform: rotate(0deg); }
