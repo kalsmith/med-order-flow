@@ -40,15 +40,23 @@
             <li class="nav-item">
                 <button wire:click="setTab('standard')"
                     class="nav-link {{ $tab === 'standard' ? 'active fw-bold border-bottom border-info border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
-                    <i class="bi bi-robot me-1"></i> Auto-Firmadas
-                    {{-- @php
-                        $standardCount = \App\Models\Order::autoSignedStandard(auth()->user()->doctor->id ?? 0)->count();
+                    <i class="bi bi-robot me-1"></i> Auto-Simples
+                </button>
+            </li>
+
+            {{-- NUEVA PESTAÑA PARA ÓRDENES MÚLTIPLES AUTO-FIRMADAS --}}
+            <li class="nav-item">
+                <button wire:click="setTab('multiple_auto')"
+                    class="nav-link {{ $tab === 'multiple_auto' ? 'active fw-bold border-bottom border-success border-3' : 'text-muted' }} border-0 bg-transparent pb-3 position-relative">
+                    <i class="bi bi-layers-half me-1"></i> Auto-Múltiples
+                    @php
+                        $multiCount = \App\Models\Order::autoSignedMultiple(auth()->user()->doctor->id ?? 0)->count();
                     @endphp
-                    @if($standardCount > 0)
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size: 0.6rem;">
-                            {{ $standardCount }}
+                    @if($multiCount > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="font-size: 0.6rem;">
+                            {{ $multiCount }}
                         </span>
-                    @endif --}}
+                    @endif
                 </button>
             </li>
 
@@ -62,21 +70,6 @@
     </div>
 
     <div class="card-body p-0">
-        {{-- @if(auth()->user()->hasRole('doctor') || auth()->user()->hasRole('admin') || in_array(auth()->id(), [1, 2]))
-            <div class="alert alert-dark mx-4 mt-3 py-2 small shadow-sm" style="font-family: monospace; font-size: 0.7rem; border-left: 4px solid #0dcaf0; background-color: #1e1e1e; color: #d4d4d4;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><strong class="text-info">DEBUG DOCTOR</strong> | Tab: <strong>{{ $tab }}</strong></span>
-                    <span class="badge bg-secondary">User ID: {{ auth()->id() }}</span>
-                </div>
-                <hr class="my-1 opacity-25">
-                <div class="row">
-                    <div class="col-md-4">Doc ID: {{ auth()->user()->doctor->id ?? 'No asignado' }}</div>
-                    <div class="col-md-4 text-center">Órdenes en Tab: {{ $orders->count() }}</div>
-                    <div class="col-md-4 text-end">Total Global: {{ $orders->total() }}</div>
-                </div>
-            </div>
-        @endif --}}
-
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light-subtle">
@@ -102,7 +95,9 @@
                             $isRefundPending = $order->status === 'refund_pending';
                             $isRefunded = $order->status === 'refunded';
 
-                            $isStandard = $order->type === 'standard';
+                            // Identificar si la firma fue automática (la receta es standard pero la orden no necesariamente)
+                            $isAutoSigned = $latestPrescription && $latestPrescription->type === 'standard';
+
                             $isClaimedByMe = $orderDocId === $meId && $order->status === 'paid' && !$isSigned;
                             $hasVoided = $order->prescriptions->where('status', 'voided')->count() > 0;
                             $isReentry = $hasVoided && !$isSigned && !$isRejected;
@@ -134,6 +129,10 @@
                                 @if($order->type === 'custom')
                                     <span class="badge rounded-pill" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 0.7rem;">
                                         <i class="bi bi-stars me-1"></i> Especial (Custom)
+                                    </span>
+                                @elseif($order->type === 'multiple')
+                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle fw-medium" style="font-size: 0.7rem;">
+                                        <i class="bi bi-layers-fill me-1"></i> Múltiple
                                     </span>
                                 @else
                                     <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle fw-medium" style="font-size: 0.7rem;">
@@ -175,8 +174,8 @@
                                     </span>
                                 @elseif($isSigned)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-3" style="font-size: 0.75rem;">
-                                        <i class="bi {{ $isStandard ? 'bi-robot' : 'bi-check2-all' }} me-1"></i>
-                                        {{ $isStandard ? 'Auto-Firmado' : 'Firmado' }}
+                                        <i class="bi {{ $isAutoSigned ? 'bi-robot' : 'bi-check2-all' }} me-1"></i>
+                                        {{ $isAutoSigned ? 'Auto-Firmado' : 'Firmado' }}
                                     </span>
                                 @elseif($isClaimedByMe)
                                     <span class="badge bg-info-subtle text-info border border-info-subtle px-3 fw-medium" style="font-size: 0.75rem;">

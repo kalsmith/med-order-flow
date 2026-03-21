@@ -20,18 +20,18 @@ class MedicalOrdersTable extends Component
         $this->resetPage();
     }
 
-public function render()
-{
-    $doctor = Auth::user()->doctor;
 
-    if (!$doctor) {
-        return view('livewire.medical-orders-table', ['orders' => collect([])]);
-    }
+    public function render()
+    {
+        $doctor = Auth::user()->doctor;
+
+        if (!$doctor) {
+            return view('livewire.medical-orders-table', ['orders' => collect([])]);
+        }
 
     $query = Order::query()->with(['patient', 'examType', 'doctor.user', 'prescriptions']);
 
     if ($this->tab === 'available') {
-        // DISPONIBLES O TOMADAS PERO NO FIRMADAS
         $query->where(function($q) use ($doctor) {
             $q->availableForDoctor($doctor->id, $doctor->specialty_id)
               ->orWhere(function($sq) use ($doctor) {
@@ -42,15 +42,20 @@ public function render()
         })->whereDoesntHave('prescriptions', fn($p) => $p->where('status', 'signed'));
 
     } elseif ($this->tab === 'reentry') {
-        // Órdenes que requieren corrección
         $query->where('doctor_id', $doctor->id)->needsReentry();
 
     } elseif ($this->tab === 'standard') {
-        // Pestaña donde vive la #1010: Filtrado por doctor_id en la receta vía Scope
+        // AUTO-FIRMADAS SIMPLES (Standard)
         $query->autoSignedStandard($doctor->id);
 
+    } elseif ($this->tab === 'multiple_auto') {
+        // NUEVA PESTAÑA: AUTO-FIRMADAS MÚLTIPLES
+        // Aquí usamos el nuevo scope que definimos antes
+        $query->autoSignedMultiple($doctor->id);
+
     } else {
-        // Historial Personal: Solo mis órdenes CUSTOM (manuales) firmadas o finalizadas
+        // HISTORIAL PERSONAL (MANUAL)
+        // Solo lo que el doctor redactó físicamente (type custom)
         $query->where('doctor_id', $doctor->id)
               ->where('type', 'custom')
               ->inHistory();
@@ -60,7 +65,6 @@ public function render()
         'orders' => $query->latest('updated_at')->paginate(10)
     ]);
 }
-
 
 
 }
