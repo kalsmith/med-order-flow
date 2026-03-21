@@ -123,6 +123,9 @@
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold"><i class="bi bi-arrow-down-up me-2 text-secondary"></i>Cartola Detallada de Movimientos</h5>
+                    <a href="{{ route('admin.orders.doctor.wallet.export') }}" class="btn btn-sm btn-outline-success rounded-pill px-3 shadow-sm transition-all">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Descargar Excel
+                    </a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -141,8 +144,6 @@
                                         {{-- FILA DE MOVIMIENTO DE DINERO (SOLICITUD O PAGO) --}}
                                         @php
                                             $isPending = $mov->status == 'pending';
-                                            // Si es pending, es la SOLICITUD (Amarillo)
-                                            // Si es completed, es el PAGO RECIBIDO (Verde/Oscuro)
                                             $rowClass = $isPending ? 'bg-warning-light border-warning' : 'bg-light border-success';
                                         @endphp
                                         <tr class="{{ $rowClass }} border-start border-4">
@@ -163,8 +164,7 @@
                                                     <span class="text-dark fw-medium">Fondos retenidos para transferencia</span>
                                                 @else
                                                     <span class="text-success fw-bold">Transferencia enviada a su cuenta</span>
-                                                    @php $payoutReqId = $mov->reference_id; @endphp
-                                                    <a href="{{ route('admin.payouts.download', $payoutReqId) }}" class="ms-2 text-danger text-decoration-none">
+                                                    <a href="{{ route('admin.payouts.download', $mov->reference_id) }}" class="ms-2 text-danger text-decoration-none">
                                                         <i class="bi bi-file-pdf"></i> Ver Comprobante
                                                     </a>
                                                 @endif

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Exception;
+use App\Exports\DoctorWalletExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PayoutController extends Controller
 {
@@ -178,4 +180,40 @@ class PayoutController extends Controller
         if (!$payout->evidence_path || !Storage::disk('public')->exists($payout->evidence_path)) abort(404);
         return Storage::disk('public')->response($payout->evidence_path);
     }
+
+
+    public function exportWallet()
+    {
+        $user = auth()->user();
+        $doctor = $user->doctor;
+
+        // Reutilizamos la misma lógica de obtención de datos del doctorWallet()
+        $signatures = $doctor->prescriptions()
+            ->where('status', 'signed')
+            ->with('order.patient.user')
+            ->latest('signed_at')->get()
+            ->map(function($item) {
+                $item->is_payment = false;
+                $item->date_for_sort = $item->signed_at;
+                $item->display_amount = in_array($item->type, ['custom', 'multiple']) ? 2800 : 1800;
+                return $item;
+            });
+
+        $payments = Transaction::where(function($q) use ($user) {
+                $q->where('receiver_id', $user->id)->orWhere('sender_id', $user->id);
+            })
+            ->where('type', 'payout')
+            ->latest()->get()
+            ->map(function($item) {
+                $item->is_payment = true;
+                $item->date_for_sort = $item->created_at;
+                $item->display_amount = $item->amount;
+                return $item;
+            });
+
+        $movements = $signatures->concat($payments)->sortByDesc('date_for_sort');
+
+        return Excel::download(new DoctorWalletExport($movements), 'cartola_billetera.xlsx');
+}
+
 }

@@ -156,6 +156,7 @@ Route::middleware([
             Route::post('/{order}/liberar', [MedicalOrderController::class, 'releaseOrder'])->name('release');
             Route::post('/{order}/derivar', [MedicalOrderController::class, 'derivateOrder'])->name('derivate');
             Route::post('/{order}/anular-firma', [MedicalOrderController::class, 'voidSignature'])->name('void');
+            Route::get('/doctor/wallet/export', [PayoutController::class, 'exportWallet'])->name('doctor.wallet.export');
             // La ruta PDF se movió al bloque compartido superior
         });
     });
