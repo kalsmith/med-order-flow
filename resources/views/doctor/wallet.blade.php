@@ -42,7 +42,7 @@
 
                     <div class="mt-4">
                         @php
-                            $hasPending = $payoutRequests->where('status', 'pending')->exists();
+                            $hasPending = $payoutRequests->where('status', 'pending')->isNotEmpty();
                         @endphp
 
                         @if($doctor->balance > 0 && !$hasPending)
