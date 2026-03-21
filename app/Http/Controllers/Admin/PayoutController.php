@@ -174,23 +174,46 @@ public function doctorWallet()
         return redirect()->route('admin.panel')->with('error', 'Perfil de médico no encontrado.');
     }
 
-    // 1. Traemos las últimas 15 firmas (INGRESOS)
-    // Usamos with('order') para saber si es Custom o Standard y calcular el precio en la vista
-    $recentSignatures = $doctor->prescriptions()
+    // 1. Obtener las firmas (Ingresos)
+    $signatures = $doctor->prescriptions()
         ->where('status', 'signed')
         ->with('order.patient.user')
         ->latest('signed_at')
-        ->take(15)
-        ->get();
+        ->take(20)
+        ->get()
+        ->map(function($item) {
+            $item->is_payment = false;
+            $item->date_for_sort = $item->signed_at;
+            $item->display_amount = in_array($item->order->type, ['custom', 'multiple']) ? 2800 : 1800;
+            return $item;
+        });
 
-    // 2. Traemos las últimas solicitudes de pago (EGRESOS / RETIROS)
-    // Esto es lo que faltaba para que la tabla de "Estado de solicitudes" se llene
-    $payoutRequests = $doctor->payoutRequests()
+    // 2. Obtener los pagos (Egresos) desde la tabla Transactions
+    $payments = \App\Models\Transaction::where('receiver_id', $user->id)
+        ->where('type', 'payout')
+        ->where('status', 'completed')
         ->latest()
         ->take(10)
-        ->get();
+        ->get()
+        ->map(function($item) {
+            $item->is_payment = true;
+            $item->date_for_sort = $item->created_at;
+            $item->display_amount = $item->amount;
+            return $item;
+        });
 
-    return view('doctor.wallet', compact('doctor', 'recentSignatures', 'payoutRequests'));
+    // 3. Unificar y ordenar por fecha descendente
+    $combinedMovements = $signatures->concat($payments)
+        ->sortByDesc('date_for_sort')
+        ->take(20);
+
+    $payoutRequests = $doctor->payoutRequests()->latest()->take(10)->get();
+
+    return view('doctor.wallet', [
+        'doctor' => $doctor,
+        'combinedMovements' => $combinedMovements,
+        'payoutRequests' => $payoutRequests
+    ]);
 }
 
 public function downloadEvidence(PayoutRequest $payout)

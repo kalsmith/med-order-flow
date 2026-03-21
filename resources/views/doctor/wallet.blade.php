@@ -25,9 +25,9 @@
                         </div>
                         <h1 class="display-4 fw-bold mb-0">${{ number_format($doctor->balance, 0, ',', '.') }}</h1>
 
-                        {{-- Indicador de saldo en proceso --}}
                         @php
                             $pendingAmount = $payoutRequests->where('status', 'pending')->sum('amount');
+                            $hasPending = $payoutRequests->where('status', 'pending')->isNotEmpty();
                         @endphp
 
                         @if($pendingAmount > 0)
@@ -41,10 +41,6 @@
                     </div>
 
                     <div class="mt-4">
-                        @php
-                            $hasPending = $payoutRequests->where('status', 'pending')->isNotEmpty();
-                        @endphp
-
                         @if($doctor->balance > 0 && !$hasPending)
                             <form action="{{ route('admin.payouts.request') }}" method="POST">
                                 @csrf
@@ -67,11 +63,11 @@
             </div>
         </div>
 
-        {{-- Estado de Solicitudes (Egresos) --}}
+        {{-- Tabla de la Derecha: Estado de Solicitudes Administrativas --}}
         <div class="col-md-7">
             <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-arrow-up-right-circle me-2 text-danger"></i>Últimos Retiros</h5>
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Gestión de Solicitudes</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -81,7 +77,7 @@
                                     <th class="ps-4">Fecha</th>
                                     <th>Monto</th>
                                     <th>Estado</th>
-                                    <th class="pe-4 text-end">Acción</th>
+                                    <th class="pe-4 text-end">Comprobante</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -91,7 +87,7 @@
                                     <td class="fw-bold text-dark">${{ number_format($req->amount, 0, ',', '.') }}</td>
                                     <td>
                                         @if($req->status == 'pending')
-                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3">Pendiente</span>
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3">En Revisión</span>
                                         @elseif($req->status == 'paid')
                                             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">Pagado</span>
                                         @else
@@ -100,23 +96,16 @@
                                     </td>
                                     <td class="pe-4 text-end">
                                         @if($req->status == 'paid' && $req->evidence_path)
-                                            <a href="{{ Storage::url($req->evidence_path) }}" target="_blank" class="btn btn-sm btn-light border rounded-pill px-3">
-                                                <i class="bi bi-file-earmark-pdf text-danger"></i> Comprobante
+                                            <a href="{{ route('admin.payouts.download', $req->id) }}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                <i class="bi bi-file-pdf"></i> Ver PDF
                                             </a>
-                                        @elseif($req->status == 'rejected')
-                                            <i class="bi bi-exclamation-circle text-danger" title="{{ $req->admin_notes }}" data-bs-toggle="tooltip"></i>
                                         @else
                                             <span class="text-muted small">--</span>
                                         @endif
                                     </td>
                                 </tr>
                                 @empty
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted">
-                                        <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>
-                                        No has solicitado retiros aún.
-                                    </td>
-                                </tr>
+                                <tr><td colspan="4" class="text-center py-4 text-muted small">No hay solicitudes</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -126,15 +115,14 @@
         </div>
     </div>
 
-    {{-- Detalle de Firmas (Ingresos) --}}
+    {{-- CARTOLA UNIFICADA (LO QUE TÚ QUERÍAS) --}}
     <div class="row mt-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-plus-circle me-2 text-success"></i>Detalle de Ingresos (Firmas)</h5>
-                    <div class="d-none d-md-block">
-                        <span class="badge bg-light text-dark border rounded-pill fw-normal px-3">Standard: $1.800</span>
-                        <span class="badge bg-light text-dark border rounded-pill fw-normal px-3 ms-2">Custom/Múltiple: $2.800</span>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-dark"></i>Detalle de Movimientos (Ingresos y Pagos)</h5>
+                    <div>
+                        <span class="badge bg-success-subtle text-success rounded-pill fw-normal px-3">Verde: Pagos realizados</span>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -143,40 +131,73 @@
                             <thead>
                                 <tr class="text-muted small bg-light">
                                     <th class="ps-4">Fecha y Hora</th>
-                                    <th>Tipo de Orden</th>
-                                    <th>Paciente</th>
-                                    <th class="text-end pe-4">Honorario Bruto</th>
+                                    <th>Concepto / Tipo</th>
+                                    <th>Referencia / Paciente</th>
+                                    <th class="text-end pe-4">Monto</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($recentSignatures as $sig)
-                                    <tr>
-                                        <td class="ps-4 small">{{ $sig->signed_at->format('d/m/Y H:i') }}</td>
-                                        <td>
-                                            @if($sig->order->type == 'custom')
-                                                <span class="badge bg-info-subtle text-info rounded-pill px-3">Custom</span>
-                                            @elseif($sig->order->type == 'multiple')
-                                                <span class="badge rounded-pill px-3" style="background-color: #f3e5f5; color: #7b1fa2;">Múltiple</span>
-                                            @else
-                                                <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">Standard</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-dark">{{ $sig->order->patient->user->name ?? 'N/A' }}</td>
-                                        <td class="text-end pe-4 fw-bold">
-                                            ${{ number_format(in_array($sig->order->type, ['custom', 'multiple']) ? 2800 : 1800, 0, ',', '.') }}
-                                        </td>
-                                    </tr>
+                                @forelse($combinedMovements as $mov)
+                                    @if($mov->is_payment)
+                                        {{-- FILA DE PAGO REALIZADO (CANCELACIÓN) --}}
+                                        <tr class="table-success border-start border-4 border-success">
+                                            <td class="ps-4 small fw-bold">{{ $mov->date_for_sort->format('d/m/Y H:i') }}</td>
+                                            <td>
+                                                <span class="badge bg-success text-white rounded-pill px-3">PAGO RECIBIDO</span>
+                                            </td>
+                                            <td class="text-success fw-bold">
+                                                <i class="bi bi-check-circle-fill me-1"></i> Honorarios Cancelados
+                                            </td>
+                                            <td class="text-end pe-4 fw-bold text-success">
+                                                - ${{ number_format($mov->display_amount, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @else
+                                        {{-- FILA DE INGRESO POR FIRMA --}}
+                                        <tr>
+                                            <td class="ps-4 small text-muted">{{ $mov->date_for_sort->format('d/m/Y H:i') }}</td>
+                                            <td>
+                                                @if($mov->order->type == 'custom')
+                                                    <span class="badge bg-info-subtle text-info rounded-pill px-2">Firma Custom</span>
+                                                @elseif($mov->order->type == 'multiple')
+                                                    <span class="badge rounded-pill px-2" style="background-color: #f3e5f5; color: #7b1fa2;">Firma Múltiple</span>
+                                                @else
+                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2">Firma Standard</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-dark">{{ $mov->order->patient->user->name ?? 'N/A' }}</td>
+                                            <td class="text-end pe-4 fw-bold text-dark">
+                                                + ${{ number_format($mov->display_amount, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @endif
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center py-5 text-muted">No hay registros de firmas recientes.</td>
+                                        <td colspan="4" class="text-center py-5 text-muted">No hay movimientos registrados en este periodo.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
-                <div class="card-footer bg-white border-0 py-3 text-center">
-                    <p class="text-muted small mb-0">Solo se muestran las últimas 15 firmas. El saldo acumulado incluye todas las firmas no pagadas.</p>
+                <div class="card-footer bg-light border-0 py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <p class="text-muted small mb-0">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Las filas resaltadas en <strong>verde</strong> representan el momento en que se te transfirieron tus honorarios.
+                                Las firmas anteriores a ese pago se consideran ya <strong>canceladas</strong>.
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                             {{-- Opcional: Suma de todo lo que se le ha pagado históricamente --}}
+                             @php
+                                $totalPaidHistory = $combinedMovements->where('is_payment', true)->sum('display_amount');
+                             @endphp
+                             <span class="small text-muted">Total Cancelado Histórico: </span>
+                             <span class="fw-bold text-success">${{ number_format($totalPaidHistory, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -184,10 +205,11 @@
 </div>
 
 <script>
-    // Inicializar tooltips de Bootstrap
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
 </script>
 @endsection
