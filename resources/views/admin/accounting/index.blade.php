@@ -29,13 +29,13 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold">Órdenes por Firmar</h6>
-                    <h2 class="fw-bold mb-0">{{ $stats['pending_orders'] }}</h2>
-                    <small class="opacity-75">Potencial honorario: ${{ number_format($stats['pending_orders'] * 1500, 0, ',', '.') }}</small>
-                </div>
-            </div>
+<div class="card border-0 shadow-sm rounded-4 bg-dark text-white">
+    <div class="card-body p-4">
+        <h6 class="text-uppercase opacity-75 small fw-bold">Órdenes por Firmar</h6>
+        <h2 class="fw-bold mb-0">{{ $stats['pending_orders'] }}</h2>
+        <small class="opacity-75">Cálculo dinámico según tipo (Std/Custom)</small>
+    </div>
+</div>
         </div>
     </div>
 

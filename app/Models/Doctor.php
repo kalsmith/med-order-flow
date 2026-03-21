@@ -86,15 +86,15 @@ class Doctor extends Model
     /**
      * CÁLCULO DE SALDO DISPONIBLE
      */
-    public function getBalanceAttribute()
-    {
-        $totalEarned = $this->signedPrescriptions()->count() * 1500;
+public function getBalanceAttribute()
+{
+    $totalEarned = $this->signedPrescriptions()
+        ->join('orders', 'prescriptions.order_id', '=', 'orders.id')
+        ->selectRaw("SUM(CASE WHEN orders.type = 'custom' THEN 2800 ELSE 1800 END) as total")
+        ->value('total') ?? 0;
 
-        $totalPaid = $this->payoutRequests()
-            ->where('status', 'paid')
-            ->sum('amount');
-
-        return $totalEarned - $totalPaid;
-    }
+    $totalPaid = $this->payoutRequests()->where('status', 'paid')->sum('amount');
+    return $totalEarned - $totalPaid;
+}
 
 }

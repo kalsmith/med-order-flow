@@ -87,6 +87,67 @@
                 </div>
             </div>
         </div>
+
+
+{{-- Inserta esto antes o después de la "Lista de Estados" --}}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="mb-0 fw-bold">Detalle de Firmas (Honorarios Brutos)</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr class="text-muted small">
+                                <th class="ps-4">Fecha Firma</th>
+                                <th>Tipo de Orden</th>
+                                <th>Paciente</th>
+                                <th class="text-end pe-4">Honorario Bruto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($recentSignatures as $sig)
+                                <tr>
+                                    <td class="ps-4">{{ $sig->signed_at->format('d/m/Y H:i') }}</td>
+                                    <td>
+                                        @if($sig->order->type == 'custom')
+                                            <span class="badge bg-info-subtle text-info">Custom</span>
+                                        @elseif($sig->order->type == 'multiple')
+                                            <span class="badge bg-purple-subtle text-purple" style="background-color: #f3e5f5; color: #7b1fa2;">Múltiple</span>
+                                        @else
+                                            <span class="badge bg-secondary-subtle text-secondary">Standard</span>
+                                        @endif
+                                    </td>
+                                    <td class="small">{{ $sig->order->patient->user->name ?? 'N/A' }}</td>
+                                    <td class="text-end pe-4 fw-bold">
+                                        {{-- Lógica de cobro: Custom 2800, el resto 1800 --}}
+                                        ${{ number_format($sig->order->type == 'custom' ? 2800 : 1800, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No hay firmas registradas aún.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
     </div>
 </div>
 @endsection

@@ -115,9 +115,16 @@ class PayoutController extends Controller
             return redirect()->route('admin.panel')->with('error', 'Perfil de médico no encontrado.');
         }
 
-        return view('doctor.wallet', compact('doctor'));
-    }
+        // Traemos las últimas 15 firmas con su relación de orden
+        $recentSignatures = $doctor->prescriptions()
+            ->where('status', 'signed')
+            ->with('order')
+            ->latest('signed_at')
+            ->take(15)
+            ->get();
 
+        return view('doctor.wallet', compact('doctor', 'recentSignatures'));
+    }
 
 public function downloadEvidence(PayoutRequest $payout)
 {

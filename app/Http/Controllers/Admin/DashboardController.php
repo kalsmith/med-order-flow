@@ -28,53 +28,53 @@ class DashboardController extends Controller
 
     public function reports()
     {
-        // 1. Estadísticas Globales
         $totalRevenue = Order::where('status', 'paid')->sum('amount');
-
-        // Calculamos cuánto se ha pagado en total a todos los médicos
         $totalAlreadyPaid = PayoutRequest::where('status', 'paid')->sum('amount');
 
-        // Calculamos cuánto han generado en total todos los médicos (Honorarios totales)
-        $totalGeneratedByDoctors = Prescription::where('status', 'signed')->count() * 1500;
+        // Cálculo Global de Deuda (SQL Case para eficiencia)
+        $totalGeneratedByDoctors = Prescription::where('status', 'signed')
+            ->selectRaw("SUM(CASE WHEN type = 'custom' THEN 2800 ELSE 1800 END) as total")
+            ->value('total') ?? 0;
 
         $stats = [
             'total_revenue'  => $totalRevenue,
-            'total_to_pay'   => $totalGeneratedByDoctors - $totalAlreadyPaid, // Deuda real global
+            'total_to_pay'   => $totalGeneratedByDoctors - $totalAlreadyPaid,
             'pending_orders' => Order::where('status', 'paid')->whereNull('signed_at')->count(),
         ];
 
-        // 2. Reporte Detallado por Médico
-        $doctorReports = Doctor::with(['user'])->get()->map(function ($doctor) {
+        $doctorReports = Doctor::with(['user'])->get()->map(function ($doctor) use ($totalGeneratedByDoctors) {
 
-            // Lo que ha firmado (Histórico)
-            $signedCount = Prescription::where('doctor_id', $doctor->id)
+            // Conteo por tipo para este médico
+            $counts = Prescription::where('doctor_id', $doctor->id)
                 ->where('status', 'signed')
-                ->count();
+                ->selectRaw("
+                    COUNT(*) as total,
+                    SUM(CASE WHEN type = 'custom' THEN 1 ELSE 0 END) as custom_count,
+                    SUM(CASE WHEN type = 'standard' THEN 1 ELSE 0 END) as standard_count
+                ")->first();
 
-            // Ingresos brutos de las órdenes que él firmó
             $orderIds = Prescription::where('doctor_id', $doctor->id)
                 ->where('status', 'signed')
                 ->pluck('order_id');
 
             $grossRevenue = Order::whereIn('id', $orderIds)->sum('amount');
 
-            // Cálculo de Honorarios
-            $historicEarnings = $signedCount * 1500;
+            // Honorarios Brutos: (Custom * 2800) + (Standard * 1800)
+            $historicEarnings = ($counts->custom_count * 2800) + ($counts->standard_count * 1800);
 
-            // Lo que YA se le pagó (según tabla payout_requests)
             $alreadyPaid = PayoutRequest::where('doctor_id', $doctor->id)
                 ->where('status', 'paid')
                 ->sum('amount');
 
-            $flowFees = $grossRevenue * 0.038;
+            $flowFees = $grossRevenue * 0.038; // El 3.8% de Flow
 
             return [
                 'id'               => $doctor->id,
                 'name'             => ($doctor->prefix ?? 'Dr.') . ' ' . $doctor->user->name,
-                'signed_count'     => $signedCount,
+                'signed_count'     => $counts->total,
                 'gross_revenue'    => $grossRevenue,
                 'historic_earning' => $historicEarnings,
-                'current_balance'  => $historicEarnings - $alreadyPaid, // SALDO DINÁMICO
+                'current_balance'  => $historicEarnings - $alreadyPaid,
                 'total_paid_out'   => $alreadyPaid,
                 'flow_fees'        => $flowFees,
                 'net_platform'     => $grossRevenue - $historicEarnings - $flowFees,
