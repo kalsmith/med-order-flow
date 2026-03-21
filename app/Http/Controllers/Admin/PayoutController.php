@@ -25,49 +25,64 @@ public function requestStore(Request $request)
     $user = auth()->user();
     $doctor = $user->doctor;
 
-    if (!$doctor) return back()->with('error', 'Perfil no encontrado.');
+    if (!$doctor) {
+        return back()->with('error', 'Perfil de médico no encontrado.');
+    }
 
-    // Evitar duplicados
-    if (PayoutRequest::where('doctor_id', $doctor->id)->where('status', 'pending')->exists()) {
-        return back()->with('error', 'Ya tienes una solicitud pendiente.');
+    // Evitar duplicados si ya hay una solicitud pendiente
+    $hasPending = \App\Models\PayoutRequest::where('doctor_id', $doctor->id)
+        ->where('status', 'pending')
+        ->exists();
+
+    if ($hasPending) {
+        return back()->with('error', 'Ya tienes una solicitud de retiro en proceso.');
     }
 
     $amount = (int) $doctor->balance;
 
-    if ($amount <= 0) return back()->with('error', 'No hay saldo.');
+    if ($amount <= 0) {
+        return back()->with('error', 'No tienes saldo disponible para retirar.');
+    }
 
     try {
         return DB::transaction(function () use ($doctor, $user, $amount) {
-            // 1. Crear solicitud administrativa
-            $payout = PayoutRequest::create([
+
+            // 1. Crear la solicitud administrativa (para gestión de archivos/admin)
+            $payout = \App\Models\PayoutRequest::create([
                 'doctor_id' => $doctor->id,
                 'amount' => $amount,
                 'status' => 'pending'
             ]);
 
-            // 2. Crear Transacción contable de salida
+            // 2. Registrar el movimiento en la tabla de transacciones
+            // NOTA: Se usa el ID 1 (Admin/Sistema) como sender_id para evitar error NOT NULL
             Transaction::create([
-                'sender_id' => null, // Sale de la plataforma
+                /* --- CAMBIAR AL PASAR A ASIENTO CONTABLE --- */
+                'sender_id' => 1,
+                /* ------------------------------------------- */
                 'receiver_id' => $user->id,
-                'reference_id' => $payout->id, // ID numérico del payout
-                'type' => 'payout', // Debes asegurarte que el ENUM de la DB lo soporte o sea string
+                'reference_id' => $payout->id,
+                'type' => 'payout',
                 'amount' => $amount,
                 'platform_fee' => 0,
                 'status' => 'pending',
                 'metadata' => [
                     'description' => 'Retiro de honorarios médicos',
-                    'method' => 'Transferencia Bancaria'
+                    'method' => 'Transferencia Bancaria',
+                    'payout_request_id' => $payout->id
                 ]
             ]);
 
-            return back()->with('success', 'Solicitud creada. El movimiento aparece ahora en tu historial.');
+            Log::info("Solicitud de retiro creada: Doctor ID {$doctor->id}, Monto {$amount}");
+
+            return back()->with('success', 'Tu solicitud de retiro ha sido enviada con éxito.');
         });
+
     } catch (\Exception $e) {
-        Log::error("Error en Payout: " . $e->getMessage());
-        return back()->with('error', 'Error al procesar la solicitud.');
+        Log::error("Error al procesar solicitud de retiro: " . $e->getMessage());
+        return back()->with('error', 'Ocurrió un error al procesar tu solicitud. Intenta nuevamente.');
     }
 }
-
 
 
     /**
