@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL; // Importante
+use Illuminate\Pagination\Paginator; // <--- ESTA ES LA LÍNEA QUE FALTA O ESTÁ MAL
 
 class AppServiceProvider extends ServiceProvider
 {
