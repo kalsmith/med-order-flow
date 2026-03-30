@@ -145,26 +145,31 @@ class ExamTypeController extends Controller
     }
 
 
-    public function destroy(ExamType $examType)
-    {
-        try {
-            // No necesitamos DB::beginTransaction para un simple SoftDelete
+public function destroy(ExamType $examType)
+{
+    try {
+        // 1. Buscamos los nombres de los packs que contienen este examen
+        $parentPacks = $examType->parents()->pluck('name');
 
-            // 1. Opcional: Validar si quieres impedir el borrado lógico si está en un pack
-            if ($examType->parents()->exists()) {
-                return back()->withErrors(['error' => 'No puedes eliminar este examen porque es parte de un Pack activo.']);
-            }
+        if ($parentPacks->isNotEmpty()) {
+            // Convertimos la colección de nombres en una lista separada por comas
+            $packList = $parentPacks->implode(', ');
 
-            // 2. Borrado lógico (Llenará deleted_at automáticamente)
-            $examType->delete();
-
-            return redirect()->route('admin.exam-types.index')
-                ->with('status', 'El examen "' . $examType->name . '" ha sido movido a la papelera.');
-
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Error al eliminar: ' . $e->getMessage()]);
+            return back()->withErrors([
+                'error' => "No puedes eliminar el examen '{$examType->name}' porque está incluido en los siguientes packs: {$packList}. Quítalo de esos packs antes de borrar."
+            ]);
         }
+
+        // 2. Borrado lógico (SoftDelete)
+        $examType->delete();
+
+        return redirect()->route('admin.exam-types.index')
+            ->with('status', "El examen '{$examType->name}' ha sido movido a la papelera.");
+
+    } catch (\Exception $e) {
+        return back()->withErrors(['error' => 'Error inesperado al eliminar: ' . $e->getMessage()]);
     }
+}
 
 
 
