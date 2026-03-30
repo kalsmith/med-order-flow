@@ -24,6 +24,8 @@ class ExamType extends Model
         'post_id'
     ];
 
+    protected $dates = ['deleted_at'];
+
     protected $casts = [
         'is_active' => 'boolean',
         'base_price' => 'integer'

@@ -148,28 +148,23 @@ class ExamTypeController extends Controller
     public function destroy(ExamType $examType)
     {
         try {
-            DB::beginTransaction();
+            // No necesitamos DB::beginTransaction para un simple SoftDelete
 
-            // 1. Opcional: Impedir borrar si es parte de un pack activo
+            // 1. Opcional: Validar si quieres impedir el borrado lógico si está en un pack
             if ($examType->parents()->exists()) {
-                return back()->withErrors(['error' => 'No puedes eliminar este examen porque es parte de un Pack. Quítalo del pack primero.']);
+                return back()->withErrors(['error' => 'No puedes eliminar este examen porque es parte de un Pack activo.']);
             }
 
-            // 2. Limpiar relaciones si este examen es un Pack (borra sus hijos de la pivot)
-            $examType->children()->detach();
-
-            // 3. Borrado lógico
+            // 2. Borrado lógico (Llenará deleted_at automáticamente)
             $examType->delete();
 
-            DB::commit();
-            return redirect()->route('admin.exam-types.index')->with('status', 'Examen eliminado correctamente.');
+            return redirect()->route('admin.exam-types.index')
+                ->with('status', 'El examen "' . $examType->name . '" ha sido movido a la papelera.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return back()->withErrors(['error' => 'Error al eliminar: ' . $e->getMessage()]);
         }
     }
-
 
 
 
