@@ -23,7 +23,7 @@
     </div>
 @endif
 
-@if ($errors->any())
+{{-- @if ($errors->any())
     <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">
         <div class="d-flex align-items-center">
             <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
@@ -38,7 +38,7 @@
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-@endif
+@endif --}}
 
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
