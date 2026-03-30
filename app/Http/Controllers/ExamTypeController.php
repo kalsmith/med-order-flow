@@ -10,38 +10,53 @@ use Illuminate\Support\Facades\DB;
 
 class ExamTypeController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = ExamType::with(['specialty', 'parents'])->withCount('children');
 
-        // Filtro por nombre o código
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('code_fonasa', 'LIKE', "%{$search}%");
-            });
-        }
+public function index(Request $request)
+{
+    $query = ExamType::query()
+        // Cargamos solo lo necesario para el listado
+        ->with([
+            'specialty:id,name',
+            'parents:id,name'
+        ])
+        ->withCount('children');
 
-        // Filtro por Especialidad
-        if ($request->filled('specialty_id')) {
-            $query->where('specialty_id', $request->specialty_id);
-        }
-
-        // Filtro por Tipo (Pack o Individual)
-        if ($request->filled('type')) {
-            if ($request->type === 'pack') {
-                $query->has('children');
-            } elseif ($request->type === 'individual') {
-                $query->doesntHave('children');
-            }
-        }
-
-        $exams = $query->latest()->paginate(15)->withQueryString();
-        $specialties = Specialty::orderBy('name')->get();
-
-        return view('admin.exam_types.index', compact('exams', 'specialties'));
+    // Filtro por nombre o código (Priorizamos índices)
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'LIKE', "%{$search}%")
+              ->orWhere('code_fonasa', 'LIKE', "%{$search}%");
+        });
     }
+
+    // Filtro por Especialidad
+    if ($request->filled('specialty_id')) {
+        $query->where('specialty_id', $request->specialty_id);
+    }
+
+    // Filtro por Tipo (Pack o Individual)
+    if ($request->filled('type')) {
+        if ($request->type === 'pack') {
+            // Un pack es el que tiene hijos vinculados
+            $query->has('children');
+        } elseif ($request->type === 'individual') {
+            // Un individual es el que no tiene hijos
+            $query->doesntHave('children');
+        }
+    }
+
+    // Ordenamos y paginamos manteniendo los filtros en la URL
+    $exams = $query->latest()
+        ->paginate(15)
+        ->withQueryString();
+
+    $specialties = Specialty::select('id', 'name')
+        ->orderBy('name')
+        ->get();
+
+    return view('admin.exam_types.index', compact('exams', 'specialties'));
+}
 
     public function create()
     {

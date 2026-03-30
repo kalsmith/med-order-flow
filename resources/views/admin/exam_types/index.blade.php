@@ -10,14 +10,12 @@
 
 @section('content')
 
-{{-- Mensajes de Feedback (Activados) --}}
+{{-- Mensajes de Feedback --}}
 @if (session('status'))
     <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">
         <div class="d-flex align-items-center">
             <i class="bi bi-check-circle-fill fs-4 me-3"></i>
-            <div>
-                <strong>¡Éxito!</strong> {{ session('status') }}
-            </div>
+            <div><strong>¡Éxito!</strong> {{ session('status') }}</div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
@@ -40,6 +38,7 @@
     </div>
 @endif
 
+{{-- Filtros --}}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
         <form action="{{ route('admin.exam-types.index') }}" method="GET" class="row g-3">
@@ -75,6 +74,7 @@
     </div>
 </div>
 
+{{-- Tabla de Resultados --}}
 <div class="card shadow-sm border-0">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -83,7 +83,7 @@
                     <th style="width: 25%;">Examen / Batería</th>
                     <th>Especialidad</th>
                     <th>Código Fonasa</th>
-                    <th>Composición</th>
+                    <th>Composición / Uso</th>
                     <th>Precio</th>
                     <th>Estado</th>
                     <th class="text-end" style="width: 150px;">Acciones</th>
@@ -108,9 +108,9 @@
                     <td>
                         @if($exam->children_count > 0)
                             <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle">
-                                {{ $exam->children_count }} items vinculados
+                                <i class="bi bi-plus-lg me-1"></i>{{ $exam->children_count }} items vinculados
                             </span>
-                        @elseif($exam->parents->count() > 0)
+                        @elseif($exam->parents->isNotEmpty())
                             <div class="lh-sm">
                                 <span class="text-muted d-block" style="font-size: 0.7rem;">Incluido en:</span>
                                 @foreach($exam->parents->take(2) as $parent)
@@ -119,7 +119,7 @@
                                     </span>
                                 @endforeach
                                 @if($exam->parents->count() > 2)
-                                    <span class="text-muted small">+{{ $exam->parents->count() - 2 }}</span>
+                                    <span class="text-muted small" style="font-size: 0.7rem;">+{{ $exam->parents->count() - 2 }}</span>
                                 @endif
                             </div>
                         @else
@@ -139,11 +139,10 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
 
-                            {{-- Formulario de Eliminación --}}
                             <form action="{{ route('admin.exam-types.destroy', $exam->id) }}"
                                   method="POST"
                                   class="d-inline"
-                                  onsubmit="return confirm('¿Estás seguro de eliminar este examen? Si es un pack, se desvincularán sus componentes. Esta acción no se puede deshacer.')">
+                                  onsubmit="return confirm('¿Estás seguro de mover este examen a la papelera?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
@@ -175,9 +174,7 @@
         from { opacity: 0; transform: translateY(-15px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    /* Estilo para que el grupo de botones se vea más limpio */
-    .btn-group .btn {
-        padding: 0.4rem 0.7rem;
-    }
+    .btn-group .btn { padding: 0.4rem 0.7rem; }
+    .table-hover tbody tr:hover { background-color: rgba(0,0,0,.02); }
 </style>
 @endsection
