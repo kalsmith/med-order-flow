@@ -163,8 +163,10 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer bg-white border-0 py-3">
-        {{ $exams->links() }}
+
+    {{-- Paginación Corregida para Bootstrap 5 --}}
+    <div class="card-footer bg-white border-0 py-3 d-flex justify-content-center">
+        {{ $exams->links('pagination::bootstrap-5') }}
     </div>
 </div>
 
@@ -176,5 +178,10 @@
     }
     .btn-group .btn { padding: 0.4rem 0.7rem; }
     .table-hover tbody tr:hover { background-color: rgba(0,0,0,.02); }
+
+    /* Ajuste para que los links de paginación no se vean gigantes */
+    .pagination { margin-bottom: 0; gap: 2px; }
+    .page-link { border-radius: 6px !important; margin: 0 2px; border: none; color: #333; }
+    .page-item.active .page-link { background-color: #0d6efd; color: white; }
 </style>
 @endsection
