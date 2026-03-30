@@ -10,18 +10,18 @@
 
 @section('content')
 
-{{-- Mensajes de Feedback --}}
-{{-- @if (session('status'))
-    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px; background-color: #d1e7dd; color: #0f5132;">
+{{-- Mensajes de Feedback (Activados) --}}
+@if (session('status'))
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">
         <div class="d-flex align-items-center">
             <i class="bi bi-check-circle-fill fs-4 me-3"></i>
             <div>
-                <strong>¡Actualizado!</strong> {{ session('status') }}
+                <strong>¡Éxito!</strong> {{ session('status') }}
             </div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-@endif --}}
+@endif
 
 @if ($errors->any())
     <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px;">
@@ -83,10 +83,10 @@
                     <th style="width: 25%;">Examen / Batería</th>
                     <th>Especialidad</th>
                     <th>Código Fonasa</th>
-                    <th>Composición / Inclusión</th>
+                    <th>Composición</th>
                     <th>Precio</th>
                     <th>Estado</th>
-                    <th class="text-end">Acciones</th>
+                    <th class="text-end" style="width: 150px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -112,11 +112,15 @@
                             </span>
                         @elseif($exam->parents->count() > 0)
                             <div class="lh-sm">
-                                @foreach($exam->parents as $parent)
-                                    <span class="badge bg-light text-dark border fw-normal mb-1" style="font-size: 0.7rem;">
+                                <span class="text-muted d-block" style="font-size: 0.7rem;">Incluido en:</span>
+                                @foreach($exam->parents->take(2) as $parent)
+                                    <span class="badge bg-light text-dark border fw-normal mb-1" style="font-size: 0.65rem;">
                                         {{ $parent->name }}
                                     </span>
                                 @endforeach
+                                @if($exam->parents->count() > 2)
+                                    <span class="text-muted small">+{{ $exam->parents->count() - 2 }}</span>
+                                @endif
                             </div>
                         @else
                             <span class="text-muted small">—</span>
@@ -129,11 +133,23 @@
                         </span>
                     </td>
                     <td class="text-end">
-                        <div class="btn-group">
-                            <a href="{{ route('admin.exam-types.edit', ['exam_type' => $exam->id]) }}"
+                        <div class="btn-group shadow-sm">
+                            <a href="{{ route('admin.exam-types.edit', $exam->id) }}"
                                class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
+
+                            {{-- Formulario de Eliminación --}}
+                            <form action="{{ route('admin.exam-types.destroy', $exam->id) }}"
+                                  method="POST"
+                                  class="d-inline"
+                                  onsubmit="return confirm('¿Estás seguro de eliminar este examen? Si es un pack, se desvincularán sus componentes. Esta acción no se puede deshacer.')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>
@@ -154,13 +170,14 @@
 </div>
 
 <style>
-    /* Animación de entrada para la alerta */
-    .alert {
-        animation: slideDown 0.4s ease-out;
-    }
+    .alert { animation: slideDown 0.4s ease-out; }
     @keyframes slideDown {
         from { opacity: 0; transform: translateY(-15px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    /* Estilo para que el grupo de botones se vea más limpio */
+    .btn-group .btn {
+        padding: 0.4rem 0.7rem;
     }
 </style>
 @endsection
