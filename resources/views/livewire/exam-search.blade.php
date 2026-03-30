@@ -1,6 +1,6 @@
 <div class="position-relative"> {{-- 1. RAÍZ DEL COMPONENTE --}}
 
-    {{-- Buscador y Alerta de Límite (Se mantiene igual) --}}
+    {{-- Buscador y Alerta de Límite --}}
     <div class="row justify-content-center mb-5">
         <div class="col-md-10 col-lg-8 text-center">
             <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border bg-white">
@@ -35,6 +35,7 @@
                 $isSelected = isset($selectedExams[$exam->id]);
                 $limitReached = count($selectedExams) >= $maxExams;
                 $accentColor = $isPack ? '#6610f2' : ($exam->parents->count() > 0 ? '#0dcaf0' : '#0d6efd');
+                $isLongName = strlen($exam->name) > 70;
             @endphp
 
             <div class="col-12 col-md-6 col-lg-4 col-xl-3 animate__animated animate__fadeInUp">
@@ -44,11 +45,12 @@
 
                     <div class="card-body p-4 d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h6 class="fw-bold text-dark mb-0 lh-base exam-title">
+                            {{-- Ajuste dinámico de fuente para nombres largos --}}
+                            <h6 class="fw-bold text-dark mb-0 exam-title {{ $isLongName ? 'title-long' : '' }}" title="{{ $exam->name }}">
                                 {{ $exam->name }}
                             </h6>
                             @if($isPack)
-                                <span class="badge rounded-pill pack-badge shadow-sm">PACK</span>
+                                <span class="badge rounded-pill pack-badge shadow-sm ms-2">PACK</span>
                             @endif
                         </div>
 
@@ -83,7 +85,6 @@
                                     <span class="price-amount fs-4 fw-extrabold text-primary">{{ number_format($exam->base_price, 0, ',', '.') }}</span>
                                 </div>
 
-                                {{-- BOTÓN DE ACCIÓN PRINCIPAL (SOLICITAR DIRECTO) --}}
                                 @if($isPack)
                                     <a href="{{ route('order.flow', ['type' => 'pack', 'id' => $exam->id]) }}"
                                        class="btn btn-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
@@ -97,7 +98,6 @@
                                 @endif
                             </div>
 
-                            {{-- OPCIÓN DE AÑADIR A ORDEN MULTIPLE (Solo para individuales) --}}
                             @if(!$isPack)
                                 <button wire:click="toggleExam({{ $exam->id }}, '{{ $exam->name }}')"
                                         @if($limitReached && !$isSelected) disabled @endif
@@ -126,21 +126,24 @@
         @endforelse
     </div>
 
-    {{-- BARRA FLOTANTE (Se mantiene igual) --}}
+    {{-- BARRA FLOTANTE OPTIMIZADA --}}
     @if(count($selectedExams) > 0)
-        <div style="height: 100px;"></div>
+        <div style="height: 120px;"></div>
         <div class="fixed-bottom bg-white border-top shadow-lg animate__animated animate__slideInUp" style="z-index: 1050; padding-bottom: env(safe-area-inset-bottom);">
             <div class="container py-3">
                 <div class="row align-items-center">
                     <div class="col-md-7 d-none d-md-block">
                         <div class="d-flex align-items-center">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm fw-bold" style="width: 40px; height: 40px;">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm fw-bold flex-shrink-0" style="width: 45px; height: 45px;">
                                 {{ count($selectedExams) }}
                             </div>
                             <div class="overflow-hidden">
-                                <h6 class="fw-bold mb-0 text-dark small">Orden Múltiple Seleccionada</h6>
+                                <h6 class="fw-bold mb-0 text-dark small">Lista para Orden Múltiple</h6>
                                 <p class="small text-muted mb-0 text-truncate">
-                                    {{ implode(', ', $selectedExams) }}
+                                    {{-- Usamos Str::limit para que la lista no rompa el contenedor --}}
+                                    @foreach($selectedExams as $id => $name)
+                                        <span class="text-dark">{{ Str::limit($name, 30) }}</span>@if(!$loop->last), @endif
+                                    @endforeach
                                 </p>
                             </div>
                         </div>
@@ -148,7 +151,7 @@
                     <div class="col-12 col-md-5">
                         <div class="d-flex align-items-center gap-2">
                             <button wire:click="clearSelection" class="btn btn-sm btn-link text-danger text-decoration-none fw-bold">Limpiar</button>
-                            <a href="{{ $orderUrl }}" class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow-sm fs-6">
+                            <a href="{{ $orderUrl }}" class="btn btn-primary btn-lg rounded-pill px-4 fw-bold flex-grow-1 shadow-sm fs-6 text-truncate">
                                 Solicitar Grupo <i class="bi bi-arrow-right ms-2"></i>
                             </a>
                         </div>
@@ -159,18 +162,56 @@
     @endif
 
     <style>
-        /* Estilos base (Mantenidos de la versión anterior) */
-        .custom-exam-card { transition: all 0.3s cubic-bezier(.25,.8,.25,1); background: #ffffff; border: 1px solid rgba(0,0,0,0.05) !important; }
-        .custom-exam-card:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,0.1) !important; }
+        .custom-exam-card {
+            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.05) !important;
+        }
+
+        .custom-exam-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,0.1) !important;
+        }
+
         .card-accent-bar { height: 4px; width: 100%; }
-        .exam-title { font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.8rem; }
+
+        /* MANEJO DE TÍTULOS LARGOS */
+        .exam-title {
+            font-size: 0.95rem;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 4; /* Permite hasta 4 líneas */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 3.8rem; /* Mantiene las tarjetas alineadas */
+            word-break: break-word;
+        }
+
+        /* Si el nombre es muy largo, bajamos un poco el tamaño */
+        .title-long {
+            font-size: 0.85rem !important;
+        }
+
+        .custom-exam-card .card-body {
+            padding: 1.25rem !important;
+        }
+
         .inclusion-box { background-color: #f8f9fa; border: 1px solid rgba(0,0,0,0.02); }
         .inclusion-label { font-size: 0.65rem; font-weight: 800; color: #adb5bd; letter-spacing: 0.5px; display: block; margin-bottom: 5px; }
         .inclusion-item { color: #555; }
-        .card-selected { border: 2px solid #198754 !important; background-color: #f8fff9 !important; }
-        .pack-badge { background-color: #6610f2; font-size: 0.6rem; padding: 4px 8px; }
+
+        .card-selected {
+            border: 2px solid #198754 !important;
+            background-color: #f8fff9 !important;
+        }
+
+        .pack-badge { background-color: #6610f2; font-size: 0.6rem; padding: 4px 8px; color: white; }
         .promo-box { background-color: rgba(13, 202, 240, 0.1); color: #087990; border: 1px dashed rgba(13, 202, 240, 0.3); }
         .fw-extrabold { font-weight: 800; }
-        @media (max-width: 767px) { .fixed-bottom { padding: 0 10px; } }
+
+        @media (max-width: 767px) {
+            .fixed-bottom { padding: 0 10px; }
+            .exam-title { -webkit-line-clamp: 3; min-height: 3rem; }
+        }
     </style>
 </div>
