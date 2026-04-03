@@ -17,7 +17,7 @@
         <div class="row g-4">
             {{-- COLUMNA IZQUIERDA: DATOS BÁSICOS --}}
             <div class="col-xl-4">
-                <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
+                <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px; z-index: 10;">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center mb-4">
                             <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
@@ -31,17 +31,15 @@
                             <textarea name="name" class="form-control border-2 fw-bold" rows="2" required>{{ old('name', $examType->name) }}</textarea>
                         </div>
 
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold text-muted small">Especialidad</label>
-                                <select name="specialty_id" class="form-select border-2" required>
-                                    @foreach($specialties as $specialty)
-                                        <option value="{{ $specialty->id }}" {{ $examType->specialty_id == $specialty->id ? 'selected' : '' }}>
-                                            {{ $specialty->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted small">Especialidad</label>
+                            <select name="specialty_id" class="form-select border-2" required>
+                                @foreach($specialties as $specialty)
+                                    <option value="{{ $specialty->id }}" {{ $examType->specialty_id == $specialty->id ? 'selected' : '' }}>
+                                        {{ $specialty->name }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <div class="row g-3 mb-4">
@@ -58,7 +56,7 @@
                             </div>
                         </div>
 
-                        <div class="p-3 bg-light rounded-3 mb-4">
+                        <div class="p-3 bg-light rounded-3 mb-4 border">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="is_active" value="1" id="activeSwitch" {{ $examType->is_active ? 'checked' : '' }}>
                                 <label class="form-check-label fw-semibold" for="activeSwitch">Visible para pacientes</label>
@@ -79,17 +77,17 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <textarea name="description" class="form-control border-2" rows="3" placeholder="Slogan SEO...">{{ old('description', $examType->description) }}</textarea>
+                            <textarea name="description" class="form-control border-2" rows="3" placeholder="Slogan SEO o descripción corta...">{{ old('description', $examType->description) }}</textarea>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 mt-4 shadow rounded-3 py-3 fw-bold">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mt-4 shadow rounded-3 fw-bold py-3">
                             <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Cambios
                         </button>
                     </div>
                 </div>
             </div>
 
-            {{-- COLUMNA DERECHA: SELECCIÓN DE COMPOSICIÓN (LISTA LARGA) --}}
+            {{-- COLUMNA DERECHA: SELECCIÓN DE COMPOSICIÓN --}}
             <div class="col-xl-8">
                 <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
                     <div class="card-header bg-white border-0 p-4 pb-0">
@@ -100,35 +98,55 @@
                                 </div>
                                 <div>
                                     <h5 class="m-0 fw-bold">Composición de la Pila</h5>
-                                    <p class="text-muted small mb-0">Selecciona los exámenes que integran este pack.</p>
+                                    <p class="text-muted small mb-0">Convierte este examen en un <strong>Pack</strong> seleccionando sus componentes.</p>
                                 </div>
                             </div>
-                            <span id="counterBadge" class="badge rounded-pill bg-primary px-3 py-2">
-                                0 seleccionados
-                            </span>
+                            <div class="text-end">
+                                <span id="counterBadge" class="badge rounded-pill bg-primary px-3 py-2 fs-6">
+                                    0 seleccionados
+                                </span>
+                            </div>
                         </div>
 
-                        {{-- Buscador Refinado --}}
-                        <div class="input-group input-group-lg mb-3">
-                            <span class="input-group-text bg-light border-2 border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="examSearch" class="form-control bg-light border-2 border-start-0"
-                                   placeholder="Escribe para buscar exámenes por nombre o código...">
+                        {{-- Buscador y Filtros Rápidos --}}
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light border-2 border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="examSearch" class="form-control bg-light border-2 border-start-0"
+                                           placeholder="Buscar por nombre o código Fonasa...">
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" id="btnShowSelected" class="btn btn-outline-primary btn-lg border-2 h-100 px-3" title="Ver solo seleccionados">
+                                    <i class="bi bi-check-square"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush overflow-auto" style="max-height: 700px;" id="examList">
                             @foreach($allExams as $item)
-                                @if($item->id != $examType->id) {{-- Evitar que se agregue a sí mismo --}}
-                                <label class="list-group-item list-group-item-action border-0 py-3 px-4 exam-item" style="cursor: pointer;">
+                                @php $isChild = $examType->children->contains($item->id); @endphp
+                                <label class="list-group-item list-group-item-action border-0 py-3 px-4 exam-item {{ $isChild ? 'is-bundled' : '' }}"
+                                       style="cursor: pointer;"
+                                       data-selected="{{ $isChild ? 'true' : 'false' }}">
                                     <div class="d-flex align-items-start">
                                         <div class="form-check me-3">
                                             <input class="form-check-input exam-checkbox" type="checkbox"
                                                    name="bundle_ids[]" value="{{ $item->id }}"
-                                                   {{ $examType->children->contains($item->id) ? 'checked' : '' }}>
+                                                   {{ $isChild ? 'checked' : '' }}>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <div class="fw-semibold text-dark item-name">{{ $item->name }}</div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="fw-semibold text-dark item-name">{{ $item->name }}</div>
+                                                @if($isChild)
+                                                    <span class="badge bg-success-soft text-success border border-success border-opacity-25 py-1 px-2">
+                                                        <i class="bi bi-check2-circle me-1"></i>En Pila
+                                                    </span>
+                                                @endif
+                                            </div>
                                             <div class="d-flex gap-3 mt-1">
                                                 <small class="text-muted"><i class="bi bi-hash me-1"></i>{{ $item->code_fonasa ?? 'Sin código' }}</small>
                                                 <small class="text-primary fw-bold">${{ number_format($item->base_price, 0, ',', '.') }}</small>
@@ -136,12 +154,14 @@
                                         </div>
                                     </div>
                                 </label>
-                                @endif
                             @endforeach
                         </div>
                     </div>
-                    <div class="card-footer bg-light border-0 p-3 text-center">
-                        <small class="text-muted">Si el examen es único y no un pack, simplemente no selecciones ningún item de esta lista.</small>
+                    <div class="card-footer bg-light border-0 p-3">
+                        <div class="d-flex align-items-center text-muted small">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span>Si dejas la lista vacía, el sistema lo tratará como un examen individual.</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -153,8 +173,9 @@
     .uppercase { letter-spacing: 1px; font-size: 0.75rem; }
     .exam-item { transition: all 0.2s; border-bottom: 1px solid #f1f1f1 !important; }
     .exam-item:hover { background-color: #f8fbff !important; }
-    .exam-item.selected { background-color: #eef6ff !important; }
+    .exam-item.selected { background-color: #f0f7ff !important; border-left: 4px solid #0d6efd !important; }
     .item-name { line-height: 1.4; font-size: 0.95rem; }
+    .bg-success-soft { background-color: #e1f6eb; color: #198754; font-size: 0.7rem; }
 
     /* Scrollbar estético */
     #examList::-webkit-scrollbar { width: 8px; }
@@ -167,11 +188,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('examSearch');
+    const examList = document.getElementById('examList');
     const examItems = document.querySelectorAll('.exam-item');
     const counterBadge = document.getElementById('counterBadge');
     const checkboxes = document.querySelectorAll('.exam-checkbox');
+    const btnShowSelected = document.getElementById('btnShowSelected');
+    let showingOnlySelected = false;
 
-    // Función para actualizar el contador y el estilo visual
     function updateUI() {
         const selectedCount = document.querySelectorAll('.exam-checkbox:checked').length;
         counterBadge.innerText = `${selectedCount} seleccionados`;
@@ -180,28 +203,54 @@ document.addEventListener('DOMContentLoaded', function() {
             const row = cb.closest('.exam-item');
             if (cb.checked) {
                 row.classList.add('selected');
+                row.setAttribute('data-selected', 'true');
             } else {
                 row.classList.remove('selected');
+                row.setAttribute('data-selected', 'false');
             }
         });
     }
 
-    // Buscador en tiempo real
+    // Buscador
     searchInput.addEventListener('input', function() {
         const query = this.value.toLowerCase();
         examItems.forEach(item => {
-            const text = item.querySelector('.item-name').innerText.toLowerCase();
-            const code = item.innerText.toLowerCase(); // Incluye el código
-            item.style.display = (text.includes(query) || code.includes(query)) ? '' : 'none';
+            const text = item.innerText.toLowerCase();
+            const isMatch = text.includes(query);
+
+            if (showingOnlySelected) {
+                item.style.display = (isMatch && item.getAttribute('data-selected') === 'true') ? '' : 'none';
+            } else {
+                item.style.display = isMatch ? '' : 'none';
+            }
         });
     });
 
-    // Evento al cambiar checkbox
+    // Filtro rápido: Mostrar seleccionados
+    btnShowSelected.addEventListener('click', function() {
+        showingOnlySelected = !showingOnlySelected;
+        this.classList.toggle('active');
+        this.classList.toggle('btn-primary');
+        this.classList.toggle('btn-outline-primary');
+
+        const query = searchInput.value.toLowerCase();
+
+        examItems.forEach(item => {
+            const isSelected = item.getAttribute('data-selected') === 'true';
+            const isMatch = item.innerText.toLowerCase().includes(query);
+
+            if (showingOnlySelected) {
+                item.style.display = (isSelected && isMatch) ? '' : 'none';
+            } else {
+                item.style.display = isMatch ? '' : 'none';
+            }
+        });
+    });
+
     checkboxes.forEach(cb => {
         cb.addEventListener('change', updateUI);
     });
 
-    // Ejecutar al cargar para marcar iniciales
     updateUI();
 });
 </script>

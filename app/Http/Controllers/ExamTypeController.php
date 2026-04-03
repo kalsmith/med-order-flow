@@ -107,23 +107,26 @@ public function index(Request $request)
         }
     }
 
-    public function edit(ExamType $examType)
-    {
-        $specialties = Specialty::all();
+public function edit(ExamType $examType)
+{
+    $specialties = Specialty::all();
+    $posts = Post::orderBy('title')->get();
 
-        // CARGAR LOS POSTS PARA EL SELECTOR DEL BLOG
-        $posts = Post::orderBy('title')->get();
+    // IDs de los exámenes que ya están en la pila
+    $currentBundleIds = $examType->children()->pluck('exam_types.id')->toArray();
 
-        // Filtramos: Exámenes individuales y excluimos al actual
-        $allExams = ExamType::doesntHave('children')
-            ->where('id', '!=', $examType->id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+    // Traemos todos los exámenes, pero marcamos la prioridad
+    $allExams = ExamType::where('id', '!=', $examType->id)
+        ->where(function($query) use ($currentBundleIds) {
+            $query->where('is_active', true)
+                  ->orWhereIn('id', $currentBundleIds); // Forzamos que aparezcan los que ya están elegidos
+        })
+        ->orderByRaw("FIELD(id, " . (empty($currentBundleIds) ? '0' : implode(',', $currentBundleIds)) . ") DESC")
+        ->orderBy('name')
+        ->get();
 
-        // Asegúrate de incluir 'posts' en el compact
-        return view('admin.exam_types.edit', compact('examType', 'specialties', 'allExams', 'posts'));
-    }
+    return view('admin.exam_types.edit', compact('examType', 'specialties', 'allExams', 'posts'));
+}
 
     public function update(Request $request, ExamType $examType)
     {
